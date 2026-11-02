@@ -26,8 +26,11 @@ git fetch -q origin
 ./gradlew --no-daemon -q assembleRelease
 apk=app/build/outputs/apk/release/app-release.apk
 
-sdk=${ANDROID_HOME:-$(sed -n 's/^sdk.dir=//p' local.properties 2>/dev/null)}
-apksigner=$(ls -d "$sdk"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
+# the SDK Gradle built with: local.properties' sdk.dir first, as Gradle reads it, then ANDROID_HOME
+sdk=$(sed -n 's/^sdk.dir=//p' local.properties 2>/dev/null || true)
+sdk=${sdk:-${ANDROID_HOME:-}}
+# no match is not an error here: the check below says what is missing (under pipefail, ls failing would exit silently)
+apksigner=$(ls -d "$sdk"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1 || true)
 [ -x "$apksigner" ] || die "apksigner not found under $sdk/build-tools"
 got=$("$apksigner" verify --print-certs "$apk" 2>/dev/null | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
 [ "$got" = "$CERT" ] || die "the APK is not signed with the release key (got ${got:-nothing}); is rootiest.signing set in ~/.gradle/gradle.properties?"
