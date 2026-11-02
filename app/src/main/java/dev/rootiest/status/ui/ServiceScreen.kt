@@ -88,7 +88,7 @@ private fun ServiceDetailList(service: ServiceView, events: List<Event>, error: 
         } else {
             items(events) { EventRow(it) }
         }
-        item { SectionTitle("Daily uptime") }
+        item { SectionTitle("Daily uptime (UTC days)") }
         // newest first, unlike the strip; days before the history began are left out
         items(service.Bar.asReversed().filter { it.Class != "none" }, key = { it.Day }) { cell ->
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

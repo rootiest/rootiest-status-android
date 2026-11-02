@@ -25,7 +25,8 @@ Tap a service to open its detail screen:
   probed by TCP connect, whose hostname is only a name) and the uptime strip;
 - **Recent changes**: the snapshot's events for that service (`Kind` `service`, `Subject`
   equal to its name), newest first, in local time;
-- **Daily uptime**: one row per day, newest first, from the strip's cells. Days before
+- **Daily uptime (UTC days)**: one row per day, newest first, from the strip's cells. Days are
+  UTC days, as rootiest-hub counts them, so tomorrow's date can appear in the evening. Days before
   the history began (`Class` `none`) are left out.
 
 Pull down to refresh on either screen. After a failed refresh the last good snapshot
