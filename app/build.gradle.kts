@@ -50,6 +50,12 @@ android {
         }
     }
 
+    // install only for the main user: adb's default is every profile, and a stale copy in a Private space blocks
+    // installs signed with another key (Obtainium's "failureConflict")
+    installation {
+        installOptions += listOf("--user", "0")
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true
