@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Rootiest Status</string>
+    <string name="widget_description">Overall status of the Rootiest services, and what is down</string>
 </resources>
