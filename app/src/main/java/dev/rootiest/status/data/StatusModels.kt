@@ -35,6 +35,7 @@ data class GroupView(
 data class ServiceView(
     val Name: String,
     val Host: String = "",
+    val Direct: Boolean = false, // probed by TCP connect, not through the edge: Host is a name, not a link
     val State: String, // up, down, standby
     val Uptime: String = "",
     val Bar: List<BarCell> = emptyList(),
@@ -52,7 +53,9 @@ data class BarCell(
 @Serializable
 data class Event(
     val At: String,
-    val Kind: String,
-    val Subject: String,
+    val Kind: String, // edge, service, host
+    val Subject: String, // the service's or server's name; "Edge" for an edge move
+    val From: String = "",
+    val To: String = "",
     val Detail: String = "",
 )

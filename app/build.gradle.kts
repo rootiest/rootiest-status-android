@@ -42,6 +42,8 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.navigation3.runtime)
+    implementation(libs.navigation3.ui)
     implementation(libs.okhttp)
     debugImplementation(libs.compose.ui.tooling)
     testImplementation(libs.junit)
