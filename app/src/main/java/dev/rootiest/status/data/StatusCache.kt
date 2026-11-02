@@ -6,21 +6,39 @@ import java.io.File
 
 // The last good snapshot, so the widget still has something to show offline, and the states the background
 // job last saw, to tell what changed.
-class StatusCache(context: Context) {
-    private val file = File(context.filesDir, "last-status.json")
-    private val statesFile = File(context.filesDir, "last-states.json")
+class StatusCache(dir: File) {
+    constructor(context: Context) : this(context.filesDir)
+
+    private val file = File(dir, "last-status.json")
+    private val statesFile = File(dir, "last-states.json")
     private val json = Json { ignoreUnknownKeys = true }
 
     fun save(view: StatusView) {
-        file.writeText(json.encodeToString(view))
+        file.replaceWith(json.encodeToString(view))
     }
 
-    fun load(): StatusView? = runCatching { json.decodeFromString<StatusView>(file.readText()) }.getOrNull()
+    // The snapshot, or null when there is none or it is older than maxAgeMillis.
+    fun load(maxAgeMillis: Long = Long.MAX_VALUE, nowMillis: Long = System.currentTimeMillis()): StatusView? {
+        if (nowMillis - file.lastModified() > maxAgeMillis) return null
+        return runCatching { json.decodeFromString<StatusView>(file.readText()) }.getOrNull()
+    }
 
     fun saveStates(states: Map<String, String>) {
-        statesFile.writeText(json.encodeToString(states))
+        statesFile.replaceWith(json.encodeToString(states))
     }
 
     fun loadStates(): Map<String, String> =
         runCatching { json.decodeFromString<Map<String, String>>(statesFile.readText()) }.getOrDefault(emptyMap())
+}
+
+// Writes a temporary file beside this one and renames it over it, so a reader never sees half a file, even when the app
+// is stopped mid-write or the widget and the background job save at once (each writes its own temporary file).
+private fun File.replaceWith(text: String) {
+    val tmp = File.createTempFile(name, ".tmp", parentFile)
+    try {
+        tmp.writeText(text)
+        if (!tmp.renameTo(this)) error("could not replace $this")
+    } finally {
+        tmp.delete() // gone already after a successful rename
+    }
 }
