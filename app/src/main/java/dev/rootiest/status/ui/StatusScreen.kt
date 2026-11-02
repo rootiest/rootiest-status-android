@@ -2,7 +2,6 @@ package dev.rootiest.status.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -15,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -34,7 +34,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.rootiest.status.StatusUiState
-import dev.rootiest.status.data.GroupView
 import dev.rootiest.status.data.HostView
 import dev.rootiest.status.data.ServiceView
 import dev.rootiest.status.data.StatusView
@@ -81,25 +80,38 @@ fun StatusScreen(
     }
 }
 
+// The headline sits above the list and never scrolls; inside the list each section's title sticks until the next
+// section's title pushes it off. (Sticky headers all stick to the list's top edge, so the headline cannot be one.)
 @Composable
 private fun StatusList(view: StatusView, error: String?, onOpenService: (String, String) -> Unit) {
-    LazyColumn(
-        // no top padding: the sticky header carries it, so rows never show above the card
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        // stays at the top while the services scroll under it
-        stickyHeader {
-            Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(top = 16.dp)) { Headline(view) }
-        }
-        if (error != null) item { ErrorBanner("Refresh failed: $error") }
-        view.Hosts?.takeIf { it.isNotEmpty() }?.let { hosts ->
-            item { SectionTitle("Servers") }
-            items(hosts, key = { "host:" + it.Name }) { HostRow(it) }
-        }
-        view.Groups.forEach { group ->
-            item(key = "group:" + group.Name) { GroupCard(group) { onOpenService(group.Name, it) } }
+    Column(Modifier.fillMaxSize()) {
+        Box(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)) { Headline(view) }
+        LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp), modifier = Modifier.fillMaxSize()) {
+            if (error != null) item { Box(Modifier.padding(top = 12.dp)) { ErrorBanner("Refresh failed: $error") } }
+            view.Hosts?.takeIf { it.isNotEmpty() }?.let { hosts ->
+                stickyHeader(key = "servers") { SectionHeader("Servers") }
+                items(hosts, key = { "host:" + it.Name }) { Box(Modifier.padding(bottom = 8.dp)) { HostRow(it) } }
+            }
+            view.Groups.forEach { group ->
+                stickyHeader(key = "group:" + group.Name) { SectionHeader(group.Name) }
+                itemsIndexed(group.Services, key = { _, s -> "service:" + group.Name + "/" + s.Name }) { i, service ->
+                    // the group's rows together look like one card: round only its first and last corners
+                    val first = i == 0
+                    val last = i == group.Services.lastIndex
+                    val corner = 12.dp
+                    Box(
+                        Modifier.fillMaxWidth()
+                            .background(
+                                Mocha.Mantle,
+                                RoundedCornerShape(
+                                    topStart = if (first) corner else 0.dp, topEnd = if (first) corner else 0.dp,
+                                    bottomStart = if (last) corner else 0.dp, bottomEnd = if (last) corner else 0.dp,
+                                ),
+                            )
+                            .padding(start = 4.dp, end = 4.dp, top = if (first) 4.dp else 0.dp, bottom = if (last) 4.dp else 0.dp),
+                    ) { ServiceRow(service) { onOpenService(group.Name, service.Name) } }
+                }
+            }
         }
     }
 }
@@ -141,16 +153,6 @@ private fun HostRow(host: HostView) {
             }
             if (host.Vitals.isNotEmpty()) Text(host.Vitals, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (host.Note.isNotEmpty()) Text(host.Note, style = MaterialTheme.typography.bodySmall)
-        }
-    }
-}
-
-@Composable
-private fun GroupCard(group: GroupView, onOpen: (String) -> Unit) {
-    Card(colors = CardDefaults.cardColors(containerColor = Mocha.Mantle)) {
-        Column(Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Box(Modifier.padding(horizontal = 8.dp)) { SectionTitle(group.Name) }
-            group.Services.forEach { service -> ServiceRow(service) { onOpen(service.Name) } }
         }
     }
 }

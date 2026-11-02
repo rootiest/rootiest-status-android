@@ -2,6 +2,7 @@ package dev.rootiest.status.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -32,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.rootiest.status.R
 import dev.rootiest.status.StatusUiState
+import dev.rootiest.status.data.BarCell
 import dev.rootiest.status.data.Event
 import dev.rootiest.status.data.ServiceView
 import dev.rootiest.status.data.eventsFor
@@ -73,32 +75,36 @@ fun ServiceScreen(state: StatusUiState, group: String, name: String, onRefresh: 
     }
 }
 
+// The summary card sits above the list and never scrolls; "Recent changes" sticks until "Daily uptime" pushes it off.
 @Composable
 private fun ServiceDetailList(service: ServiceView, events: List<Event>, error: String?) {
-    LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxSize(),
-    ) {
-        if (error != null) item { ErrorBanner("Refresh failed: $error") }
-        item { Summary(service) }
-        item { SectionTitle("Recent changes") }
-        if (events.isEmpty()) {
-            item { Text("No changes in the recent history.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
-        } else {
-            items(events) { EventRow(it) }
-        }
-        item { SectionTitle("Daily uptime (UTC days)") }
-        // newest first, unlike the strip; days before the history began are left out
-        items(service.Bar.asReversed().filter { it.Class != "none" }, key = { it.Day }) { cell ->
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Dot(toneOf(cell.Class))
-                Spacer(Modifier.width(8.dp))
-                Text(cell.Day)
-                Spacer(Modifier.weight(1f))
-                Text(cell.summary(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Column(Modifier.fillMaxSize()) {
+        Box(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)) { Summary(service) }
+        LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp), modifier = Modifier.fillMaxSize()) {
+            if (error != null) item { Box(Modifier.padding(top = 12.dp)) { ErrorBanner("Refresh failed: $error") } }
+            stickyHeader(key = "changes") { SectionHeader("Recent changes") }
+            if (events.isEmpty()) {
+                item { Text("No changes in the recent history.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            } else {
+                items(events) { Box(Modifier.padding(bottom = 8.dp)) { EventRow(it) } }
+            }
+            stickyHeader(key = "days") { SectionHeader("Daily uptime (UTC days)") }
+            // newest first, unlike the strip; days before the history began are left out
+            items(service.Bar.asReversed().filter { it.Class != "none" }, key = { it.Day }) { cell ->
+                DayRow(cell)
             }
         }
+    }
+}
+
+@Composable
+private fun DayRow(cell: BarCell) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Dot(toneOf(cell.Class))
+        Spacer(Modifier.width(8.dp))
+        Text(cell.Day)
+        Spacer(Modifier.weight(1f))
+        Text(cell.summary(), color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
