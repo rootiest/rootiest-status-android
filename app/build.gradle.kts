@@ -8,7 +8,7 @@ plugins {
 }
 
 // The version scripts/release.sh tags (v<appVersion>). versionCode follows from it: 1.2.3 is 10203.
-val appVersion = "1.0.0"
+val appVersion = "1.1.0"
 val (major, minor, patch) = appVersion.split(".").map(String::toInt)
 
 // The release key's properties file (storeFile, storePassword, keyAlias, keyPassword), named by the Gradle property
