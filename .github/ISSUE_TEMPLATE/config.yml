@@ -1,0 +1,4 @@
+# Read by both Gitea and GitHub. The .yml extension is required: GitHub only recognizes
+# config.yml and silently ignores config.yaml.
+# Blank issues stay enabled so chores, refactors and questions are not forced into a template.
+blank_issues_enabled: true

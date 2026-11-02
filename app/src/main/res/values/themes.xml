@@ -1,0 +1,8 @@
+<resources>
+    <!-- Only the window before Compose draws; the Compose theme is in ui/theme/Theme.kt. -->
+    <style name="Theme.RootiestStatus" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/mocha_base</item>
+    </style>
+    <color name="mocha_base">#1E1E2E</color>
+    <color name="mocha_green">#A6E3A1</color>
+</resources>

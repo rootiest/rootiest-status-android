@@ -1,0 +1,27 @@
+# GitHub-only workflow. Why Gitea could not run it: the Android build needs the Android SDK and a Gradle
+# daemon with about 2 GB of heap, and there is no heavy-build Gitea runner (rootiest-server's were removed
+# 2026-10-09); GitHub's ubuntu image already carries the SDK with its licences accepted.
+# It runs on the branches the Gitea push mirror copies to GitHub.
+name: CI
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  test:
+    if: github.server_url == 'https://github.com'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Test
+        run: ./tests/run-tests.sh
+      - name: Build debug APK
+        run: ./gradlew --no-daemon assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/*.apk
