@@ -166,6 +166,8 @@ status app icon.
 - `compileSdk`/`targetSdk` 37, `minSdk` 29 (Android 10).
 - Application id `dev.rootiest.status`. The version is `appVersion` in
   `app/build.gradle.kts`; `versionCode` follows from it (`1.2.3` is 10203).
+- `./gradlew install*` installs for the phone's main user only (`--user 0`), not into a
+  work profile or Private space; `adb install` without it installs into every profile.
 - Release builds are minified with R8 and shrink unused resources, and are signed with
   the release key when the machine has it (see Releases), otherwise with the debug key.
 - Use release builds to judge how the app feels. On a Pixel 9 Pro the list scrolled with
