@@ -25,7 +25,8 @@ the platform and build tools it needs.
 ## Build and test
 
 - Build: `./gradlew assembleDebug` writes `app/build/outputs/apk/debug/app-debug.apk`.
-- Install on a connected phone or emulator: `./gradlew installDebug`.
+- Install on a connected phone or emulator: `./gradlew installRelease` to try the app
+  (debug builds scroll with visible jank), `./gradlew installDebug` while debugging.
 - Test: `./tests/run-tests.sh` (JVM unit tests, no device). CI runs the same command on
   GitHub Actions, on the branches the Gitea mirror copies there; see
   [docs/README.md](docs/README.md#ci).

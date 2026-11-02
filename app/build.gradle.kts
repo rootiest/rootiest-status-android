@@ -21,6 +21,8 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            // shortcut: signed with the debug key so local release builds install; replace with a real key in roadmap step 6
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }

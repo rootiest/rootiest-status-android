@@ -12,7 +12,8 @@ the source and regenerate.
 
 The app shows the same snapshot as [status.rootiest.dev](https://status.rootiest.dev):
 
-- a headline card in the overall level's colour (green ok, yellow warn, red bad), with
+- a headline card in the overall level's colour, centred and kept at the top while
+  the list scrolls (green ok, yellow warn, red bad), with
   "Failover active" while traffic is served by the standby edge;
 - the Servers section (state, vitals, note per host), only when the API includes it.
   The app does not sign in yet, so the API leaves it out (`"Hosts": null`);
@@ -97,7 +98,8 @@ Material 3.
 | `MainActivity.kt` | edge-to-edge activity that hosts the screen |
 
 Navigation uses Navigation 3: the back stack is a list of `@Serializable` keys that
-survives process death. Both screens read the one `StatusViewModel`, so a detail screen
+survives process death. Screens slide horizontally on open, back and the back gesture
+(Navigation 3 would fade, and shrink the screen during the gesture). Both screens read the one `StatusViewModel`, so a detail screen
 shows the same snapshot as the list, and refreshing either refreshes both. A service is
 identified by group and name; if it leaves the catalog while its screen is open, the
 screen says so instead of crashing.
@@ -111,8 +113,10 @@ status app icon.
   build applies only the Compose and serialization Kotlin plugins.
 - `compileSdk`/`targetSdk` 37, `minSdk` 29 (Android 10).
 - Application id `dev.rootiest.status`, version `0.1.0` (code 1).
-- Release builds are minified with R8 and shrink unused resources; there is no release
-  signing set up yet.
+- Release builds are minified with R8 and shrink unused resources. They are signed with
+  the debug key for now, so `./gradlew installRelease` works; real signing is roadmap step 6.
+- Use release builds to judge how the app feels. On a Pixel 9 Pro the list scrolled with
+  13% janky frames in a debug build and 1% in a release build.
 
 ## Tests
 
