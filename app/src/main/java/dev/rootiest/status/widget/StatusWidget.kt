@@ -52,9 +52,10 @@ class StatusWidget : GlanceAppWidget() {
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val cache = StatusCache(context)
-        // Fetch on every update; fall back to the last good snapshot and say it is stale.
-        val fresh = runCatching { StatusApi(AuthStore(context)::credentials).fetch() }.getOrNull()
-        fresh?.let(cache::save)
+        // The refresh job saves a snapshot just before redrawing the widgets, so use that rather than fetching again. Fetch only
+        // when it is older (a widget just added); when that fails, show the last good snapshot and say it is stale.
+        val fresh = cache.load(maxAgeMillis = 60_000)
+            ?: runCatching { StatusApi(AuthStore(context)::credentials).fetch() }.getOrNull()?.also(cache::save)
         val view = fresh ?: cache.load()
         provideContent { Content(view, stale = fresh == null) }
     }
