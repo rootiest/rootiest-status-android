@@ -22,8 +22,6 @@ merged pull request resolved it, otherwise `Reviewed/Won't Fix`, `Reviewed/Dupli
 
 ## Commit messages and pull requests
 
-- No AI attribution trailers or footers ("Co-Authored-By: ..." for an assistant,
-  "Generated with ...") on commits or pull requests.
 - Describe what changed and why; link the issue it closes.
 
 ## Documentation

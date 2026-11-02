@@ -8,4 +8,3 @@ What changed and why.
 - [ ] Tests pass (`./tests/run-tests.sh`)
 - [ ] Docs under `docs/` updated
 - [ ] Labels applied: one `Kind/*`, at least one `Area/*`
-- [ ] No AI attribution in commits or this description
