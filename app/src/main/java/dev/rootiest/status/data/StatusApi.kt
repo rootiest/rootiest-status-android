@@ -3,8 +3,10 @@ package dev.rootiest.status.data
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.IOException
 
 class StatusApi(
@@ -24,6 +26,14 @@ class StatusApi(
         client.newCall(request).execute().use { response ->
             if (!response.isSuccessful) throw IOException("HTTP ${response.code}")
             parse(response.body.string())
+        }
+    }
+
+    // Gives the hub this phone's push address (rootiest-hub POST /app/push), which it wakes after each alert.
+    suspend fun registerPush(address: String) = withContext(Dispatchers.IO) {
+        val request = Request.Builder().url("$baseUrl/app/push").post(address.toRequestBody("text/plain".toMediaType())).build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) throw IOException("push address refused: HTTP ${response.code}")
         }
     }
 

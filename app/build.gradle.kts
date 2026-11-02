@@ -78,6 +78,7 @@ dependencies {
     implementation(libs.glance.appwidget)
     implementation(libs.work.runtime.ktx)
     implementation(libs.androidx.browser)
+    implementation(libs.unifiedpush.connector)
     implementation(libs.okhttp)
     debugImplementation(libs.compose.ui.tooling)
     testImplementation(libs.junit)
