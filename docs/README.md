@@ -33,6 +33,24 @@ Pull down to refresh on either screen. After a failed refresh the last good snap
 stays on screen with an error banner above it. Back (button or gesture) returns to the
 list.
 
+## Home-screen widget
+
+The **Rootiest Status** widget shows the overall level's colour and the headline. At
+two cells tall or more it also lists what is wrong (up to four rows, then "and N more")
+and when the snapshot was fetched. Tapping it opens the app.
+
+- What is wrong (`data/Problems.kt`): servers whose state is not `healthy`, then
+  services whose state is not `up` or `standby` (a standby copy is down on purpose).
+  "(planned)" marks one a planned window expects.
+- Each widget update fetches `/api/status` and saves the answer in the app's files
+  (`last-status.json`, `data/StatusCache.kt`). When the fetch fails the widget shows
+  the saved snapshot, with "Offline · as of <time>" in yellow.
+- `RefreshWorker` (WorkManager) redraws every widget every 15 minutes, the shortest
+  period WorkManager allows, and only with a network connection. It is scheduled when
+  the first widget is added and cancelled when the last one is removed. The widget's
+  own `updatePeriodMillis` is 0, since the system's minimum is 30 minutes.
+- The app's own refresh does not redraw the widget yet.
+
 ## Data source
 
 `GET https://status.rootiest.dev/api/status`, served by rootiest-hub
@@ -70,6 +88,11 @@ Material 3.
 | `ui/StatusScreen.kt` | the list: top bar, pull-to-refresh, headline, servers, groups, tappable services |
 | `ui/ServiceScreen.kt` | a service's detail: summary, recent changes, daily uptime |
 | `ui/Components.kt` | pieces both screens use: error banner, section title, dot, uptime strip |
+| `data/Problems.kt` | what the widget lists: unhealthy servers and down services |
+| `data/StatusCache.kt` | the last good snapshot, saved for the widget |
+| `widget/StatusWidget.kt` | the Glance widget: fetch or cached snapshot, two layouts by size |
+| `widget/StatusWidgetReceiver.kt` | the widget's receiver; schedules and cancels the refresh |
+| `widget/RefreshWorker.kt` | WorkManager job that redraws the widgets every 15 minutes |
 | `ui/theme/Theme.kt` | Catppuccin Mocha palette, Material colour scheme, state colours |
 | `MainActivity.kt` | edge-to-edge activity that hosts the screen |
 
@@ -95,7 +118,8 @@ status app icon.
 
 `./tests/run-tests.sh` runs `testDebugUnitTest`: JVM tests, no device needed.
 `StatusApiTest` parses `app/src/test/resources/status-sample.json`, a saved signed-out
-answer from the live API, and checks that unknown fields are ignored. `LookupsTest` runs
+answer from the live API, and checks that unknown fields are ignored. `ProblemsTest` covers
+what the widget lists. `LookupsTest` runs
 the `data/Lookups.kt` functions against the same fixture (it relies on the fixture's
 Notes outage on 2026-10-27, so keep an answer with a service event when refreshing it). Refresh the
 fixture when the API changes:
@@ -116,7 +140,7 @@ not on the Gitea pull request.
 
 1. Fetch and render the live status. Done.
 2. Service detail screens and navigation. Done.
-3. Home-screen widget (Glance) refreshed by WorkManager.
+3. Home-screen widget (Glance) refreshed by WorkManager. Done.
 4. Notifications on state changes.
 5. Sign in with RootiestID (AppAuth, PKCE) to see the Servers section; needs a public
    PocketID client and bearer-token support in rootiest-hub.

@@ -44,6 +44,8 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.navigation3.runtime)
     implementation(libs.navigation3.ui)
+    implementation(libs.glance.appwidget)
+    implementation(libs.work.runtime.ktx)
     implementation(libs.okhttp)
     debugImplementation(libs.compose.ui.tooling)
     testImplementation(libs.junit)
