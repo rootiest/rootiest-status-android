@@ -23,6 +23,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -42,8 +43,29 @@ import dev.rootiest.status.ui.theme.toneOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StatusScreen(state: StatusUiState, onRefresh: () -> Unit, onOpenService: (group: String, name: String) -> Unit) {
-    Scaffold(topBar = { TopAppBar(title = { Text("Rootiest Status") }) }) { padding ->
+fun StatusScreen(
+    state: StatusUiState,
+    onRefresh: () -> Unit,
+    onOpenService: (group: String, name: String) -> Unit,
+    onSignIn: () -> Unit,
+    onSignOut: () -> Unit,
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Rootiest Status") },
+                actions = {
+                    val name = state.signedInAs
+                    if (name != null) {
+                        Text(name, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        TextButton(onClick = onSignOut) { Text("Sign out") }
+                    } else {
+                        TextButton(onClick = onSignIn) { Text("Sign in") }
+                    }
+                },
+            )
+        },
+    ) { padding ->
         PullToRefreshBox(
             isRefreshing = state.loading && state.view != null,
             onRefresh = onRefresh,

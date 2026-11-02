@@ -31,6 +31,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import dev.rootiest.status.MainActivity
+import dev.rootiest.status.data.AuthStore
 import dev.rootiest.status.data.StatusApi
 import dev.rootiest.status.data.StatusCache
 import dev.rootiest.status.data.StatusView
@@ -52,7 +53,7 @@ class StatusWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val cache = StatusCache(context)
         // Fetch on every update; fall back to the last good snapshot and say it is stale.
-        val fresh = runCatching { StatusApi().fetch() }.getOrNull()
+        val fresh = runCatching { StatusApi(AuthStore(context)::credentials).fetch() }.getOrNull()
         fresh?.let(cache::save)
         val view = fresh ?: cache.load()
         provideContent { Content(view, stale = fresh == null) }

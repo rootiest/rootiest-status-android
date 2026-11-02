@@ -11,10 +11,19 @@
         android:theme="@style/Theme.RootiestStatus">
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- where rootiest-hub's /app/login returns: dev.rootiest.status:/signed-in?token=...
+                 (with no host Android ignores a path, so MainActivity checks it) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="dev.rootiest.status" />
             </intent-filter>
         </activity>
 
