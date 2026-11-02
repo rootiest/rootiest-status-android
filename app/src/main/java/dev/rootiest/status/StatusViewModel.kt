@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import dev.rootiest.status.data.AuthStore
 import dev.rootiest.status.data.StatusApi
 import dev.rootiest.status.data.StatusView
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,13 +31,18 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
         refresh()
     }
 
+    private var fetching: Job? = null
+
+    // A new refresh cancels the one in flight, so an answer fetched before a sign-in (or sign-out) never lands last.
     fun refresh() {
-        if (_state.value.loading) return
+        fetching?.cancel()
         _state.update { it.copy(loading = true, error = null, signedInAs = auth.signedInAs()) }
-        viewModelScope.launch {
+        fetching = viewModelScope.launch {
             try {
                 val view = api.fetch()
                 _state.update { it.copy(view = view, loading = false) }
+            } catch (e: CancellationException) {
+                throw e // replaced by a newer refresh, which owns the state now
             } catch (e: Exception) {
                 _state.update { it.copy(loading = false, error = e.message ?: e.javaClass.simpleName) }
             }
@@ -51,13 +58,11 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
             _state.update { it.copy(error = "Sign-in did not finish. Try again.") }
             return
         }
-        _state.update { it.copy(loading = false) }
         refresh()
     }
 
     fun signOut() {
         auth.signOut()
-        _state.update { it.copy(loading = false) }
         refresh()
     }
 }

@@ -23,21 +23,25 @@ fun challengeOf(proof: String): String =
 
 // What the app reads from a token: who it names and when it runs out. The hub signs the token, so the app only reads
 // it; tampering with it just makes the hub ignore it.
-data class TokenInfo(val name: String, val expiresAt: Long)
+data class TokenInfo(val name: String, val expiresAt: Long, val challenge: String)
 
 @Serializable
 private data class Envelope(val e: Long, val v: Visitor)
 
 @Serializable
-private data class Visitor(val Name: String = "")
+private data class Visitor(val Name: String = "", val Challenge: String = "")
 
 private val json = Json { ignoreUnknownKeys = true }
 
 fun tokenInfo(token: String): TokenInfo? = runCatching {
     val body = String(Base64.getUrlDecoder().decode(token.substringBefore('.')))
     val env = json.decodeFromString<Envelope>(body)
-    TokenInfo(env.v.Name, env.e)
+    TokenInfo(env.v.Name, env.e, env.v.Challenge)
 }.getOrNull()
+
+// Whether a token answers the sign-in started with this proof. Any app can open dev.rootiest.status:/signed-in, so a
+// token for some other sign-in must not replace this one.
+fun tokenMatches(token: String, proof: String): Boolean = tokenInfo(token)?.challenge == challengeOf(proof)
 
 // The sign-in kept in the app's private storage. The pending proof is saved before the browser opens, so a sign-in
 // still completes if Android stops the app meanwhile.
@@ -51,10 +55,11 @@ class AuthStore(context: Context) {
         return "$baseUrl/app/login?challenge=${challengeOf(proof)}"
     }
 
-    // Keeps the token the hub sent back; false when no sign-in was waiting for it.
+    // Keeps the token the hub sent back; false when no sign-in was waiting for it or it answers another one (the
+    // pending sign-in then stays open for the real token).
     fun complete(token: String): Boolean {
         val proof = prefs.getString("pending", null) ?: return false
-        if (tokenInfo(token) == null) return false
+        if (!tokenMatches(token, proof)) return false
         prefs.edit { putString("token", token).putString("proof", proof).remove("pending") }
         return true
     }
