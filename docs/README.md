@@ -46,11 +46,34 @@ and when the snapshot was fetched. Tapping it opens the app.
 - Each widget update fetches `/api/status` and saves the answer in the app's files
   (`last-status.json`, `data/StatusCache.kt`). When the fetch fails the widget shows
   the saved snapshot, with "Offline · as of <time>" in yellow.
-- `RefreshWorker` (WorkManager) redraws every widget every 15 minutes, the shortest
-  period WorkManager allows, and only with a network connection. It is scheduled when
-  the first widget is added and cancelled when the last one is removed. The widget's
-  own `updatePeriodMillis` is 0, since the system's minimum is 30 minutes.
+- The background job (below) redraws every widget every 15 minutes. The widget's own
+  `updatePeriodMillis` is 0, since the system's minimum is 30 minutes.
 - The app's own refresh does not redraw the widget yet.
+
+## Notifications and the background job
+
+`RefreshWorker` (WorkManager) runs every 15 minutes, the shortest period WorkManager
+allows, and only with a network connection. Each run fetches the status, posts a
+notification for each change, saves the states and the snapshot, and redraws the
+widgets. It is scheduled on every app start (and when a widget is added) and keeps
+running without a widget, since it also sends the notifications. Android may run it
+later than every 15 minutes when the phone is idle (Doze), so a change can take longer
+to arrive; ntfy remains the fast path.
+
+- A change is a service or server whose state differs from the previous run
+  (`data/Changes.kt`; states saved in `last-states.json`). Nothing is posted on the
+  first run, for a name not seen before, or for one a planned window expects (as
+  rootiest-hub holds its own alerts for those).
+- Notifications go to the "Service changes" channel: "Gitea is down / was up",
+  "Gitea is back up / was down". Each name has one notification id, so a recovery
+  replaces the down notification. Tapping one opens the app.
+- On Android 13 and later the app asks for notification permission on first launch.
+  Refusing only turns notifications off.
+
+Testing on a device: a periodic job cannot be forced early (WorkManager reschedules a
+run that comes "before schedule"). With a debug build, write a state into
+`files/last-states.json` (`adb shell run-as dev.rootiest.status ...`) and wait for the
+next run.
 
 ## Data source
 
@@ -92,8 +115,10 @@ Material 3.
 | `data/Problems.kt` | what the widget lists: unhealthy servers and down services |
 | `data/StatusCache.kt` | the last good snapshot, saved for the widget |
 | `widget/StatusWidget.kt` | the Glance widget: fetch or cached snapshot, two layouts by size |
-| `widget/StatusWidgetReceiver.kt` | the widget's receiver; schedules and cancels the refresh |
-| `widget/RefreshWorker.kt` | WorkManager job that redraws the widgets every 15 minutes |
+| `widget/StatusWidgetReceiver.kt` | the widget's receiver; schedules the background job |
+| `widget/RefreshWorker.kt` | the background job: fetch, notify changes, redraw widgets, every 15 minutes |
+| `data/Changes.kt` | what changed between two fetches |
+| `Notifier.kt` | the notification channel, permission check and posting |
 | `ui/theme/Theme.kt` | Catppuccin Mocha palette, Material colour scheme, state colours |
 | `MainActivity.kt` | edge-to-edge activity that hosts the screen |
 
@@ -123,7 +148,7 @@ status app icon.
 `./tests/run-tests.sh` runs `testDebugUnitTest`: JVM tests, no device needed.
 `StatusApiTest` parses `app/src/test/resources/status-sample.json`, a saved signed-out
 answer from the live API, and checks that unknown fields are ignored. `ProblemsTest` covers
-what the widget lists. `LookupsTest` runs
+what the widget lists, `ChangesTest` what counts as a change. `LookupsTest` runs
 the `data/Lookups.kt` functions against the same fixture (it relies on the fixture's
 Notes outage on 2026-10-27, so keep an answer with a service event when refreshing it). Refresh the
 fixture when the API changes:
@@ -145,7 +170,7 @@ not on the Gitea pull request.
 1. Fetch and render the live status. Done.
 2. Service detail screens and navigation. Done.
 3. Home-screen widget (Glance) refreshed by WorkManager. Done.
-4. Notifications on state changes.
+4. Notifications on state changes. Done.
 5. Sign in with RootiestID (AppAuth, PKCE) to see the Servers section; needs a public
    PocketID client and bearer-token support in rootiest-hub.
 6. Signed release APKs on Gitea releases, installed and updated with Obtainium.

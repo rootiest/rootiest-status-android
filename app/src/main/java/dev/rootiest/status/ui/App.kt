@@ -1,16 +1,23 @@
 package dev.rootiest.status.ui
 
+import android.Manifest
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import dev.rootiest.status.Home
+import dev.rootiest.status.Notifier
 import dev.rootiest.status.ServiceDetail
 import dev.rootiest.status.StatusViewModel
 
@@ -19,6 +26,12 @@ import dev.rootiest.status.StatusViewModel
 fun RootiestApp(vm: StatusViewModel = viewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
     val backStack = rememberNavBackStack(Home)
+    // Ask once for notifications (Android 13+); a refusal only means no change notifications.
+    val context = LocalContext.current
+    val askNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= 33 && !Notifier.canNotify(context)) askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
     NavDisplay(
         backStack = backStack,
         onBack = { backStack.removeLastOrNull() },
