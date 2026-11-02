@@ -1,6 +1,6 @@
 package dev.rootiest.status.ui
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,11 +11,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -27,16 +25,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import dev.rootiest.status.StatusViewModel
-import dev.rootiest.status.data.BarCell
+import dev.rootiest.status.StatusUiState
 import dev.rootiest.status.data.GroupView
 import dev.rootiest.status.data.HostView
 import dev.rootiest.status.data.ServiceView
@@ -46,17 +40,16 @@ import dev.rootiest.status.ui.theme.toneOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StatusScreen(vm: StatusViewModel = viewModel()) {
-    val state by vm.state.collectAsStateWithLifecycle()
+fun StatusScreen(state: StatusUiState, onRefresh: () -> Unit, onOpenService: (group: String, name: String) -> Unit) {
     Scaffold(topBar = { TopAppBar(title = { Text("Rootiest Status") }) }) { padding ->
         PullToRefreshBox(
             isRefreshing = state.loading && state.view != null,
-            onRefresh = vm::refresh,
+            onRefresh = onRefresh,
             modifier = Modifier.fillMaxSize().padding(padding),
         ) {
             val view = state.view
             when {
-                view != null -> StatusList(view, state.error)
+                view != null -> StatusList(view, state.error, onOpenService)
                 state.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
                 else -> ErrorList(state.error ?: "No data")
             }
@@ -65,7 +58,7 @@ fun StatusScreen(vm: StatusViewModel = viewModel()) {
 }
 
 @Composable
-private fun StatusList(view: StatusView, error: String?) {
+private fun StatusList(view: StatusView, error: String?, onOpenService: (String, String) -> Unit) {
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -78,26 +71,17 @@ private fun StatusList(view: StatusView, error: String?) {
             items(hosts, key = { "host:" + it.Name }) { HostRow(it) }
         }
         view.Groups.forEach { group ->
-            item(key = "group:" + group.Name) { GroupCard(group) }
+            item(key = "group:" + group.Name) { GroupCard(group) { onOpenService(group.Name, it) } }
         }
     }
 }
 
 // A list, not a plain Box, so pull-to-refresh still works after a failed first load.
 @Composable
-private fun ErrorList(message: String) {
+internal fun ErrorList(message: String) {
     LazyColumn(contentPadding = PaddingValues(16.dp), modifier = Modifier.fillMaxSize()) {
         item { ErrorBanner("Could not load status: $message\nPull down to try again.") }
     }
-}
-
-@Composable
-private fun ErrorBanner(text: String) {
-    Text(
-        text,
-        color = Mocha.Base,
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Mocha.Red).padding(12.dp),
-    )
 }
 
 @Composable
@@ -108,11 +92,6 @@ private fun Headline(view: StatusView) {
             if (view.Failover) Text("Failover active", color = Mocha.Base)
         }
     }
-}
-
-@Composable
-private fun SectionTitle(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium, color = Mocha.Mauve)
 }
 
 @Composable
@@ -133,18 +112,18 @@ private fun HostRow(host: HostView) {
 }
 
 @Composable
-private fun GroupCard(group: GroupView) {
+private fun GroupCard(group: GroupView, onOpen: (String) -> Unit) {
     Card(colors = CardDefaults.cardColors(containerColor = Mocha.Mantle)) {
-        Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            SectionTitle(group.Name)
-            group.Services.forEach { ServiceRow(it) }
+        Column(Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Box(Modifier.padding(horizontal = 8.dp)) { SectionTitle(group.Name) }
+            group.Services.forEach { service -> ServiceRow(service) { onOpen(service.Name) } }
         }
     }
 }
 
 @Composable
-private fun ServiceRow(service: ServiceView) {
-    Column {
+private fun ServiceRow(service: ServiceView, onClick: () -> Unit) {
+    Column(Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Dot(toneOf(service.State))
             Spacer(Modifier.width(8.dp))
@@ -156,22 +135,4 @@ private fun ServiceRow(service: ServiceView) {
         Spacer(Modifier.height(6.dp))
         UptimeBar(service.Bar)
     }
-}
-
-// One cell per day, oldest first, like the strip on the web page.
-@Composable
-private fun UptimeBar(cells: List<BarCell>) {
-    Row(Modifier.fillMaxWidth().height(18.dp), horizontalArrangement = Arrangement.spacedBy(1.dp)) {
-        cells.forEach { cell ->
-            Box(
-                Modifier.weight(1f).fillMaxSize().clip(RoundedCornerShape(2.dp))
-                    .background(if (cell.Class == "none") Mocha.Surface0 else toneOf(cell.Class)),
-            )
-        }
-    }
-}
-
-@Composable
-private fun Dot(color: androidx.compose.ui.graphics.Color) {
-    Box(Modifier.size(10.dp).clip(CircleShape).background(color))
 }

@@ -18,8 +18,19 @@ The app shows the same snapshot as [status.rootiest.dev](https://status.rootiest
   The app does not sign in yet, so the API leaves it out (`"Hosts": null`);
 - every group of services: state dot, uptime text and the per-day uptime strip.
 
-Pull down to refresh. After a failed refresh the last good snapshot stays on screen
-with an error banner above it.
+Tap a service to open its detail screen:
+
+- a summary card: state (and "planned" when a planned window expects it down), uptime
+  text, the service's detail line, its hostname (a link to the site, except for services
+  probed by TCP connect, whose hostname is only a name) and the uptime strip;
+- **Recent changes**: the snapshot's events for that service (`Kind` `service`, `Subject`
+  equal to its name), newest first, in local time;
+- **Daily uptime**: one row per day, newest first, from the strip's cells. Days before
+  the history began (`Class` `none`) are left out.
+
+Pull down to refresh on either screen. After a failed refresh the last good snapshot
+stays on screen with an error banner above it. Back (button or gesture) returns to the
+list.
 
 ## Data source
 
@@ -51,10 +62,21 @@ Material 3.
 |---|---|
 | `data/StatusModels.kt` | `@Serializable` data classes for the API's JSON |
 | `data/StatusApi.kt` | OkHttp GET plus kotlinx.serialization parse, on `Dispatchers.IO` |
+| `data/Lookups.kt` | plain functions over a snapshot: find a service, its events, a day's summary text |
 | `StatusViewModel.kt` | holds `StatusUiState` (last view, loading, error) as a `StateFlow`; fetches on start and on `refresh()` |
-| `ui/StatusScreen.kt` | the screen: top bar, pull-to-refresh, headline, servers, groups, uptime strips |
+| `Routes.kt` | Navigation 3 keys: `Home`, `ServiceDetail(group, name)` |
+| `ui/App.kt` | the app root: one `StatusViewModel` above the navigation, the back stack and `NavDisplay` |
+| `ui/StatusScreen.kt` | the list: top bar, pull-to-refresh, headline, servers, groups, tappable services |
+| `ui/ServiceScreen.kt` | a service's detail: summary, recent changes, daily uptime |
+| `ui/Components.kt` | pieces both screens use: error banner, section title, dot, uptime strip |
 | `ui/theme/Theme.kt` | Catppuccin Mocha palette, Material colour scheme, state colours |
 | `MainActivity.kt` | edge-to-edge activity that hosts the screen |
+
+Navigation uses Navigation 3: the back stack is a list of `@Serializable` keys that
+survives process death. Both screens read the one `StatusViewModel`, so a detail screen
+shows the same snapshot as the list, and refreshing either refreshes both. A service is
+identified by group and name; if it leaves the catalog while its screen is open, the
+screen says so instead of crashing.
 
 The launcher icon is a placeholder (green dot on Mocha base) until rootiest-icons has a
 status app icon.
@@ -72,7 +94,9 @@ status app icon.
 
 `./tests/run-tests.sh` runs `testDebugUnitTest`: JVM tests, no device needed.
 `StatusApiTest` parses `app/src/test/resources/status-sample.json`, a saved signed-out
-answer from the live API, and checks that unknown fields are ignored. Refresh the
+answer from the live API, and checks that unknown fields are ignored. `LookupsTest` runs
+the `data/Lookups.kt` functions against the same fixture (it relies on the fixture's
+Notes outage on 2026-10-27, so keep an answer with a service event when refreshing it). Refresh the
 fixture when the API changes:
 
 ```sh
@@ -89,8 +113,8 @@ not on the Gitea pull request.
 
 ## Roadmap
 
-1. Fetch and render the live status (this version).
-2. Service detail screens and navigation.
+1. Fetch and render the live status. Done.
+2. Service detail screens and navigation. Done.
 3. Home-screen widget (Glance) refreshed by WorkManager.
 4. Notifications on state changes.
 5. Sign in with RootiestID (AppAuth, PKCE) to see the Servers section; needs a public
