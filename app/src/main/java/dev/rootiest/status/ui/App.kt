@@ -1,5 +1,8 @@
 package dev.rootiest.status.ui
 
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -19,6 +22,10 @@ fun RootiestApp(vm: StatusViewModel = viewModel()) {
     NavDisplay(
         backStack = backStack,
         onBack = { backStack.removeLastOrNull() },
+        // Horizontal slides, as in other Android apps: Navigation 3 defaults to fades, and to shrinking the screen on a back gesture.
+        transitionSpec = { slideInHorizontally { it } togetherWith slideOutHorizontally { -it / 4 } },
+        popTransitionSpec = { slideInHorizontally { -it / 4 } togetherWith slideOutHorizontally { it } },
+        predictivePopTransitionSpec = { _ -> slideInHorizontally { -it / 4 } togetherWith slideOutHorizontally { it } },
         entryProvider = entryProvider {
             entry<Home> {
                 StatusScreen(state, onRefresh = vm::refresh, onOpenService = { g, s -> backStack.add(ServiceDetail(g, s)) })
