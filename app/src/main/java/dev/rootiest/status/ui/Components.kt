@@ -19,7 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.rootiest.status.data.BarCell
-import dev.rootiest.status.ui.theme.Mocha
+import dev.rootiest.status.ui.theme.palette
 import dev.rootiest.status.ui.theme.toneOf
 
 // Small pieces shared by the screens.
@@ -28,14 +28,14 @@ import dev.rootiest.status.ui.theme.toneOf
 internal fun ErrorBanner(text: String) {
     Text(
         text,
-        color = Mocha.Base,
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Mocha.Red).padding(12.dp),
+        color = palette.Base,
+        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(palette.Red).padding(12.dp),
     )
 }
 
 @Composable
 internal fun SectionTitle(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium, color = Mocha.Mauve)
+    Text(text, style = MaterialTheme.typography.titleMedium, color = palette.Mauve)
 }
 
 // A list section's title as a sticky header: opaque, so the rows scroll under it, and pushed off by the next one.
@@ -58,7 +58,7 @@ internal fun UptimeBar(cells: List<BarCell>) {
         cells.forEach { cell ->
             Box(
                 Modifier.weight(1f).fillMaxSize().clip(RoundedCornerShape(2.dp))
-                    .background(if (cell.Class == "none") Mocha.Surface0 else toneOf(cell.Class)),
+                    .background(if (cell.Class == "none") palette.Surface0 else toneOf(cell.Class)),
             )
         }
     }

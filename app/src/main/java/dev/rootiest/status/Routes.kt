@@ -11,3 +11,6 @@ data object Home : NavKey
 // A service is identified by its group and name, as on the web page.
 @Serializable
 data class ServiceDetail(val group: String, val name: String) : NavKey
+
+@Serializable
+data object Settings : NavKey

@@ -41,7 +41,7 @@ list.
 
 ## Signing in
 
-**Sign in** (top right) signs in with RootiestID through rootiest-hub, which then shows
+**Sign in** (in the account menu, top right) signs in with RootiestID through rootiest-hub, which then shows
 what that account may see, as on the web page (staff see everything, including the
 Servers section). The flow is rootiest-hub's app sign-in (its `docs/README.md`, "The
 Android app"):
@@ -57,13 +57,31 @@ Android app"):
    with every request: the app, the widget and the background job. The hub counts the
    token only with that proof, so a token caught on its way back is useless.
 
-The top bar shows the RootiestID display name and **Sign out**, which deletes the token.
+The top bar shows the RootiestID display name; tapping it opens the account menu, with
+**Settings** and **Sign out**, which deletes the token.
 The app reads the name and expiry from the token (signed by the hub, only read here). A
 sign-in lasts 14 days, the hub's `STATUS_SESSION_TTL`; once it expires, or after the
-hub's `signout-all`, the app shows the public view again and **Sign in** reappears
+hub's `signout-all`, the app shows the public view again and the menu offers **Sign in**
 (after `signout-all` the name stays until the token's own expiry, but the view is
 public). Notifications then include servers too; a server first seen after signing in
 is not reported as a change.
+
+## Account menu and settings
+
+The top bar's right side opens the account menu: under the display name when signed in,
+under an account icon when signed out. Either way it has **Settings**, then **Sign out**
+or **Sign in**, so settings are reachable without an account.
+
+**Settings** is its own screen (back returns to the list). Its one setting so far:
+
+- **Appearance**: **System default** (the default) follows the phone's dark theme;
+  **Light** and **Dark** always use that one. Dark is Catppuccin Mocha, light is
+  Catppuccin Latte, the status page's light and dark palettes. The choice is saved in
+  the preferences file `settings` (`SettingsStore`). On Android 12 and later the app
+  also gives it to the system (`UiModeManager.setApplicationNightMode`), so the window
+  shown before the app draws matches it too; on Android 10 and 11 that brief window
+  follows the phone. The status and navigation bars' icons follow the choice. The
+  home-screen widget always stays dark.
 
 ## Home-screen widget
 
@@ -155,14 +173,16 @@ Material 3.
 | `data/StatusModels.kt` | `@Serializable` data classes for the API's JSON |
 | `data/StatusApi.kt` | OkHttp GET plus kotlinx.serialization parse, on `Dispatchers.IO` |
 | `data/Lookups.kt` | plain functions over a snapshot: find a service, its events, a day's summary text |
-| `StatusViewModel.kt` | holds `StatusUiState` (last view, loading, error) as a `StateFlow`; fetches on start and on `refresh()` |
-| `Routes.kt` | Navigation 3 keys: `Home`, `ServiceDetail(group, name)` |
+| `StatusViewModel.kt` | holds `StatusUiState` (last view, loading, error) and the appearance setting as `StateFlow`s; fetches on start and on `refresh()` |
+| `Routes.kt` | Navigation 3 keys: `Home`, `ServiceDetail(group, name)`, `Settings` |
 | `ui/App.kt` | the app root: one `StatusViewModel` above the navigation, the back stack and `NavDisplay` |
 | `ui/StatusScreen.kt` | the list: top bar, pull-to-refresh, headline, servers, groups, tappable services |
 | `ui/ServiceScreen.kt` | a service's detail: summary, recent changes, daily uptime |
+| `ui/SettingsScreen.kt` | settings: the appearance choice |
 | `ui/Components.kt` | pieces both screens use: error banner, section title and sticky section header, dot, uptime strip |
 | `data/Problems.kt` | what the widget lists: unhealthy servers and down services |
 | `data/StatusCache.kt` | the last good snapshot, saved for the widget |
+| `data/Settings.kt` | `Appearance` and `SettingsStore` (the saved settings) |
 | `data/Auth.kt` | proof and challenge, reading a token, `AuthStore` (the saved sign-in) |
 | `widget/StatusWidget.kt` | the Glance widget: fetch or cached snapshot, two layouts by size |
 | `widget/StatusWidgetReceiver.kt` | the widget's receiver; schedules the background job |
@@ -170,8 +190,8 @@ Material 3.
 | `data/Changes.kt` | what changed between two fetches |
 | `Notifier.kt` | the notification channel, permission check and posting |
 | `Push.kt` | `StatusPushService` (UnifiedPush events) and the saved push address |
-| `ui/theme/Theme.kt` | Catppuccin Mocha palette, Material colour scheme, state colours |
-| `MainActivity.kt` | edge-to-edge activity that hosts the screen |
+| `ui/theme/Theme.kt` | Catppuccin Mocha and Latte palettes, the current one (`palette`), Material colour schemes, state colours |
+| `MainActivity.kt` | edge-to-edge activity that hosts the screen; applies the appearance setting |
 
 Navigation uses Navigation 3: the back stack is a list of `@Serializable` keys that
 survives process death. Screens slide horizontally on open, back and the back gesture

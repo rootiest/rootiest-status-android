@@ -3,7 +3,9 @@ package dev.rootiest.status
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import dev.rootiest.status.data.Appearance
 import dev.rootiest.status.data.AuthStore
+import dev.rootiest.status.data.SettingsStore
 import dev.rootiest.status.data.StatusApi
 import dev.rootiest.status.data.StatusView
 import kotlinx.coroutines.CancellationException
@@ -26,6 +28,10 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
     private val api = StatusApi(auth::credentials)
     private val _state = MutableStateFlow(StatusUiState(signedInAs = auth.signedInAs()))
     val state: StateFlow<StatusUiState> = _state.asStateFlow()
+
+    private val settings = SettingsStore(app)
+    private val _appearance = MutableStateFlow(settings.appearance)
+    val appearance: StateFlow<Appearance> = _appearance.asStateFlow()
 
     init {
         refresh()
@@ -64,5 +70,10 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
     fun signOut() {
         auth.signOut()
         refresh()
+    }
+
+    fun setAppearance(value: Appearance) {
+        settings.appearance = value
+        _appearance.value = value
     }
 }

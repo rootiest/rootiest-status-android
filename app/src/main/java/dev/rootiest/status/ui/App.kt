@@ -20,12 +20,14 @@ import androidx.navigation3.ui.NavDisplay
 import dev.rootiest.status.Home
 import dev.rootiest.status.Notifier
 import dev.rootiest.status.ServiceDetail
+import dev.rootiest.status.Settings
 import dev.rootiest.status.StatusViewModel
 
 // One ViewModel for the whole app, above the navigation: every screen shows the same snapshot.
 @Composable
 fun RootiestApp(vm: StatusViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
+    val appearance by vm.appearance.collectAsStateWithLifecycle()
     val backStack = rememberNavBackStack(Home)
     // Ask once for notifications (Android 13+); a refusal only means no change notifications.
     val context = LocalContext.current
@@ -48,10 +50,14 @@ fun RootiestApp(vm: StatusViewModel) {
                     onOpenService = { g, s -> backStack.add(ServiceDetail(g, s)) },
                     onSignIn = { CustomTabsIntent.Builder().build().launchUrl(context, vm.signInUrl().toUri()) },
                     onSignOut = vm::signOut,
+                    onOpenSettings = { backStack.add(Settings) },
                 )
             }
             entry<ServiceDetail> { key ->
                 ServiceScreen(state, key.group, key.name, onRefresh = vm::refresh, onBack = { backStack.removeLastOrNull() })
+            }
+            entry<Settings> {
+                SettingsScreen(appearance, onAppearance = vm::setAppearance, onBack = { backStack.removeLastOrNull() })
             }
         },
     )
