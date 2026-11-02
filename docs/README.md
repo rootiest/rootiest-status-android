@@ -84,7 +84,7 @@ and when the snapshot was fetched. Tapping it opens the app.
 ## Notifications and the background job
 
 `RefreshWorker` (WorkManager) runs every 15 minutes, the shortest period WorkManager
-allows, and only with a network connection. Each run fetches the status, posts a
+allows, and only with a network connection, and at once when a push arrives (below). Each run fetches the status, posts a
 notification for each change, saves the states and the snapshot, and redraws the
 widgets. It is scheduled on every app start (and when a widget is added) and keeps
 running without a widget, since it also sends the notifications. Android may run it
@@ -100,6 +100,24 @@ to arrive; ntfy remains the fast path.
   replaces the down notification. Tapping one opens the app.
 - On Android 13 and later the app asks for notification permission on first launch.
   Refusing only turns notifications off.
+
+**Push.** The app uses UnifiedPush with the phone's distributor, the ntfy app. On start
+it asks for the current or default distributor and registers; the distributor hands it a
+push address, an `up...` topic on the ntfy app's default server, which must be
+`https://ntfy.rootiest.dev` (rootiest-hub refuses addresses anywhere else). The app saves
+it and sends it to the hub (`POST /app/push`) on every run of the job, so the host
+serving the page learns it soon after a failover. After each alert the hub posts
+`refresh` to every address; the ntfy app hands it to `StatusPushService`, which queues
+the job at once (expedited on Android 12+). The message carries no data and is not
+encrypted (the connector logs "Could not decrypt message, trying with plain text"), so
+each run fetches what its viewer may see. Runs take turns (a lock), so a push arriving
+during the periodic run cannot notify a change twice. Without a distributor, or with the
+ntfy app on another server, there is no push and the 15-minute job carries on alone.
+
+To test the phone's side without an alert, post to the address (logged as
+`StatusPush: ... for <address>` when the hub refuses it, or found in the ntfy app's
+subscriptions): `curl -d refresh '<address>'`, then watch
+`adb logcat | grep -E 'StatusPush|RefreshWorker'`.
 
 Testing on a device: a periodic job cannot be forced early (WorkManager reschedules a
 run that comes "before schedule"). With a debug build, write a state into
@@ -151,6 +169,7 @@ Material 3.
 | `widget/RefreshWorker.kt` | the background job: fetch, notify changes, redraw widgets, every 15 minutes |
 | `data/Changes.kt` | what changed between two fetches |
 | `Notifier.kt` | the notification channel, permission check and posting |
+| `Push.kt` | `StatusPushService` (UnifiedPush events) and the saved push address |
 | `ui/theme/Theme.kt` | Catppuccin Mocha palette, Material colour scheme, state colours |
 | `MainActivity.kt` | edge-to-edge activity that hosts the screen |
 
