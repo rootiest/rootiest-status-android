@@ -164,9 +164,10 @@ status app icon.
 - Versions live in `gradle/libs.versions.toml`. AGP 9 compiles Kotlin itself, so the
   build applies only the Compose and serialization Kotlin plugins.
 - `compileSdk`/`targetSdk` 37, `minSdk` 29 (Android 10).
-- Application id `dev.rootiest.status`, version `0.1.0` (code 1).
-- Release builds are minified with R8 and shrink unused resources. They are signed with
-  the debug key for now, so `./gradlew installRelease` works; real signing is roadmap step 6.
+- Application id `dev.rootiest.status`. The version is `appVersion` in
+  `app/build.gradle.kts`; `versionCode` follows from it (`1.2.3` is 10203).
+- Release builds are minified with R8 and shrink unused resources, and are signed with
+  the release key when the machine has it (see Releases), otherwise with the debug key.
 - Use release builds to judge how the app feels. On a Pixel 9 Pro the list scrolled with
   13% janky frames in a debug build and 1% in a release build.
 
@@ -184,6 +185,37 @@ fixture when the API changes:
 curl -sSf https://status.rootiest.dev/api/status > app/src/test/resources/status-sample.json
 ```
 
+## Releases
+
+Releases are built and signed on the workstation that holds the release key, and
+published as Gitea releases with the APK attached. The key never leaves that machine
+and CI holds no secrets.
+
+- **The key**: `~/.local/share/android/rootiest-status-release.jks` (PKCS12, alias
+  `rootiest-status`, RSA 4096, valid until 2126), its passwords in
+  `rootiest-status-release.properties` next to it (both mode 600). Certificate SHA-256
+  `36:15:BB:5F:65:09:81:1F:A5:BB:82:83:03:B5:72:64:2C:36:3E:40:5A:F9:3D:47:75:23:27:9A:D0:EC:93:A4`.
+  Keep a copy of both files somewhere safe (a password manager): an update must be
+  signed with the same key, so losing it means every phone has to uninstall and
+  reinstall.
+- **Gradle** finds the key through `rootiest.signing=<path to the properties file>` in
+  `~/.gradle/gradle.properties`. Without it, release builds get the debug key.
+- **To release**: bump `appVersion` in `app/build.gradle.kts` through a PR, merge it,
+  then on an up-to-date `main` run `scripts/release.sh`. It refuses a dirty tree, a
+  `main` that differs from `origin/main`, and a tag that exists; runs the tests; builds
+  the release APK; refuses one not signed with the release certificate; and creates the
+  Gitea release `v<appVersion>` (the tag on the current commit) with
+  `rootiest-status-<version>.apk` attached and the pull requests merged since the last
+  release as notes. `scripts/release.sh --dry-run` does all of it but publishing.
+- **Installing and updates**: Obtainium, with its Forgejo source (Gitea serves the same
+  releases API): the repository URL `https://git.rootiest.dev/rootiest/rootiest-status-android`
+  and a Gitea access token with read access to repositories, since the repository is
+  private. Obtainium then offers each new release.
+- A build signed with another key (a debug build, or a release build from a machine
+  without the key) cannot update an installed release, and the reverse: Android
+  refuses the signature. Switching between them means uninstalling first, which loses
+  the sign-in and removes the widget.
+
 ## CI
 
 `.github/workflows/ci.yml` is a GitHub-only workflow: the Android build needs the SDK
@@ -200,4 +232,4 @@ not on the Gitea pull request.
 4. Notifications on state changes. Done.
 5. Sign in with RootiestID to see the Servers section. Done, through rootiest-hub's
    app sign-in rather than a separate RootiestID client.
-6. Signed release APKs on Gitea releases, installed and updated with Obtainium.
+6. Signed release APKs on Gitea releases, installed and updated with Obtainium. Done.

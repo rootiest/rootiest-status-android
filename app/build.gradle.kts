@@ -1,8 +1,21 @@
+import java.util.Properties
+
 // AGP 9 compiles Kotlin itself: no org.jetbrains.kotlin.android plugin.
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+}
+
+// The version scripts/release.sh tags (v<appVersion>). versionCode follows from it: 1.2.3 is 10203.
+val appVersion = "1.0.0"
+val (major, minor, patch) = appVersion.split(".").map(String::toInt)
+
+// The release key's properties file (storeFile, storePassword, keyAlias, keyPassword), named by the Gradle property
+// rootiest.signing in ~/.gradle/gradle.properties. Without it (CI, another machine) release builds get the debug key,
+// which scripts/release.sh refuses to publish.
+val releaseKey = providers.gradleProperty("rootiest.signing").orNull?.let { path ->
+    Properties().apply { file(path).inputStream().use(::load) }
 }
 
 android {
@@ -13,16 +26,26 @@ android {
         applicationId = "dev.rootiest.status"
         minSdk = 29
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = major * 10000 + minor * 100 + patch
+        versionName = appVersion
+    }
+
+    signingConfigs {
+        if (releaseKey != null) {
+            create("release") {
+                storeFile = file(releaseKey.getProperty("storeFile"))
+                storePassword = releaseKey.getProperty("storePassword")
+                keyAlias = releaseKey.getProperty("keyAlias")
+                keyPassword = releaseKey.getProperty("keyPassword")
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            // shortcut: signed with the debug key so local release builds install; replace with a real key in roadmap step 6
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
