@@ -1,0 +1,23 @@
+
+#   ──────────────── Added by agents-init ──────────────────
+#   agents-init --agents
+AGENTS/
+AGENTS.local.md
+#   ────────────────────────────────────────────────────────
+
+#   ──────────────── Added by agents-init ──────────────────
+#   agents-init --plugins
+docs/superpowers
+docs/plans
+docs/specs
+docs/devlogs
+#   ────────────────────────────────────────────────────────
+
+# Gradle and Android Studio
+.gradle/
+.kotlin/
+build/
+local.properties
+.idea/
+*.iml
+captures/

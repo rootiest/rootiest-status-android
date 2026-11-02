@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# pre-push: two guards, then chain to the global hook this local one shadows.
+#   1. Refuse pushing to main or master (open a PR from a branch instead).
+#      Intentional bypass: ALLOW_MAIN_PUSH=1 git push, or git push --no-verify.
+#   2. When commit.gpgsign is enabled, refuse commits that are unsigned or have a
+#      bad signature (GUI git clients can commit without invoking gpg).
+# Based on the fish-config pre-push hook, made generic.
+zero=$(printf "%040d" 0)
+# Capture stdin once: it feeds this loop and, afterwards, the chained global hook.
+input=$(cat)
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+    [ "$local_sha" = "$zero" ] && continue # branch deletion
+    case "$remote_ref" in refs/heads/*) ;; *) continue ;; esac
+
+    case "$remote_ref" in
+    refs/heads/main | refs/heads/master)
+        if [ "${ALLOW_MAIN_PUSH:-0}" != 1 ]; then
+            echo "pre-push: refusing to push to ${remote_ref#refs/heads/}; push a branch and open a PR." >&2
+            echo "Bypass: ALLOW_MAIN_PUSH=1 git push (or --no-verify)" >&2
+            exit 1
+        fi
+        ;;
+    esac
+
+    case "$(git config --get commit.gpgsign 2>/dev/null)" in
+    true | 1 | yes | on) ;;
+    *) continue ;;
+    esac
+
+    if [ "$remote_sha" = "$zero" ]; then
+        range="$local_sha --not --remotes"
+    else
+        range="$remote_sha..$local_sha"
+    fi
+
+    bad=""
+    # shellcheck disable=SC2086
+    for sha in $(git rev-list $range --); do
+        sig="$(git log -1 --pretty=%G? "$sha")"
+        case "$sig" in
+        N | B) bad="$bad $sha" ;;
+        esac
+    done
+
+    if [ -n "$bad" ]; then
+        echo "pre-push: unsigned or bad-signature commit(s) pushing to $remote_ref, refusing:" >&2
+        for sha in $bad; do
+            git log -1 --pretty='  %h %G? %s' "$sha" >&2
+        done
+        echo "Fix: git commit --amend -S (or rebase -i + amend), then push again." >&2
+        echo "Bypass: git push --no-verify" >&2
+        exit 1
+    fi
+done <<<"$input"
+
+# Chain to the global/system hook this local override is shadowing.
+global_hooks="$(git config --global core.hooksPath 2>/dev/null)"
+[ -z "$global_hooks" ] && global_hooks="$(git config --system core.hooksPath 2>/dev/null)"
+if [ -n "$global_hooks" ]; then
+    global_hooks="${global_hooks/#\~/$HOME}" # git stores ~ verbatim
+    [ -x "$global_hooks/pre-push" ] && exec "$global_hooks/pre-push" "$@" <<<"$input"
+fi
+exit 0

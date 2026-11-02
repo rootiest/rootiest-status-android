@@ -1,0 +1,25 @@
+package dev.rootiest.status.data
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.io.IOException
+
+class StatusApi(
+    private val baseUrl: String = "https://status.rootiest.dev",
+    private val client: OkHttpClient = OkHttpClient(),
+) {
+    private val json = Json { ignoreUnknownKeys = true }
+
+    suspend fun fetch(): StatusView = withContext(Dispatchers.IO) {
+        val request = Request.Builder().url("$baseUrl/api/status").build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) throw IOException("HTTP ${response.code}")
+            parse(response.body.string())
+        }
+    }
+
+    fun parse(body: String): StatusView = json.decodeFromString(body)
+}
