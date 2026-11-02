@@ -1,5 +1,6 @@
 package dev.rootiest.status.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.rootiest.status.StatusUiState
 import dev.rootiest.status.data.GroupView
@@ -60,12 +62,16 @@ fun StatusScreen(state: StatusUiState, onRefresh: () -> Unit, onOpenService: (gr
 @Composable
 private fun StatusList(view: StatusView, error: String?, onOpenService: (String, String) -> Unit) {
     LazyColumn(
-        contentPadding = PaddingValues(16.dp),
+        // no top padding: the sticky header carries it, so rows never show above the card
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.fillMaxSize(),
     ) {
+        // stays at the top while the services scroll under it
+        stickyHeader {
+            Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(top = 16.dp)) { Headline(view) }
+        }
         if (error != null) item { ErrorBanner("Refresh failed: $error") }
-        item { Headline(view) }
         view.Hosts?.takeIf { it.isNotEmpty() }?.let { hosts ->
             item { SectionTitle("Servers") }
             items(hosts, key = { "host:" + it.Name }) { HostRow(it) }
@@ -87,8 +93,14 @@ internal fun ErrorList(message: String) {
 @Composable
 private fun Headline(view: StatusView) {
     Card(colors = CardDefaults.cardColors(containerColor = toneOf(view.Level))) {
-        Column(Modifier.fillMaxWidth().padding(16.dp)) {
-            Text(view.Headline, color = Mocha.Base, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                view.Headline,
+                color = Mocha.Base,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+            )
             if (view.Failover) Text("Failover active", color = Mocha.Base)
         }
     }
