@@ -39,7 +39,7 @@ import dev.rootiest.status.data.ServiceView
 import dev.rootiest.status.data.eventsFor
 import dev.rootiest.status.data.service
 import dev.rootiest.status.data.summary
-import dev.rootiest.status.ui.theme.Mocha
+import dev.rootiest.status.ui.theme.palette
 import dev.rootiest.status.ui.theme.toneOf
 import java.time.Instant
 import java.time.ZoneId
@@ -111,7 +111,7 @@ private fun DayRow(cell: BarCell) {
 @Composable
 private fun Summary(service: ServiceView) {
     val uri = LocalUriHandler.current
-    Card(colors = CardDefaults.cardColors(containerColor = Mocha.Mantle)) {
+    Card(colors = CardDefaults.cardColors(containerColor = palette.Mantle)) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Dot(toneOf(service.State))
@@ -128,7 +128,7 @@ private fun Summary(service: ServiceView) {
                 } else {
                     Text(
                         service.Host,
-                        color = Mocha.Blue,
+                        color = palette.Blue,
                         modifier = Modifier.clickable { uri.openUri("https://${service.Host}") }.padding(vertical = 4.dp),
                     )
                 }
@@ -149,7 +149,7 @@ private fun EventRow(event: Event) {
             Text(localTime(event.At), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (event.Detail.isNotEmpty()) Text(event.Detail, style = MaterialTheme.typography.bodySmall)
-        HorizontalDivider(Modifier.padding(top = 8.dp), color = Mocha.Surface0)
+        HorizontalDivider(Modifier.padding(top = 8.dp), color = palette.Surface0)
     }
 }
 

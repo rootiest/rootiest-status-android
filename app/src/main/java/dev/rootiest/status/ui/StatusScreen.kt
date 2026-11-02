@@ -19,7 +19,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -27,17 +32,23 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import dev.rootiest.status.R
 import dev.rootiest.status.StatusUiState
 import dev.rootiest.status.data.HostView
 import dev.rootiest.status.data.ServiceView
 import dev.rootiest.status.data.StatusView
-import dev.rootiest.status.ui.theme.Mocha
+import dev.rootiest.status.ui.theme.palette
 import dev.rootiest.status.ui.theme.toneOf
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,20 +59,13 @@ fun StatusScreen(
     onOpenService: (group: String, name: String) -> Unit,
     onSignIn: () -> Unit,
     onSignOut: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Rootiest Status") },
-                actions = {
-                    val name = state.signedInAs
-                    if (name != null) {
-                        Text(name, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        TextButton(onClick = onSignOut) { Text("Sign out") }
-                    } else {
-                        TextButton(onClick = onSignIn) { Text("Sign in") }
-                    }
-                },
+                actions = { AccountMenu(state.signedInAs, onSignIn, onSignOut, onOpenSettings) },
             )
         },
     ) { padding ->
@@ -75,6 +79,31 @@ fun StatusScreen(
                 view != null -> StatusList(view, state.error, onOpenService)
                 state.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
                 else -> ErrorList(state.error ?: "No data")
+            }
+        }
+    }
+}
+
+// The account and settings menu: under the name when signed in, under an account icon when not.
+@Composable
+private fun AccountMenu(name: String?, onSignIn: () -> Unit, onSignOut: () -> Unit, onOpenSettings: () -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        if (name != null) {
+            TextButton(onClick = { open = true }) {
+                Text(name, color = MaterialTheme.colorScheme.onSurface)
+                Icon(painterResource(R.drawable.ic_arrow_drop_down), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        } else {
+            IconButton(onClick = { open = true }) { Icon(painterResource(R.drawable.ic_account_circle), contentDescription = "Account and settings") }
+        }
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(text = { Text("Settings") }, onClick = { open = false; onOpenSettings() })
+            HorizontalDivider()
+            if (name != null) {
+                DropdownMenuItem(text = { Text("Sign out") }, onClick = { open = false; onSignOut() })
+            } else {
+                DropdownMenuItem(text = { Text("Sign in") }, onClick = { open = false; onSignIn() })
             }
         }
     }
@@ -102,7 +131,7 @@ private fun StatusList(view: StatusView, error: String?, onOpenService: (String,
                     Box(
                         Modifier.fillMaxWidth()
                             .background(
-                                Mocha.Mantle,
+                                palette.Mantle,
                                 RoundedCornerShape(
                                     topStart = if (first) corner else 0.dp, topEnd = if (first) corner else 0.dp,
                                     bottomStart = if (last) corner else 0.dp, bottomEnd = if (last) corner else 0.dp,
@@ -130,19 +159,19 @@ private fun Headline(view: StatusView) {
         Column(Modifier.fillMaxWidth().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 view.Headline,
-                color = Mocha.Base,
+                color = palette.Base,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
             )
-            if (view.Failover) Text("Failover active", color = Mocha.Base)
+            if (view.Failover) Text("Failover active", color = palette.Base)
         }
     }
 }
 
 @Composable
 private fun HostRow(host: HostView) {
-    Card(colors = CardDefaults.cardColors(containerColor = Mocha.Mantle)) {
+    Card(colors = CardDefaults.cardColors(containerColor = palette.Mantle)) {
         Column(Modifier.fillMaxWidth().padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Dot(toneOf(host.State))
