@@ -12,21 +12,26 @@ the source and regenerate.
 
 The app shows the same snapshot as [status.rootiest.dev](https://status.rootiest.dev):
 
-- a headline card in the overall level's colour, centred and kept at the top while
-  the list scrolls (green ok, yellow warn, red bad), with
+- a headline card in the overall level's colour, centred and fixed above the list (green ok, yellow warn, red bad), with
   "Failover active" while traffic is served by the standby edge;
 - the Servers section (state, vitals, note per host), only when the API includes it:
   after signing in, for staff and the groups the catalog lets see servers;
 - every group of services: state dot, uptime text and the per-day uptime strip.
 
+Section titles (Servers, then each group) stick below the headline while their rows
+scroll, until the next section's title pushes them off. The headline is fixed above
+the list rather than a sticky header itself, because every sticky header in a Compose
+list sticks to the same top edge and the next one would push it away too.
+
 Tap a service to open its detail screen:
 
-- a summary card: state (and "planned" when a planned window expects it down), uptime
+- a summary card, fixed above the list: state (and "planned" when a planned window expects it down), uptime
   text, the service's detail line, its hostname (a link to the site, except for services
   probed by TCP connect, whose hostname is only a name) and the uptime strip;
 - **Recent changes**: the snapshot's events for that service (`Kind` `service`, `Subject`
   equal to its name), newest first, in local time;
-- **Daily uptime (UTC days)**: one row per day, newest first, from the strip's cells. Days are
+- **Daily uptime (UTC days)**: one row per day, newest first, from the strip's cells.
+  "Recent changes" sticks below the summary card until this title pushes it off. Days are
   UTC days, as rootiest-hub counts them, so tomorrow's date can appear in the evening. Days before
   the history began (`Class` `none`) are left out.
 
@@ -137,7 +142,7 @@ Material 3.
 | `ui/App.kt` | the app root: one `StatusViewModel` above the navigation, the back stack and `NavDisplay` |
 | `ui/StatusScreen.kt` | the list: top bar, pull-to-refresh, headline, servers, groups, tappable services |
 | `ui/ServiceScreen.kt` | a service's detail: summary, recent changes, daily uptime |
-| `ui/Components.kt` | pieces both screens use: error banner, section title, dot, uptime strip |
+| `ui/Components.kt` | pieces both screens use: error banner, section title and sticky section header, dot, uptime strip |
 | `data/Problems.kt` | what the widget lists: unhealthy servers and down services |
 | `data/StatusCache.kt` | the last good snapshot, saved for the widget |
 | `data/Auth.kt` | proof and challenge, reading a token, `AuthStore` (the saved sign-in) |

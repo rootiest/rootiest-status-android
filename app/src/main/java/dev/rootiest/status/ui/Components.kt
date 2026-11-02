@@ -38,6 +38,14 @@ internal fun SectionTitle(text: String) {
     Text(text, style = MaterialTheme.typography.titleMedium, color = Mocha.Mauve)
 }
 
+// A list section's title as a sticky header: opaque, so the rows scroll under it, and pushed off by the next one.
+@Composable
+internal fun SectionHeader(text: String) {
+    Box(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(top = 16.dp, bottom = 8.dp)) {
+        SectionTitle(text)
+    }
+}
+
 @Composable
 internal fun Dot(color: Color) {
     Box(Modifier.size(10.dp).clip(CircleShape).background(color))
