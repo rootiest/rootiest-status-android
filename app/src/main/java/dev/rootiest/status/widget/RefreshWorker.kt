@@ -10,6 +10,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import dev.rootiest.status.Notifier
+import dev.rootiest.status.data.AuthStore
 import dev.rootiest.status.data.StatusApi
 import dev.rootiest.status.data.StatusCache
 import dev.rootiest.status.data.changesSince
@@ -21,7 +22,7 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
     override suspend fun doWork(): Result {
         val cache = StatusCache(applicationContext)
         // a failed fetch skips this run; the next one compares against the last states seen
-        runCatching { StatusApi().fetch() }.getOrNull()?.let { view ->
+        runCatching { StatusApi(AuthStore(applicationContext)::credentials).fetch() }.getOrNull()?.let { view ->
             Notifier.notify(applicationContext, view.changesSince(cache.loadStates()))
             cache.saveStates(view.stateMap())
             cache.save(view)

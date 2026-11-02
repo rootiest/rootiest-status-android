@@ -48,6 +48,7 @@ dependencies {
     implementation(libs.navigation3.ui)
     implementation(libs.glance.appwidget)
     implementation(libs.work.runtime.ktx)
+    implementation(libs.androidx.browser)
     implementation(libs.okhttp)
     debugImplementation(libs.compose.ui.tooling)
     testImplementation(libs.junit)

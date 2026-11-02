@@ -15,8 +15,8 @@ The app shows the same snapshot as [status.rootiest.dev](https://status.rootiest
 - a headline card in the overall level's colour, centred and kept at the top while
   the list scrolls (green ok, yellow warn, red bad), with
   "Failover active" while traffic is served by the standby edge;
-- the Servers section (state, vitals, note per host), only when the API includes it.
-  The app does not sign in yet, so the API leaves it out (`"Hosts": null`);
+- the Servers section (state, vitals, note per host), only when the API includes it:
+  after signing in, for staff and the groups the catalog lets see servers;
 - every group of services: state dot, uptime text and the per-day uptime strip.
 
 Tap a service to open its detail screen:
@@ -33,6 +33,32 @@ Tap a service to open its detail screen:
 Pull down to refresh on either screen. After a failed refresh the last good snapshot
 stays on screen with an error banner above it. Back (button or gesture) returns to the
 list.
+
+## Signing in
+
+**Sign in** (top right) signs in with RootiestID through rootiest-hub, which then shows
+what that account may see, as on the web page (staff see everything, including the
+Servers section). The flow is rootiest-hub's app sign-in (its `docs/README.md`, "The
+Android app"):
+
+1. The app makes a random proof (32 bytes, base64url), saves it, and opens
+   `https://status.rootiest.dev/app/login?challenge=<base64url SHA-256 of the proof>`
+   in a Custom Tab.
+2. After RootiestID, the hub redirects to `dev.rootiest.status:/signed-in?token=...`,
+   which `MainActivity` receives (`singleTop`; the intent filter matches the scheme, and
+   the activity checks the path).
+3. The app keeps the token and proof in its private storage (`AuthStore`, preferences
+   file `auth`) and sends `Authorization: Bearer <token>` and `X-Rootiest-Proof: <proof>`
+   with every request: the app, the widget and the background job. The hub counts the
+   token only with that proof, so a token caught on its way back is useless.
+
+The top bar shows the RootiestID display name and **Sign out**, which deletes the token.
+The app reads the name and expiry from the token (signed by the hub, only read here). A
+sign-in lasts 14 days, the hub's `STATUS_SESSION_TTL`; once it expires, or after the
+hub's `signout-all`, the app shows the public view again and **Sign in** reappears
+(after `signout-all` the name stays until the token's own expiry, but the view is
+public). Notifications then include servers too; a server first seen after signing in
+is not reported as a change.
 
 ## Home-screen widget
 
@@ -114,6 +140,7 @@ Material 3.
 | `ui/Components.kt` | pieces both screens use: error banner, section title, dot, uptime strip |
 | `data/Problems.kt` | what the widget lists: unhealthy servers and down services |
 | `data/StatusCache.kt` | the last good snapshot, saved for the widget |
+| `data/Auth.kt` | proof and challenge, reading a token, `AuthStore` (the saved sign-in) |
 | `widget/StatusWidget.kt` | the Glance widget: fetch or cached snapshot, two layouts by size |
 | `widget/StatusWidgetReceiver.kt` | the widget's receiver; schedules the background job |
 | `widget/RefreshWorker.kt` | the background job: fetch, notify changes, redraw widgets, every 15 minutes |
@@ -148,7 +175,7 @@ status app icon.
 `./tests/run-tests.sh` runs `testDebugUnitTest`: JVM tests, no device needed.
 `StatusApiTest` parses `app/src/test/resources/status-sample.json`, a saved signed-out
 answer from the live API, and checks that unknown fields are ignored. `ProblemsTest` covers
-what the widget lists, `ChangesTest` what counts as a change. `LookupsTest` runs
+what the widget lists, `ChangesTest` what counts as a change, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token. `LookupsTest` runs
 the `data/Lookups.kt` functions against the same fixture (it relies on the fixture's
 Notes outage on 2026-10-27, so keep an answer with a service event when refreshing it). Refresh the
 fixture when the API changes:
@@ -171,6 +198,6 @@ not on the Gitea pull request.
 2. Service detail screens and navigation. Done.
 3. Home-screen widget (Glance) refreshed by WorkManager. Done.
 4. Notifications on state changes. Done.
-5. Sign in with RootiestID (AppAuth, PKCE) to see the Servers section; needs a public
-   PocketID client and bearer-token support in rootiest-hub.
+5. Sign in with RootiestID to see the Servers section. Done, through rootiest-hub's
+   app sign-in rather than a separate RootiestID client.
 6. Signed release APKs on Gitea releases, installed and updated with Obtainium.

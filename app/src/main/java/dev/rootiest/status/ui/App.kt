@@ -10,9 +10,10 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
@@ -23,7 +24,7 @@ import dev.rootiest.status.StatusViewModel
 
 // One ViewModel for the whole app, above the navigation: every screen shows the same snapshot.
 @Composable
-fun RootiestApp(vm: StatusViewModel = viewModel()) {
+fun RootiestApp(vm: StatusViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     val backStack = rememberNavBackStack(Home)
     // Ask once for notifications (Android 13+); a refusal only means no change notifications.
@@ -41,7 +42,13 @@ fun RootiestApp(vm: StatusViewModel = viewModel()) {
         predictivePopTransitionSpec = { _ -> slideInHorizontally { -it / 4 } togetherWith slideOutHorizontally { it } },
         entryProvider = entryProvider {
             entry<Home> {
-                StatusScreen(state, onRefresh = vm::refresh, onOpenService = { g, s -> backStack.add(ServiceDetail(g, s)) })
+                StatusScreen(
+                    state,
+                    onRefresh = vm::refresh,
+                    onOpenService = { g, s -> backStack.add(ServiceDetail(g, s)) },
+                    onSignIn = { CustomTabsIntent.Builder().build().launchUrl(context, vm.signInUrl().toUri()) },
+                    onSignOut = vm::signOut,
+                )
             }
             entry<ServiceDetail> { key ->
                 ServiceScreen(state, key.group, key.name, onRefresh = vm::refresh, onBack = { backStack.removeLastOrNull() })
