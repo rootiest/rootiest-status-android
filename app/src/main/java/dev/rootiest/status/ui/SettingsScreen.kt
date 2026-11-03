@@ -38,10 +38,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import dev.rootiest.status.BatteryState
 import dev.rootiest.status.Channel
 import dev.rootiest.status.Notifier
 import dev.rootiest.status.PushStatus
 import dev.rootiest.status.R
+import dev.rootiest.status.batteryIntent
+import dev.rootiest.status.batteryState
 import dev.rootiest.status.data.Appearance
 import dev.rootiest.status.data.RefreshInterval
 import dev.rootiest.status.data.StatusCache
@@ -55,6 +58,7 @@ private data class SystemState(
     val channelsOn: Map<Channel, Boolean>,
     val push: PushStatus,
     val lastCheck: Long?,
+    val battery: BatteryState,
 )
 
 private fun readSystemState(context: Context) = SystemState(
@@ -62,6 +66,7 @@ private fun readSystemState(context: Context) = SystemState(
     channelsOn = Channel.entries.associateWith { Notifier.channelOn(context, it) },
     push = pushStatus(context),
     lastCheck = StatusCache(context).statesSavedAt(),
+    battery = batteryState(context),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -100,7 +105,7 @@ fun SettingsScreen(
             item { SectionHeader("Instant alerts") }
             item { PushCard(system) }
             item { SectionHeader("Background check") }
-            item { BackgroundCheckCard(system, refreshInterval, onRefreshInterval) }
+            item { BackgroundCheckCard(system, context, refreshInterval, onRefreshInterval) }
             item { SectionHeader("Appearance") }
             item { ChoiceCard(appearanceLabels.map { (value, label) -> Choice(value, label) }, appearance, onAppearance) }
         }
@@ -151,7 +156,7 @@ private fun PushCard(system: SystemState) {
 
 // How often the app checks on its own, and when it last did. Push only is flagged while push is not on: nothing would wake it.
 @Composable
-private fun BackgroundCheckCard(system: SystemState, selected: RefreshInterval, onSelect: (RefreshInterval) -> Unit) {
+private fun BackgroundCheckCard(system: SystemState, context: Context, selected: RefreshInterval, onSelect: (RefreshInterval) -> Unit) {
     val pushOn = system.push is PushStatus.On
     val choices = listOf(
         Choice(RefreshInterval.Every15, "Every 15 minutes"),
@@ -168,6 +173,18 @@ private fun BackgroundCheckCard(system: SystemState, selected: RefreshInterval, 
     ChoiceCard(choices, selected, onSelect) {
         Divider()
         SettingRow("Last check", ago(system.lastCheck) ?: "Not run yet")
+        Divider()
+        val (title, summary) = when (system.battery) {
+            BatteryState.Restricted ->
+                "Battery use is restricted" to "Android stops background checks and alerts. Tap, then App battery usage: Optimized or Unrestricted"
+            BatteryState.Optimized ->
+                "Battery: optimized" to "Android may delay checks while the phone is idle. Tap to let the app run unrestricted"
+            BatteryState.Unrestricted ->
+                "Battery: unrestricted" to "Checks run on time. Tap to change it in the app's info"
+        }
+        SettingRow(title, summary, warn = system.battery == BatteryState.Restricted) {
+            context.startActivity(batteryIntent(context, system.battery))
+        }
     }
 }
 
