@@ -35,6 +35,13 @@ class ChangesTest {
     }
 
     @Test
+    fun mutedNamesAreDropped() {
+        val changes = listOf(Change("A", "up", "down"), Change("B", "down", "up"))
+        assertEquals(listOf(Change("B", "down", "up")), changes.unmuted(setOf("A", "Gone")))
+        assertEquals(changes, changes.unmuted(emptySet()))
+    }
+
+    @Test
     fun includesServers() {
         val v = view(hosts = listOf(HostView("Atlas", "degraded")))
         assertEquals(listOf(Change("Atlas", "healthy", "degraded")), v.changesSince(mapOf("Atlas" to "healthy")))

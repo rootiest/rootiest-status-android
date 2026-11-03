@@ -14,3 +14,7 @@ data class ServiceDetail(val group: String, val name: String) : NavKey
 
 @Serializable
 data object Settings : NavKey
+
+// Settings > Notifications > the services and servers to notify about.
+@Serializable
+data object WatchList : NavKey

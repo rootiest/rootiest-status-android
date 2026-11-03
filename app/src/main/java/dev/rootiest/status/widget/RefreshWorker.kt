@@ -16,10 +16,12 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import dev.rootiest.status.Notifier
 import dev.rootiest.status.data.AuthStore
+import dev.rootiest.status.data.SettingsStore
 import dev.rootiest.status.data.StatusApi
 import dev.rootiest.status.data.StatusCache
 import dev.rootiest.status.data.changesSince
 import dev.rootiest.status.data.stateMap
+import dev.rootiest.status.data.unmuted
 import dev.rootiest.status.pushAddress
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -34,7 +36,7 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         val api = StatusApi(AuthStore(applicationContext)::credentials)
         // a failed fetch skips this run; the next one compares against the last states seen
         runCatching { api.fetch() }.getOrNull()?.let { view ->
-            Notifier.notify(applicationContext, view.changesSince(cache.loadStates()))
+            Notifier.notify(applicationContext, view.changesSince(cache.loadStates()).unmuted(SettingsStore(applicationContext).muted))
             cache.saveStates(view.stateMap())
             cache.save(view)
         }

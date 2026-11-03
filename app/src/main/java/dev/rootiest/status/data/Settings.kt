@@ -14,4 +14,10 @@ class SettingsStore(context: Context) {
         // an unknown name (from a newer version, say) falls back to the default
         get() = Appearance.entries.find { it.name == prefs.getString("appearance", null) } ?: Appearance.System
         set(value) = prefs.edit { putString("appearance", value.name) }
+
+    // Services and servers the user does not want notifications about, by name. Muting rather than watching, so one
+    // that appears later is notified about until muted.
+    var muted: Set<String>
+        get() = prefs.getStringSet("muted", null)?.toSet() ?: emptySet() // a copy: the returned set must not be changed
+        set(value) = prefs.edit { putStringSet("muted", value) }
 }

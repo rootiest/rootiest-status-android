@@ -21,3 +21,6 @@ fun StatusView.changesSince(old: Map<String, String>): List<Change> {
         if (before == null || before == state || name in planned) null else Change(name, before, state)
     }
 }
+
+// The changes the user wants to hear about: none for a muted name.
+fun List<Change>.unmuted(muted: Set<String>): List<Change> = filterNot { it.name in muted }

@@ -65,7 +65,13 @@ private fun readSystemState(context: Context) = SystemState(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(appearance: Appearance, onAppearance: (Appearance) -> Unit, onBack: () -> Unit) {
+fun SettingsScreen(
+    appearance: Appearance,
+    onAppearance: (Appearance) -> Unit,
+    mutedCount: Int,
+    onOpenWatchList: () -> Unit,
+    onBack: () -> Unit,
+) {
     val context = LocalContext.current
     var system by remember { mutableStateOf(readSystemState(context)) }
     LifecycleResumeEffect(Unit) {
@@ -87,7 +93,7 @@ fun SettingsScreen(appearance: Appearance, onAppearance: (Appearance) -> Unit, o
             modifier = Modifier.fillMaxSize().padding(padding),
         ) {
             item { SectionHeader("Notifications") }
-            item { NotificationsCard(system, context) }
+            item { NotificationsCard(system, context, mutedCount, onOpenWatchList) }
             item { SectionHeader("Instant alerts") }
             item { PushCard(system) }
             item { SectionHeader("Appearance") }
@@ -97,7 +103,7 @@ fun SettingsScreen(appearance: Appearance, onAppearance: (Appearance) -> Unit, o
 }
 
 @Composable
-private fun NotificationsCard(system: SystemState, context: Context) {
+private fun NotificationsCard(system: SystemState, context: Context, mutedCount: Int, onOpenWatchList: () -> Unit) {
     SettingsCard {
         if (!system.canNotify) {
             // Android 13+ grants the permission from this page too, so it works even after "Don't allow" twice
@@ -113,6 +119,8 @@ private fun NotificationsCard(system: SystemState, context: Context) {
         SettingRow("Recoveries", channelSummary(system, Channel.Recoveries, "It came back up")) {
             context.startActivity(Notifier.settingsIntent(context, Channel.Recoveries))
         }
+        Divider()
+        SettingRow("Services to notify about", if (mutedCount == 0) "All" else "All but $mutedCount muted", onClick = onOpenWatchList)
         Divider()
         SettingRow("Send a test notification", "Shows how an outage alert looks and sounds") { Notifier.test(context) }
     }
