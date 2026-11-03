@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # release.sh [--dry-run]: build the signed release APK and publish it as the Gitea release v<appVersion>.
-# Run on the workstation that holds the release key (docs/README.md, "Releases"), from a clean main that matches origin/main,
+# Run on the machine that holds the release key (docs/README.md, "Releases"), from a clean main that matches origin/main,
 # after bumping appVersion in app/build.gradle.kts through a PR. --dry-run builds and checks everything but publishes nothing.
 set -euo pipefail
 cd "$(dirname "$0")/.."
