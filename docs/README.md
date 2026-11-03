@@ -161,6 +161,18 @@ to arrive; ntfy remains the fast path.
   first run, for a name not seen before, or for one a planned window expects (as
   rootiest-hub holds its own alerts for those). Nothing is posted for a muted name
   either (below).
+- **Notify about an outage** (Settings, under Notifications): **At once**, **After 2
+  minutes**, **After 5 minutes** (the default) or **After 15 minutes**. The hub changes
+  a state on the page within about 30 seconds but alerts only once it has lasted 4
+  minutes (`ALERT_AFTER`), so without a wait the app would notify blips the hub stays
+  quiet about. An outage waits (`damp` in `data/Damping.kt`, kept in
+  `pending-outages.json`) from when the hub saw it begin (its latest event for that
+  name, or this run when there is none), so one first seen by a run long after it began
+  is posted at once. One that recovers sooner is never posted, nor is its recovery; a
+  recovery after a posted outage is posted at once, and an outage that gets worse while
+  waiting keeps waiting from its start. While one waits, a one-off run is scheduled for
+  when it is due (5 seconds after, or a minute after a failed fetch), so it arrives on
+  time whatever the interval, push only included.
 - Notifications go to one of two channels (`Notifier.kt`), so the phone's own settings
   can treat them apart: "Outages" (high importance: sound and a heads-up banner), for
   "Gitea is down / was up" and any other move away from green, and "Recoveries" (low:
@@ -281,6 +293,7 @@ Material 3.
 | `widget/RefreshWorker.kt` | the background job: fetch, notify changes, redraw widgets, at the chosen interval and on push |
 | `data/Times.kt` | `TimeFormat` (relative or clock; default, ISO or custom format; 12 or 24 hours; local or UTC) and `strftime` |
 | `data/Changes.kt` | what changed between two fetches, less the muted names |
+| `data/Damping.kt` | `NotifyAfter` and `damp`: outages held until they have lasted the Settings delay |
 | `Notifier.kt` | the two notification channels, permission and channel checks, the phone's settings pages, posting with a Mute button |
 | `MuteReceiver.kt` | a notification's Mute button: mutes the name and clears the notification |
 | `Battery.kt` | the app's battery setting (restricted, optimized, unrestricted) and the page that changes it |
@@ -319,7 +332,7 @@ icon.
 `./tests/run-tests.sh` runs `testDebugUnitTest`: JVM tests, no device needed.
 `StatusApiTest` parses `app/src/test/resources/status-sample.json`, a saved signed-out
 answer from the live API, and checks that unknown fields are ignored and the backup line parses and follows the time setting. `ProblemsTest`
-covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `TimesTest` the time formats and strftime fields, `SupportTest` the ticket link, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token. `LookupsTest` runs
+covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `DampingTest` the outage delay, `TimesTest` the time formats and strftime fields, `SupportTest` the ticket link, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token. `LookupsTest` runs
 the `data/Lookups.kt` functions against the same fixture (it relies on the fixture's
 Notes outage on 2026-10-27, so keep an answer with a service event when refreshing it). Refresh the
 fixture when the API changes:

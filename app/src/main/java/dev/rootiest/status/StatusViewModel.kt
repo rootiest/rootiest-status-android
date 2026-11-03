@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.rootiest.status.data.Appearance
 import dev.rootiest.status.data.AuthStore
+import dev.rootiest.status.data.NotifyAfter
 import dev.rootiest.status.data.RefreshInterval
 import dev.rootiest.status.data.ServiceListMode
 import dev.rootiest.status.data.SettingsStore
@@ -41,6 +42,8 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
     val appearance: StateFlow<Appearance> = _appearance.asStateFlow()
     private val _refreshInterval = MutableStateFlow(settings.refreshInterval)
     val refreshInterval: StateFlow<RefreshInterval> = _refreshInterval.asStateFlow()
+    private val _notifyAfter = MutableStateFlow(settings.notifyAfter)
+    val notifyAfter: StateFlow<NotifyAfter> = _notifyAfter.asStateFlow()
     private val _serviceList = MutableStateFlow(settings.serviceList)
     val serviceList: StateFlow<ServiceListMode> = _serviceList.asStateFlow()
     private val _timeFormat = MutableStateFlow(settings.timeFormat)
@@ -119,6 +122,12 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // Mute or unmute notifications about one service or server.
+    // read by the next background run; an outage already waiting keeps the time it began, so it is judged by the new delay
+    fun setNotifyAfter(value: NotifyAfter) {
+        settings.notifyAfter = value
+        _notifyAfter.value = value
+    }
+
     override fun onCleared() = settings.stopWatching(mutedWatch)
 
     fun setMuted(name: String, mute: Boolean) {

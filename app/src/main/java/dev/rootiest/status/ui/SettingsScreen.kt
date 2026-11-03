@@ -51,6 +51,7 @@ import dev.rootiest.status.R
 import dev.rootiest.status.batteryIntent
 import dev.rootiest.status.batteryState
 import dev.rootiest.status.data.Appearance
+import dev.rootiest.status.data.NotifyAfter
 import dev.rootiest.status.data.RefreshInterval
 import dev.rootiest.status.data.ServiceListMode
 import dev.rootiest.status.data.TimeFormat
@@ -92,6 +93,8 @@ fun SettingsScreen(
     timeFormat: TimeFormat,
     onTimeFormat: (TimeFormat) -> Unit,
     mutedCount: Int,
+    notifyAfter: NotifyAfter,
+    onNotifyAfter: (NotifyAfter) -> Unit,
     onOpenWatchList: () -> Unit,
     refreshInterval: RefreshInterval,
     onRefreshInterval: (RefreshInterval) -> Unit,
@@ -120,6 +123,16 @@ fun SettingsScreen(
         ) {
             item { SectionHeader("Notifications") }
             item { NotificationsCard(system, context, mutedCount, onOpenWatchList) }
+            if (system.canNotify) {
+                item {
+                    Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Label("Notify about an outage")
+                        ChoiceCard(notifyAfterChoices, notifyAfter, onNotifyAfter) {
+                            Note("One that is over sooner is never notified, nor is its recovery.")
+                        }
+                    }
+                }
+            }
             item { SectionHeader("Instant alerts") }
             item { PushCard(system) }
             item { SectionHeader("Background check") }
@@ -356,6 +369,13 @@ private fun SettingRow(title: String, summary: String, warn: Boolean = false, on
         Text(summary, style = MaterialTheme.typography.bodySmall, color = palette.Subtext0)
     }
 }
+
+private val notifyAfterChoices = listOf(
+    Choice(NotifyAfter.AtOnce, "At once", "Every blip, even one over in seconds"),
+    Choice(NotifyAfter.Two, "After 2 minutes"),
+    Choice(NotifyAfter.Five, "After 5 minutes", "As the status page's own alerts, which wait 4 minutes"),
+    Choice(NotifyAfter.Fifteen, "After 15 minutes"),
+)
 
 private val serviceListChoices = listOf(
     Choice(ServiceListMode.All, "As on the status page"),

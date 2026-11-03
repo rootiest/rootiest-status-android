@@ -27,6 +27,11 @@ class SettingsStore(private val context: Context) {
         get() = RefreshInterval.entries.find { it.name == prefs.getString("refresh", null) } ?: RefreshInterval.Every15
         set(value) = prefs.edit { putString("refresh", value.name) }
 
+    // 5 minutes by default: just over rootiest-hub's own wait, so the app and the hub's alerts agree on what was an outage
+    var notifyAfter: NotifyAfter
+        get() = NotifyAfter.entries.find { it.name == prefs.getString("notify-after", null) } ?: NotifyAfter.Five
+        set(value) = prefs.edit { putString("notify-after", value.name) }
+
     var serviceList: ServiceListMode
         get() = ServiceListMode.entries.find { it.name == prefs.getString("service-list", null) } ?: ServiceListMode.All
         set(value) = prefs.edit { putString("service-list", value.name) }
