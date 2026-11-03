@@ -19,7 +19,9 @@ The app shows the same snapshot as [status.rootiest.dev](https://status.rootiest
 - every group of services: state dot, uptime text and the per-day uptime strip, and
   for a service that publishes a backup report the hub's backup line ("Last backup 3 h
   ago (...)"), grey when unknown and yellow when the backup is older than the hub
-  allows (`Backup`, rootiest-hub's `BackupView`; also on the detail screen).
+  allows (`Backup`, rootiest-hub's `BackupView`; also on the detail screen). Its time
+  follows Settings > Times, built from the hub's `At` and `Detail`; a hub that sends
+  only `Text` is shown as it is.
 
 Section titles (Servers, then each group) stick below the headline while their rows
 scroll, until the next section's title pushes them off. The headline is fixed above
@@ -116,8 +118,7 @@ Service list and Times:
   uptime stays in UTC days, as the hub counts them. `TimeFormat` and `strftime` in
   `data/Times.kt` do the formatting; saved as `time-style`, `time-date`,
   `time-pattern`, `time-hours` and `time-utc` in `settings`, and provided to every
-  screen as `LocalTimeFormat`. Text from the hub, such as the backup line, keeps its own
-  wording.
+  screen as `LocalTimeFormat`, the backup line's time included.
 
 ## Home-screen widget
 
@@ -301,7 +302,7 @@ icon.
 
 `./tests/run-tests.sh` runs `testDebugUnitTest`: JVM tests, no device needed.
 `StatusApiTest` parses `app/src/test/resources/status-sample.json`, a saved signed-out
-answer from the live API, and checks that unknown fields are ignored and the backup line parses. `ProblemsTest`
+answer from the live API, and checks that unknown fields are ignored and the backup line parses and follows the time setting. `ProblemsTest`
 covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `TimesTest` the time formats and strftime fields, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token. `LookupsTest` runs
 the `data/Lookups.kt` functions against the same fixture (it relies on the fixture's
 Notes outage on 2026-10-27, so keep an answer with a service event when refreshing it). Refresh the

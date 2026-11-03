@@ -24,6 +24,7 @@ import dev.rootiest.status.data.BarCell
 import dev.rootiest.status.data.TimeFormat
 import dev.rootiest.status.ui.theme.palette
 import dev.rootiest.status.ui.theme.toneOf
+import java.time.Instant
 
 // Small pieces shared by the screens.
 
@@ -75,7 +76,7 @@ internal fun BackupText(backup: BackupLine) {
         "warn" -> palette.Yellow
         else -> palette.Overlay0
     }
-    Text(backup.Text, style = MaterialTheme.typography.bodySmall, color = color)
+    Text(backup.text(LocalTimeFormat.current, Instant.now()), style = MaterialTheme.typography.bodySmall, color = color)
 }
 
 // The Times setting, for every screen; App provides it.

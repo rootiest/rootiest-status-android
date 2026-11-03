@@ -37,4 +37,15 @@ class StatusApiTest {
         assertEquals(BackupLine("Last backup 3 h ago (notes → b2, 12 MB)", "ok"), notes.Backup)
         assertNull(git.Backup)
     }
+
+    @Test
+    fun backupTimeFollowsTheTimesSetting() {
+        val now = java.time.Instant.parse("2026-11-02T16:05:00Z")
+        val line = BackupLine("Last backup 3 h ago (Atlas → Hestia, 2.2 MiB)", "ok", "2026-11-02T13:05:00Z", "Atlas → Hestia, 2.2 MiB")
+        val utc24 = TimeFormat(utc = true, hours = ClockHours.H24, date = DateStyle.Iso)
+        assertEquals("Last backup 2026-11-02 13:05 UTC (Atlas → Hestia, 2.2 MiB)", line.text(utc24, now))
+        assertEquals("Last backup 3 h ago (Atlas → Hestia, 2.2 MiB)", line.text(TimeFormat(style = TimeStyle.Relative), now))
+        // an older hub sends the text alone
+        assertEquals("Last backup 3 h ago (x)", BackupLine("Last backup 3 h ago (x)", "ok").text(utc24, now))
+    }
 }
