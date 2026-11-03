@@ -11,6 +11,7 @@ class StatusCache(dir: File) {
 
     private val file = File(dir, "last-status.json")
     private val statesFile = File(dir, "last-states.json")
+    private val pendingFile = File(dir, "pending-outages.json")
     private val json = Json { ignoreUnknownKeys = true }
 
     fun save(view: StatusView) {
@@ -32,6 +33,14 @@ class StatusCache(dir: File) {
 
     fun loadStates(): Map<String, String> =
         runCatching { json.decodeFromString<Map<String, String>>(statesFile.readText()) }.getOrDefault(emptyMap())
+
+    // The outages waiting out Settings > Notify about an outage (see damp).
+    fun savePending(pending: Map<String, Pending>) {
+        pendingFile.replaceWith(json.encodeToString(pending))
+    }
+
+    fun loadPending(): Map<String, Pending> =
+        runCatching { json.decodeFromString<Map<String, Pending>>(pendingFile.readText()) }.getOrDefault(emptyMap())
 }
 
 // Writes a temporary file beside this one and renames it over it, so a reader never sees half a file, even when the app
