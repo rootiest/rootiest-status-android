@@ -78,8 +78,8 @@ under an account icon when signed out. Either way it has **Settings**, then **Si
 or **Sign in**, so settings are reachable without an account.
 
 **Settings** is its own screen (back returns to the list), in sections: Notifications,
-Instant alerts and Background check (see [Notifications and the background job](#notifications-and-the-background-job)), then Appearance
-Service list and Times:
+Instant alerts and Background check (see [Notifications and the background job](#notifications-and-the-background-job)), then Appearance,
+Service list, Times and About:
 
 - **Appearance**: **System default** (the default) follows the phone's dark theme;
   **Light** and **Dark** always use that one. Dark is Catppuccin Mocha, light is
@@ -119,6 +119,14 @@ Service list and Times:
   `data/Times.kt` do the formatting; saved as `time-style`, `time-date`,
   `time-pattern`, `time-hours` and `time-utc` in `settings`, and provided to every
   screen as `LocalTimeFormat`, the backup line's time included.
+- **About**: the version (name and code), then links that open in the browser: the
+  status page, the source code and **Report a problem**, a new ticket on the support desk
+  (rootiest-hub's prefill link, `data/Support.kt`: category Problem, service Status page,
+  and the app version, Android version and phone filled in for the person to review). Last,
+  **Open-source licenses** (`ui/LicensesScreen.kt`) lists the libraries the app is
+  built with and their licenses, tap one for its text. The AboutLibraries Gradle plugin
+  writes that list at build time from the release dependencies, as
+  `res/raw/aboutlibraries.json`, so it is never out of date.
 
 ## Home-screen widget
 
@@ -252,12 +260,13 @@ Material 3.
 | `data/StatusApi.kt` | OkHttp GET plus kotlinx.serialization parse, on `Dispatchers.IO` |
 | `data/Lookups.kt` | plain functions over a snapshot: find a service, its events, a day's summary text |
 | `StatusViewModel.kt` | holds `StatusUiState` (last view, loading, error), the appearance, service list, times and interval settings and the muted names as `StateFlow`s; fetches on start and on `refresh()` |
-| `Routes.kt` | Navigation 3 keys: `Home`, `ServiceDetail(group, name)`, `Settings`, `WatchList` |
+| `Routes.kt` | Navigation 3 keys: `Home`, `ServiceDetail(group, name)`, `Settings`, `WatchList`, `Licenses` |
 | `ui/App.kt` | the app root: one `StatusViewModel` above the navigation, the back stack and `NavDisplay` |
 | `ui/StatusScreen.kt` | the list: top bar, pull-to-refresh, headline, servers, groups, tappable services |
 | `ui/ServiceScreen.kt` | a service's detail: summary, recent changes, daily uptime |
-| `ui/SettingsScreen.kt` | settings: notifications, push status, the background check interval, the appearance choice |
+| `ui/SettingsScreen.kt` | settings: notifications, push status, the background check, appearance, service list, times, about |
 | `ui/WatchListScreen.kt` | the services and servers to notify about, one switch each |
+| `ui/LicensesScreen.kt` | the open-source licenses, from the list the AboutLibraries plugin generates |
 | `ui/Components.kt` | pieces both screens use: error banner, section title and sticky section header, dot, uptime strip |
 | `data/Problems.kt` | what counts as a problem: what the widget lists, and the list arranged by the Service list setting |
 | `data/StatusCache.kt` | the last good snapshot, saved for the widget |
@@ -287,7 +296,9 @@ icon.
 ## Build configuration
 
 - Versions live in `gradle/libs.versions.toml`. AGP 9 compiles Kotlin itself, so the
-  build applies only the Compose and serialization Kotlin plugins.
+  build applies only the Compose and serialization Kotlin plugins, plus AboutLibraries
+  (`com.mikepenz.aboutlibraries.plugin.android`), which collects the dependencies'
+  licenses for Settings > About.
 - `compileSdk`/`targetSdk` 37, `minSdk` 29 (Android 10).
 - Application id `dev.rootiest.status`. The version is `appVersion` in
   `app/build.gradle.kts`; `versionCode` follows from it (`1.2.3` is 10203).
@@ -303,7 +314,7 @@ icon.
 `./tests/run-tests.sh` runs `testDebugUnitTest`: JVM tests, no device needed.
 `StatusApiTest` parses `app/src/test/resources/status-sample.json`, a saved signed-out
 answer from the live API, and checks that unknown fields are ignored and the backup line parses and follows the time setting. `ProblemsTest`
-covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `TimesTest` the time formats and strftime fields, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token. `LookupsTest` runs
+covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `TimesTest` the time formats and strftime fields, `SupportTest` the ticket link, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token. `LookupsTest` runs
 the `data/Lookups.kt` functions against the same fixture (it relies on the fixture's
 Notes outage on 2026-10-27, so keep an answer with a service event when refreshing it). Refresh the
 fixture when the API changes:

@@ -18,3 +18,7 @@ data object Settings : NavKey
 // Settings > Notifications > the services and servers to notify about.
 @Serializable
 data object WatchList : NavKey
+
+// Settings > About > Open-source licenses.
+@Serializable
+data object Licenses : NavKey

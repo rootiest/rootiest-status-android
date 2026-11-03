@@ -19,6 +19,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
 import dev.rootiest.status.Home
+import dev.rootiest.status.Licenses
 import dev.rootiest.status.Notifier
 import dev.rootiest.status.ServiceDetail
 import dev.rootiest.status.Settings
@@ -75,12 +76,14 @@ fun RootiestApp(vm: StatusViewModel) {
                     refreshInterval = refreshInterval,
                     onRefreshInterval = vm::setRefreshInterval,
                     onOpenWatchList = { backStack.add(WatchList) },
+                    onOpenLicenses = { backStack.add(Licenses) },
                     onBack = { backStack.removeLastOrNull() },
                 )
             }
             entry<WatchList> {
                 WatchListScreen(state.view, muted, onMute = vm::setMuted, onBack = { backStack.removeLastOrNull() })
             }
+            entry<Licenses> { LicensesScreen(onBack = { backStack.removeLastOrNull() }) }
         },
     ) }
 }
