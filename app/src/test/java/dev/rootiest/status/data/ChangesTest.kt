@@ -27,6 +27,14 @@ class ChangesTest {
     }
 
     @Test
+    fun recoveredMeansBackToGreen() {
+        assertEquals(true, Change("A", "down", "up").recovered)
+        assertEquals(true, Change("Atlas", "degraded", "healthy").recovered)
+        assertEquals(false, Change("A", "up", "down").recovered)
+        assertEquals(false, Change("A", "down", "degraded").recovered)
+    }
+
+    @Test
     fun includesServers() {
         val v = view(hosts = listOf(HostView("Atlas", "degraded")))
         assertEquals(listOf(Change("Atlas", "healthy", "degraded")), v.changesSince(mapOf("Atlas" to "healthy")))

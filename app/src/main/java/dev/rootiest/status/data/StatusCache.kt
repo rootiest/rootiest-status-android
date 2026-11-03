@@ -27,6 +27,9 @@ class StatusCache(dir: File) {
         statesFile.replaceWith(json.encodeToString(states))
     }
 
+    // When the background job last saved the states (only it does), or null before its first run.
+    fun statesSavedAt(): Long? = statesFile.lastModified().takeIf { it > 0 }
+
     fun loadStates(): Map<String, String> =
         runCatching { json.decodeFromString<Map<String, String>>(statesFile.readText()) }.getOrDefault(emptyMap())
 }
