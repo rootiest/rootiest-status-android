@@ -1,8 +1,8 @@
 package dev.rootiest.status.ui
 
 import android.content.Context
-import android.text.format.DateUtils
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -48,6 +48,9 @@ import dev.rootiest.status.batteryState
 import dev.rootiest.status.data.Appearance
 import dev.rootiest.status.data.RefreshInterval
 import dev.rootiest.status.data.ServiceListMode
+import dev.rootiest.status.data.TimeFormat
+import dev.rootiest.status.data.TimeStyle
+import java.time.Instant
 import dev.rootiest.status.data.StatusCache
 import dev.rootiest.status.pushStatus
 import dev.rootiest.status.ui.theme.palette
@@ -77,6 +80,8 @@ fun SettingsScreen(
     onAppearance: (Appearance) -> Unit,
     serviceList: ServiceListMode,
     onServiceList: (ServiceListMode) -> Unit,
+    timeFormat: TimeFormat,
+    onTimeFormat: (TimeFormat) -> Unit,
     mutedCount: Int,
     onOpenWatchList: () -> Unit,
     refreshInterval: RefreshInterval,
@@ -113,6 +118,8 @@ fun SettingsScreen(
             item { ChoiceCard(appearanceLabels.map { (value, label) -> Choice(value, label) }, appearance, onAppearance) }
             item { SectionHeader("Service list") }
             item { ChoiceCard(serviceListChoices, serviceList, onServiceList) }
+            item { SectionHeader("Times") }
+            item { TimesCards(timeFormat, onTimeFormat) }
         }
     }
 }
@@ -153,7 +160,7 @@ private fun PushCard(system: SystemState) {
             is PushStatus.NotRegistered ->
                 Triple("Not connected", "${push.distributor} is installed but gave no address. Its default server must be ntfy.rootiest.dev", true)
             is PushStatus.On ->
-                Triple("On, through ${push.distributor}", "Last push ${ago(push.lastPushAt) ?: "not yet received"}", false)
+                Triple("On, through ${push.distributor}", "Last push ${moment(push.lastPushAt) ?: "not yet received"}", false)
         }
         SettingRow(title, summary, warn = warn)
     }
@@ -177,7 +184,7 @@ private fun BackgroundCheckCard(system: SystemState, context: Context, selected:
     )
     ChoiceCard(choices, selected, onSelect) {
         Divider()
-        SettingRow("Last check", ago(system.lastCheck) ?: "Not run yet")
+        SettingRow("Last check", moment(system.lastCheck) ?: "Not run yet")
         Divider()
         val (title, summary) = when (system.battery) {
             BatteryState.Restricted ->
@@ -193,9 +200,34 @@ private fun BackgroundCheckCard(system: SystemState, context: Context, selected:
     }
 }
 
-// "5 minutes ago", or null for no time
-private fun ago(millis: Long?): String? =
-    millis?.let { DateUtils.getRelativeTimeSpanString(it, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS).toString() }
+// A time on the phone, as the Times setting shows it, or null for none.
+@Composable
+private fun moment(millis: Long?): String? = millis?.let { LocalTimeFormat.current.format(Instant.ofEpochMilli(it), Instant.now()) }
+
+// Relative or clock, then local or UTC; the examples are now, less 3 hours, in each format.
+@Composable
+private fun TimesCards(selected: TimeFormat, onSelect: (TimeFormat) -> Unit) {
+    val sample = Instant.now().minusSeconds(3 * 3600)
+    fun example(f: TimeFormat) = f.format(sample, Instant.now())
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        ChoiceCard(
+            listOf(
+                Choice(TimeStyle.Relative, "Relative", example(selected.copy(style = TimeStyle.Relative)) + "; the date after a week"),
+                Choice(TimeStyle.Clock, "Clock time", example(selected.copy(style = TimeStyle.Clock))),
+            ),
+            selected.style,
+            { onSelect(selected.copy(style = it)) },
+        )
+        ChoiceCard(
+            listOf(
+                Choice(false, "Local time", "The phone's time zone"),
+                Choice(true, "UTC", "As the server keeps it; daily uptime is in UTC days either way"),
+            ),
+            selected.utc,
+            { onSelect(selected.copy(utc = it)) },
+        )
+    }
+}
 
 @Composable
 private fun SettingsCard(content: @Composable () -> Unit) {

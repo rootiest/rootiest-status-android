@@ -14,12 +14,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.rootiest.status.data.BackupLine
 import dev.rootiest.status.data.BarCell
+import dev.rootiest.status.data.TimeFormat
 import dev.rootiest.status.ui.theme.palette
 import dev.rootiest.status.ui.theme.toneOf
 
@@ -75,3 +77,6 @@ internal fun BackupText(backup: BackupLine) {
     }
     Text(backup.Text, style = MaterialTheme.typography.bodySmall, color = color)
 }
+
+// The Times setting, for every screen; App provides it.
+internal val LocalTimeFormat = staticCompositionLocalOf { TimeFormat() }

@@ -29,6 +29,13 @@ class SettingsStore(context: Context) {
         get() = ServiceListMode.entries.find { it.name == prefs.getString("service-list", null) } ?: ServiceListMode.All
         set(value) = prefs.edit { putString("service-list", value.name) }
 
+    var timeFormat: TimeFormat
+        get() = TimeFormat(
+            style = TimeStyle.entries.find { it.name == prefs.getString("time-style", null) } ?: TimeStyle.Clock,
+            utc = prefs.getBoolean("time-utc", false),
+        )
+        set(value) = prefs.edit { putString("time-style", value.style.name); putBoolean("time-utc", value.utc) }
+
     // Services and servers the user does not want notifications about, by name. Muting rather than watching, so one
     // that appears later is notified about until muted.
     var muted: Set<String>

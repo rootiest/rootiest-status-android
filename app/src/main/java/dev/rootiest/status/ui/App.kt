@@ -8,6 +8,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.browser.customtabs.CustomTabsIntent
@@ -32,6 +33,7 @@ fun RootiestApp(vm: StatusViewModel) {
     val muted by vm.muted.collectAsStateWithLifecycle()
     val refreshInterval by vm.refreshInterval.collectAsStateWithLifecycle()
     val serviceList by vm.serviceList.collectAsStateWithLifecycle()
+    val timeFormat by vm.timeFormat.collectAsStateWithLifecycle()
     val backStack = rememberNavBackStack(Home)
     // Ask once for notifications (Android 13+); a refusal only means no change notifications.
     val context = LocalContext.current
@@ -39,7 +41,7 @@ fun RootiestApp(vm: StatusViewModel) {
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= 33 && !Notifier.canNotify(context)) askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
-    NavDisplay(
+    CompositionLocalProvider(LocalTimeFormat provides timeFormat) { NavDisplay(
         backStack = backStack,
         onBack = { backStack.removeLastOrNull() },
         // Horizontal slides, as in other Android apps: Navigation 3 defaults to fades, and to shrinking the screen on a back gesture.
@@ -67,6 +69,8 @@ fun RootiestApp(vm: StatusViewModel) {
                     onAppearance = vm::setAppearance,
                     serviceList = serviceList,
                     onServiceList = vm::setServiceList,
+                    timeFormat = timeFormat,
+                    onTimeFormat = vm::setTimeFormat,
                     mutedCount = muted.size,
                     refreshInterval = refreshInterval,
                     onRefreshInterval = vm::setRefreshInterval,
@@ -78,5 +82,5 @@ fun RootiestApp(vm: StatusViewModel) {
                 WatchListScreen(state.view, muted, onMute = vm::setMuted, onBack = { backStack.removeLastOrNull() })
             }
         },
-    )
+    ) }
 }

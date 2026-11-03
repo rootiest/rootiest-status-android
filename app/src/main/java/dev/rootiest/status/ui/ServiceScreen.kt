@@ -42,9 +42,6 @@ import dev.rootiest.status.data.summary
 import dev.rootiest.status.ui.theme.palette
 import dev.rootiest.status.ui.theme.toneOf
 import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -147,14 +144,9 @@ private fun EventRow(event: Event) {
             Spacer(Modifier.width(8.dp))
             Text("${event.From} → ${event.To}", fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.weight(1f))
-            Text(localTime(event.At), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(LocalTimeFormat.current.format(event.At, Instant.now()), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (event.Detail.isNotEmpty()) Text(event.Detail, style = MaterialTheme.typography.bodySmall)
         HorizontalDivider(Modifier.padding(top = 8.dp), color = palette.Surface0)
     }
 }
-
-private val timeFormat = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM, FormatStyle.SHORT)
-
-private fun localTime(at: String): String =
-    runCatching { timeFormat.format(Instant.parse(at).atZone(ZoneId.systemDefault())) }.getOrDefault(at)

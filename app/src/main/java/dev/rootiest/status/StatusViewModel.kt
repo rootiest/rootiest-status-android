@@ -10,6 +10,9 @@ import dev.rootiest.status.data.ServiceListMode
 import dev.rootiest.status.data.SettingsStore
 import dev.rootiest.status.data.StatusApi
 import dev.rootiest.status.data.StatusView
+import dev.rootiest.status.data.TimeFormat
+import androidx.glance.appwidget.updateAll
+import dev.rootiest.status.widget.StatusWidget
 import dev.rootiest.status.widget.RefreshWorker
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -39,6 +42,8 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
     val refreshInterval: StateFlow<RefreshInterval> = _refreshInterval.asStateFlow()
     private val _serviceList = MutableStateFlow(settings.serviceList)
     val serviceList: StateFlow<ServiceListMode> = _serviceList.asStateFlow()
+    private val _timeFormat = MutableStateFlow(settings.timeFormat)
+    val timeFormat: StateFlow<TimeFormat> = _timeFormat.asStateFlow()
     private val _muted = MutableStateFlow(settings.muted)
     val muted: StateFlow<Set<String>> = _muted.asStateFlow()
 
@@ -89,6 +94,13 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
     fun setServiceList(value: ServiceListMode) {
         settings.serviceList = value
         _serviceList.value = value
+    }
+
+    // Saves the choice and redraws the widgets, whose "Updated" time follows the zone setting.
+    fun setTimeFormat(value: TimeFormat) {
+        settings.timeFormat = value
+        _timeFormat.value = value
+        viewModelScope.launch { StatusWidget().updateAll(getApplication()) }
     }
 
     fun setRefreshInterval(value: RefreshInterval) {

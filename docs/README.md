@@ -32,7 +32,7 @@ Tap a service to open its detail screen:
   text, the service's detail line, its hostname (a link to the site, except for services
   probed by TCP connect, whose hostname is only a name) and the uptime strip;
 - **Recent changes**: the snapshot's events for that service (`Kind` `service`, `Subject`
-  equal to its name), newest first, in local time;
+  equal to its name), newest first, with times as the Times setting shows them;
 - **Daily uptime (UTC days)**: one row per day, newest first, from the strip's cells.
   "Recent changes" sticks below the summary card until this title pushes it off. Days are
   UTC days, as rootiest-hub counts them, so tomorrow's date can appear in the evening. Days before
@@ -77,7 +77,7 @@ or **Sign in**, so settings are reachable without an account.
 
 **Settings** is its own screen (back returns to the list), in sections: Notifications,
 Instant alerts and Background check (see [Notifications and the background job](#notifications-and-the-background-job)), then Appearance
-and Service list:
+Service list and Times:
 
 - **Appearance**: **System default** (the default) follows the phone's dark theme;
   **Light** and **Dark** always use that one. Dark is Catppuccin Mocha, light is
@@ -94,6 +94,16 @@ and Service list:
   standby copy is not a problem, as for the widget. Saved as `serviceList` in
   `settings`; `arranged` in `data/Problems.kt` does it, and only the list uses it (the
   widget, detail screens and notifications see every service).
+- **Times**: **Relative** ("3 h ago", "2 days ago"; a date once it is a week old) or
+  **Clock time** (the default, "Nov 2, 2026, 4:05 PM"), and **Local time** (the
+  default, the phone's zone) or **UTC** (with " UTC" after it). It covers the detail
+  screen's recent changes and Settings' last check and last push; the widget's
+  "Updated" time follows the zone but is always a clock time, as a relative one would go
+  stale between redraws (changing the setting redraws the widgets). The examples under
+  each choice are the current time less three hours. Daily uptime stays in UTC days,
+  as the hub counts them. `TimeFormat` in `data/Times.kt` does the formatting; saved as
+  `time-style` and `time-utc` in `settings`, and provided to every screen as
+  `LocalTimeFormat`. Text from the hub, such as the backup line, keeps its own wording.
 
 ## Home-screen widget
 
@@ -106,7 +116,8 @@ and when the snapshot was fetched. Tapping it opens the app.
   "(planned)" marks one a planned window expects.
 - Each widget update fetches `/api/status` and saves the answer in the app's files
   (`last-status.json`, `data/StatusCache.kt`). When the fetch fails the widget shows
-  the saved snapshot, with "Offline · as of <time>" in yellow.
+  the saved snapshot, with "Offline · as of <time>" in yellow (the time in the zone the
+  Times setting chooses).
 - The background job (below) redraws every widget each time it runs (every 15 minutes by default). The widget's own
   `updatePeriodMillis` is 0, since the system's minimum is 30 minutes.
 - The app's own refresh does not redraw the widget yet.
@@ -225,7 +236,7 @@ Material 3.
 | `data/StatusModels.kt` | `@Serializable` data classes for the API's JSON |
 | `data/StatusApi.kt` | OkHttp GET plus kotlinx.serialization parse, on `Dispatchers.IO` |
 | `data/Lookups.kt` | plain functions over a snapshot: find a service, its events, a day's summary text |
-| `StatusViewModel.kt` | holds `StatusUiState` (last view, loading, error), the appearance, service list and interval settings and the muted names as `StateFlow`s; fetches on start and on `refresh()` |
+| `StatusViewModel.kt` | holds `StatusUiState` (last view, loading, error), the appearance, service list, times and interval settings and the muted names as `StateFlow`s; fetches on start and on `refresh()` |
 | `Routes.kt` | Navigation 3 keys: `Home`, `ServiceDetail(group, name)`, `Settings`, `WatchList` |
 | `ui/App.kt` | the app root: one `StatusViewModel` above the navigation, the back stack and `NavDisplay` |
 | `ui/StatusScreen.kt` | the list: top bar, pull-to-refresh, headline, servers, groups, tappable services |
@@ -240,6 +251,7 @@ Material 3.
 | `widget/StatusWidget.kt` | the Glance widget: fetch or cached snapshot, two layouts by size |
 | `widget/StatusWidgetReceiver.kt` | the widget's receiver; schedules the background job |
 | `widget/RefreshWorker.kt` | the background job: fetch, notify changes, redraw widgets, at the chosen interval and on push |
+| `data/Times.kt` | `TimeFormat`: relative or clock times, local or UTC |
 | `data/Changes.kt` | what changed between two fetches, less the muted names |
 | `Notifier.kt` | the two notification channels, permission and channel checks, the phone's settings pages, posting |
 | `Battery.kt` | the app's battery setting (restricted, optimized, unrestricted) and the page that changes it |
@@ -276,7 +288,7 @@ icon.
 `./tests/run-tests.sh` runs `testDebugUnitTest`: JVM tests, no device needed.
 `StatusApiTest` parses `app/src/test/resources/status-sample.json`, a saved signed-out
 answer from the live API, and checks that unknown fields are ignored and the backup line parses. `ProblemsTest`
-covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token. `LookupsTest` runs
+covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `TimesTest` the time formats, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token. `LookupsTest` runs
 the `data/Lookups.kt` functions against the same fixture (it relies on the fixture's
 Notes outage on 2026-10-27, so keep an answer with a service event when refreshing it). Refresh the
 fixture when the API changes:
