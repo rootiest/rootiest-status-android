@@ -72,7 +72,8 @@ The top bar's right side opens the account menu: under the display name when sig
 under an account icon when signed out. Either way it has **Settings**, then **Sign out**
 or **Sign in**, so settings are reachable without an account.
 
-**Settings** is its own screen (back returns to the list). Its one setting so far:
+**Settings** is its own screen (back returns to the list), in sections: Notifications,
+Instant alerts and Background check (see [Notifications and the background job](#notifications-and-the-background-job)), then Appearance:
 
 - **Appearance**: **System default** (the default) follows the phone's dark theme;
   **Light** and **Dark** always use that one. Dark is Catppuccin Mocha, light is
@@ -95,18 +96,18 @@ and when the snapshot was fetched. Tapping it opens the app.
 - Each widget update fetches `/api/status` and saves the answer in the app's files
   (`last-status.json`, `data/StatusCache.kt`). When the fetch fails the widget shows
   the saved snapshot, with "Offline · as of <time>" in yellow.
-- The background job (below) redraws every widget every 15 minutes. The widget's own
+- The background job (below) redraws every widget each time it runs (every 15 minutes by default). The widget's own
   `updatePeriodMillis` is 0, since the system's minimum is 30 minutes.
 - The app's own refresh does not redraw the widget yet.
 
 ## Notifications and the background job
 
-`RefreshWorker` (WorkManager) runs every 15 minutes, the shortest period WorkManager
-allows, and only with a network connection, and at once when a push arrives (below). Each run fetches the status, posts a
+`RefreshWorker` (WorkManager) runs every 15 minutes by default, the shortest period
+WorkManager allows, or at the interval chosen in Settings (below), and only with a network connection, and at once when a push arrives (below). Each run fetches the status, posts a
 notification for each change, saves the states and the snapshot, and redraws the
 widgets. It is scheduled on every app start (and when a widget is added) and keeps
 running without a widget, since it also sends the notifications. Android may run it
-later than every 15 minutes when the phone is idle (Doze), so a change can take longer
+later than its interval when the phone is idle (Doze), so a change can take longer
 to arrive; ntfy remains the fast path.
 
 - A change is a service or server whose state differs from the previous run
@@ -141,9 +142,16 @@ time it shows, so it is current after a trip to the phone's settings:
   list comes from the snapshot on screen; the Settings row says "All" or "All but N
   muted".
 - Instant alerts: whether push is on (and through which distributor app, with when the
-  last push arrived), installed but without an address, or off with no distributor; and
-  when the background job last ran (the time `last-states.json` was written, which only
-  the job does).
+  last push arrived), installed but without an address, or off with no distributor.
+- Background check: how often the job runs on its own, every 15 minutes (the default),
+  30 minutes or hour, or **Only when a push arrives**, which cancels the periodic job
+  (`SettingsStore.refreshInterval`, preferences file `settings`). `RefreshWorker.schedule`
+  applies it on every app start and on each change, with WorkManager's `UPDATE` policy,
+  which changes a scheduled job's period without restarting its clock. Push only is
+  marked in yellow while push is not on, since nothing would then run the job: no
+  notifications and a stale widget. With push on, the widget then updates only after an
+  alert. Below the choice, when the job last ran (the time `last-states.json` was
+  written, which only the job does).
 
 **Push.** The app uses UnifiedPush with the phone's distributor, the ntfy app. On start
 it asks for the current or default distributor and registers; the distributor hands it a
@@ -156,7 +164,7 @@ the job at once (expedited on Android 12+). The message carries no data and is n
 encrypted (the connector logs "Could not decrypt message, trying with plain text"), so
 each run fetches what its viewer may see. Runs take turns (a lock), so a push arriving
 during the periodic run cannot notify a change twice. Without a distributor, or with the
-ntfy app on another server, there is no push and the 15-minute job carries on alone.
+ntfy app on another server, there is no push and the periodic job carries on alone.
 
 To test the phone's side without an alert, post to the address (logged as
 `StatusPush: ... for <address>` when the hub refuses it, or found in the ntfy app's
@@ -199,21 +207,21 @@ Material 3.
 | `data/StatusModels.kt` | `@Serializable` data classes for the API's JSON |
 | `data/StatusApi.kt` | OkHttp GET plus kotlinx.serialization parse, on `Dispatchers.IO` |
 | `data/Lookups.kt` | plain functions over a snapshot: find a service, its events, a day's summary text |
-| `StatusViewModel.kt` | holds `StatusUiState` (last view, loading, error), the appearance setting and the muted names as `StateFlow`s; fetches on start and on `refresh()` |
+| `StatusViewModel.kt` | holds `StatusUiState` (last view, loading, error), the appearance and interval settings and the muted names as `StateFlow`s; fetches on start and on `refresh()` |
 | `Routes.kt` | Navigation 3 keys: `Home`, `ServiceDetail(group, name)`, `Settings`, `WatchList` |
 | `ui/App.kt` | the app root: one `StatusViewModel` above the navigation, the back stack and `NavDisplay` |
 | `ui/StatusScreen.kt` | the list: top bar, pull-to-refresh, headline, servers, groups, tappable services |
 | `ui/ServiceScreen.kt` | a service's detail: summary, recent changes, daily uptime |
-| `ui/SettingsScreen.kt` | settings: notifications, push and background check status, the appearance choice |
+| `ui/SettingsScreen.kt` | settings: notifications, push status, the background check interval, the appearance choice |
 | `ui/WatchListScreen.kt` | the services and servers to notify about, one switch each |
 | `ui/Components.kt` | pieces both screens use: error banner, section title and sticky section header, dot, uptime strip |
 | `data/Problems.kt` | what the widget lists: unhealthy servers and down services |
 | `data/StatusCache.kt` | the last good snapshot, saved for the widget |
-| `data/Settings.kt` | `Appearance` and `SettingsStore` (the saved settings: appearance, muted names) |
+| `data/Settings.kt` | `Appearance`, `RefreshInterval` and `SettingsStore` (the saved settings: appearance, interval, muted names) |
 | `data/Auth.kt` | proof and challenge, reading a token, `AuthStore` (the saved sign-in) |
 | `widget/StatusWidget.kt` | the Glance widget: fetch or cached snapshot, two layouts by size |
 | `widget/StatusWidgetReceiver.kt` | the widget's receiver; schedules the background job |
-| `widget/RefreshWorker.kt` | the background job: fetch, notify changes, redraw widgets, every 15 minutes |
+| `widget/RefreshWorker.kt` | the background job: fetch, notify changes, redraw widgets, at the chosen interval and on push |
 | `data/Changes.kt` | what changed between two fetches, less the muted names |
 | `Notifier.kt` | the two notification channels, permission and channel checks, the phone's settings pages, posting |
 | `Push.kt` | `StatusPushService` (UnifiedPush events), the saved push address and last push time, `pushStatus` |

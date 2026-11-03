@@ -20,7 +20,7 @@ Forgejo source (Gitea serves the same releases API).
 Releases are signed with a certificate whose SHA-256 fingerprint is
 `36:15:BB:5F:65:09:81:1F:A5:BB:82:83:03:B5:72:64:2C:36:3E:40:5A:F9:3D:47:75:23:27:9A:D0:EC:93:A4`.
 
-For alerts within seconds rather than at the next 15-minute check, install the
+For alerts within seconds rather than at the next background check (every 15 minutes by default), install the
 [ntfy](https://ntfy.sh) app with `https://ntfy.rootiest.dev` as its default server; the app
 then registers with it on its own. See [docs/README.md](docs/README.md#notifications-and-the-background-job).
 

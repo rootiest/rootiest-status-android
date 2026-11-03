@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         RefreshWorker.schedule(this)
         Notifier.createChannels(this)
-        // push through the phone's UnifiedPush distributor (the ntfy app), if it has one; without it the 15-minute refresh still runs
+        // push through the phone's UnifiedPush distributor (the ntfy app), if it has one; without it the periodic refresh still runs
         UnifiedPush.tryUseCurrentOrDefaultDistributor(this) { ok -> if (ok) UnifiedPush.register(this) }
         if (savedInstanceState == null) handleSignIn(intent)
         setContent {

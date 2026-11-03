@@ -28,7 +28,7 @@ import kotlinx.coroutines.sync.withLock
 import java.util.concurrent.TimeUnit
 
 // The background job: fetch the status, notify what changed since the last fetch, redraw the widgets, and renew the push address.
-// It runs every 15 minutes and at once when a push arrives.
+// It runs every 15 minutes (or the interval set in Settings, or never: push only) and at once when a push arrives.
 class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     // one run at a time: two runs comparing against the same saved states would notify a change twice
     override suspend fun doWork(): Result = running.withLock {
@@ -63,13 +63,20 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
             WorkManager.getInstance(context).enqueueUniqueWork(NOW, ExistingWorkPolicy.APPEND_OR_REPLACE, request)
         }
 
-        // Called on every app start and when a widget is added; KEEP leaves a scheduled job alone.
+        // Called on every app start, when a widget is added and when the interval setting changes. UPDATE changes the period
+        // of a scheduled job without restarting its clock; push only cancels it (pushes still run the job through runNow).
         fun schedule(context: Context) {
+            val minutes = SettingsStore(context).refreshInterval.minutes
+            val work = WorkManager.getInstance(context)
+            if (minutes == null) {
+                work.cancelUniqueWork(NAME)
+                return
+            }
             // 15 minutes is the shortest period WorkManager allows.
-            val request = PeriodicWorkRequestBuilder<RefreshWorker>(15, TimeUnit.MINUTES)
+            val request = PeriodicWorkRequestBuilder<RefreshWorker>(minutes, TimeUnit.MINUTES)
                 .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
                 .build()
-            WorkManager.getInstance(context).enqueueUniquePeriodicWork(NAME, ExistingPeriodicWorkPolicy.KEEP, request)
+            work.enqueueUniquePeriodicWork(NAME, ExistingPeriodicWorkPolicy.UPDATE, request)
         }
     }
 }

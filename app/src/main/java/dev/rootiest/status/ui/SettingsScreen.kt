@@ -43,6 +43,7 @@ import dev.rootiest.status.Notifier
 import dev.rootiest.status.PushStatus
 import dev.rootiest.status.R
 import dev.rootiest.status.data.Appearance
+import dev.rootiest.status.data.RefreshInterval
 import dev.rootiest.status.data.StatusCache
 import dev.rootiest.status.pushStatus
 import dev.rootiest.status.ui.theme.palette
@@ -70,6 +71,8 @@ fun SettingsScreen(
     onAppearance: (Appearance) -> Unit,
     mutedCount: Int,
     onOpenWatchList: () -> Unit,
+    refreshInterval: RefreshInterval,
+    onRefreshInterval: (RefreshInterval) -> Unit,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -96,8 +99,10 @@ fun SettingsScreen(
             item { NotificationsCard(system, context, mutedCount, onOpenWatchList) }
             item { SectionHeader("Instant alerts") }
             item { PushCard(system) }
+            item { SectionHeader("Background check") }
+            item { BackgroundCheckCard(system, refreshInterval, onRefreshInterval) }
             item { SectionHeader("Appearance") }
-            item { AppearanceChoice(appearance, onAppearance) }
+            item { ChoiceCard(appearanceLabels.map { (value, label) -> Choice(value, label) }, appearance, onAppearance) }
         }
     }
 }
@@ -141,8 +146,28 @@ private fun PushCard(system: SystemState) {
                 Triple("On, through ${push.distributor}", "Last push ${ago(push.lastPushAt) ?: "not yet received"}", false)
         }
         SettingRow(title, summary, warn = warn)
+    }
+}
+
+// How often the app checks on its own, and when it last did. Push only is flagged while push is not on: nothing would wake it.
+@Composable
+private fun BackgroundCheckCard(system: SystemState, selected: RefreshInterval, onSelect: (RefreshInterval) -> Unit) {
+    val pushOn = system.push is PushStatus.On
+    val choices = listOf(
+        Choice(RefreshInterval.Every15, "Every 15 minutes"),
+        Choice(RefreshInterval.Every30, "Every 30 minutes"),
+        Choice(RefreshInterval.Hourly, "Every hour"),
+        Choice(
+            RefreshInterval.PushOnly,
+            "Only when a push arrives",
+            if (pushOn) "Least battery; the widget updates only after an alert"
+            else "Instant alerts are not on, so the app would never check",
+            warn = !pushOn,
+        ),
+    )
+    ChoiceCard(choices, selected, onSelect) {
         Divider()
-        SettingRow("Background check", "Every 15 minutes; last ${ago(system.lastCheck) ?: "not run yet"}")
+        SettingRow("Last check", ago(system.lastCheck) ?: "Not run yet")
     }
 }
 
@@ -182,23 +207,34 @@ private val appearanceLabels = listOf(
     Appearance.Dark to "Dark",
 )
 
+private class Choice<T>(val value: T, val label: String, val summary: String? = null, val warn: Boolean = false)
+
+// Radio buttons in a card, with optional rows after them.
 @Composable
-private fun AppearanceChoice(selected: Appearance, onSelect: (Appearance) -> Unit) {
+private fun <T> ChoiceCard(choices: List<Choice<T>>, selected: T, onSelect: (T) -> Unit, footer: @Composable () -> Unit = {}) {
     Card(colors = CardDefaults.cardColors(containerColor = palette.Mantle)) {
-        Column(Modifier.fillMaxWidth().padding(vertical = 4.dp).selectableGroup()) {
-            appearanceLabels.forEach { (value, label) ->
-                // the whole row is the target, so a tap on the label works too
-                Row(
-                    Modifier.fillMaxWidth()
-                        .selectable(selected = value == selected, role = Role.RadioButton, onClick = { onSelect(value) })
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    RadioButton(selected = value == selected, onClick = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(label)
+        Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+            Column(Modifier.selectableGroup()) {
+                choices.forEach { choice ->
+                    // the whole row is the target, so a tap on the label works too
+                    Row(
+                        Modifier.fillMaxWidth()
+                            .selectable(selected = choice.value == selected, role = Role.RadioButton, onClick = { onSelect(choice.value) })
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = choice.value == selected, onClick = null)
+                        Spacer(Modifier.width(8.dp))
+                        Column {
+                            Text(choice.label)
+                            choice.summary?.let {
+                                Text(it, style = MaterialTheme.typography.bodySmall, color = if (choice.warn) palette.Yellow else palette.Subtext0)
+                            }
+                        }
+                    }
                 }
             }
+            footer()
         }
     }
 }

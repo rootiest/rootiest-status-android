@@ -5,9 +5,11 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.rootiest.status.data.Appearance
 import dev.rootiest.status.data.AuthStore
+import dev.rootiest.status.data.RefreshInterval
 import dev.rootiest.status.data.SettingsStore
 import dev.rootiest.status.data.StatusApi
 import dev.rootiest.status.data.StatusView
+import dev.rootiest.status.widget.RefreshWorker
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,6 +34,8 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
     private val settings = SettingsStore(app)
     private val _appearance = MutableStateFlow(settings.appearance)
     val appearance: StateFlow<Appearance> = _appearance.asStateFlow()
+    private val _refreshInterval = MutableStateFlow(settings.refreshInterval)
+    val refreshInterval: StateFlow<RefreshInterval> = _refreshInterval.asStateFlow()
     private val _muted = MutableStateFlow(settings.muted)
     val muted: StateFlow<Set<String>> = _muted.asStateFlow()
 
@@ -77,6 +81,12 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
     fun setAppearance(value: Appearance) {
         settings.appearance = value
         _appearance.value = value
+    }
+
+    fun setRefreshInterval(value: RefreshInterval) {
+        settings.refreshInterval = value
+        _refreshInterval.value = value
+        RefreshWorker.schedule(getApplication())
     }
 
     // Mute or unmute notifications about one service or server.
