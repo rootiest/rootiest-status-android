@@ -16,6 +16,7 @@ import dev.rootiest.status.widget.StatusWidget
 import dev.rootiest.status.widget.RefreshWorker
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -96,11 +97,17 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
         _serviceList.value = value
     }
 
-    // Saves the choice and redraws the widgets, whose "Updated" time follows the zone setting.
+    private var redrawWidgets: Job? = null
+
+    // Saves the choice and redraws the widgets, whose "Updated" time follows it: once typing in the pattern pauses.
     fun setTimeFormat(value: TimeFormat) {
         settings.timeFormat = value
         _timeFormat.value = value
-        viewModelScope.launch { StatusWidget().updateAll(getApplication()) }
+        redrawWidgets?.cancel()
+        redrawWidgets = viewModelScope.launch {
+            delay(1_000)
+            StatusWidget().updateAll(getApplication())
+        }
     }
 
     fun setRefreshInterval(value: RefreshInterval) {

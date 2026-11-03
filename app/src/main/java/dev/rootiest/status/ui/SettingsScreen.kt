@@ -22,6 +22,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -50,6 +51,9 @@ import dev.rootiest.status.data.RefreshInterval
 import dev.rootiest.status.data.ServiceListMode
 import dev.rootiest.status.data.TimeFormat
 import dev.rootiest.status.data.TimeStyle
+import dev.rootiest.status.data.ClockHours
+import dev.rootiest.status.data.DateStyle
+import dev.rootiest.status.data.STRFTIME_FIELDS
 import java.time.Instant
 import dev.rootiest.status.data.StatusCache
 import dev.rootiest.status.pushStatus
@@ -204,20 +208,50 @@ private fun BackgroundCheckCard(system: SystemState, context: Context, selected:
 @Composable
 private fun moment(millis: Long?): String? = millis?.let { LocalTimeFormat.current.format(Instant.ofEpochMilli(it), Instant.now()) }
 
-// Relative or clock, then local or UTC; the examples are now, less 3 hours, in each format.
+// Relative or clock; the clock's format, hours and zone. Each example is the current time less 3 hours in that choice.
 @Composable
 private fun TimesCards(selected: TimeFormat, onSelect: (TimeFormat) -> Unit) {
-    val sample = Instant.now().minusSeconds(3 * 3600)
-    fun example(f: TimeFormat) = f.format(sample, Instant.now())
+    val now = Instant.now()
+    val sample = now.minusSeconds(3 * 3600)
+    fun clockExample(f: TimeFormat) = f.copy(style = TimeStyle.Clock).format(sample, now)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         ChoiceCard(
             listOf(
-                Choice(TimeStyle.Relative, "Relative", example(selected.copy(style = TimeStyle.Relative)) + "; the date after a week"),
-                Choice(TimeStyle.Clock, "Clock time", example(selected.copy(style = TimeStyle.Clock))),
+                Choice(TimeStyle.Relative, "Relative", selected.copy(style = TimeStyle.Relative).format(sample, now)),
+                Choice(TimeStyle.Clock, "Clock time", clockExample(selected)),
             ),
             selected.style,
             { onSelect(selected.copy(style = it)) },
-        )
+        ) {
+            if (selected.style == TimeStyle.Relative) {
+                Note("The choices below still apply to the widget, which always shows a clock time (a relative one would go stale between redraws), and to times over a week old.")
+            }
+        }
+        Label("Format")
+        ChoiceCard(
+            listOf(
+                Choice(DateStyle.Default, "Default", clockExample(selected.copy(date = DateStyle.Default))),
+                Choice(DateStyle.Iso, "ISO", clockExample(selected.copy(date = DateStyle.Iso))),
+                Choice(DateStyle.Custom, "Custom", clockExample(selected.copy(date = DateStyle.Custom))),
+            ),
+            selected.date,
+            { onSelect(selected.copy(date = it)) },
+        ) {
+            if (selected.date == DateStyle.Custom) CustomPattern(selected, onSelect)
+        }
+        Label("Hours")
+        ChoiceCard(
+            listOf(
+                Choice(ClockHours.Phone, "Phone setting", if (selected.phone24) "24-hour now" else "12-hour now"),
+                Choice(ClockHours.H12, "12-hour"),
+                Choice(ClockHours.H24, "24-hour"),
+            ),
+            selected.hours,
+            { onSelect(selected.copy(hours = it)) },
+        ) {
+            if (selected.date == DateStyle.Custom) Note("A custom format sets its own hours: %H for 24-hour, %I or %l with %p for 12-hour.")
+        }
+        Label("Time zone")
         ChoiceCard(
             listOf(
                 Choice(false, "Local time", "The phone's time zone"),
@@ -225,8 +259,41 @@ private fun TimesCards(selected: TimeFormat, onSelect: (TimeFormat) -> Unit) {
             ),
             selected.utc,
             { onSelect(selected.copy(utc = it)) },
+        ) {
+            if (selected.date == DateStyle.Custom) Note("A custom format adds no zone name; use %Z for one.")
+        }
+    }
+}
+
+// The pattern, as strftime writes it, with what it gives and the fields it knows.
+@Composable
+private fun CustomPattern(selected: TimeFormat, onSelect: (TimeFormat) -> Unit) {
+    // the field keeps its own text, so the cursor stays put while the setting saves on every change
+    var text by remember { mutableStateOf(selected.pattern) }
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        OutlinedTextField(
+            value = text,
+            onValueChange = { text = it; onSelect(selected.copy(pattern = it)) },
+            label = { Text("Pattern") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Text(
+            STRFTIME_FIELDS.joinToString("   ") { (field, gives) -> "$field $gives" },
+            style = MaterialTheme.typography.bodySmall,
+            color = palette.Subtext0,
         )
     }
+}
+
+@Composable
+private fun Label(text: String) {
+    Text(text, style = MaterialTheme.typography.labelLarge, color = palette.Subtext0, modifier = Modifier.padding(top = 4.dp, start = 4.dp))
+}
+
+@Composable
+private fun Note(text: String) {
+    Text(text, style = MaterialTheme.typography.bodySmall, color = palette.Subtext0, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
 }
 
 @Composable

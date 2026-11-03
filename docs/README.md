@@ -94,16 +94,30 @@ Service list and Times:
   standby copy is not a problem, as for the widget. Saved as `serviceList` in
   `settings`; `arranged` in `data/Problems.kt` does it, and only the list uses it (the
   widget, detail screens and notifications see every service).
-- **Times**: **Relative** ("3 h ago", "2 days ago"; a date once it is a week old) or
-  **Clock time** (the default, "Nov 2, 2026, 4:05 PM"), and **Local time** (the
-  default, the phone's zone) or **UTC** (with " UTC" after it). It covers the detail
-  screen's recent changes and Settings' last check and last push; the widget's
-  "Updated" time follows the zone but is always a clock time, as a relative one would go
-  stale between redraws (changing the setting redraws the widgets). The examples under
-  each choice are the current time less three hours. Daily uptime stays in UTC days,
-  as the hub counts them. `TimeFormat` in `data/Times.kt` does the formatting; saved as
-  `time-style` and `time-utc` in `settings`, and provided to every screen as
-  `LocalTimeFormat`. Text from the hub, such as the backup line, keeps its own wording.
+- **Times**: **Relative** ("3 h ago", "2 days ago"; the clock once it is a week old) or
+  **Clock time** (the default), and for the clock:
+  - **Format**: **Default** (the locale's date, "Nov 2, 2026, 4:05 PM"), **ISO**
+    ("2026-11-02 16:05") or **Custom**, a strftime pattern typed in Settings (default
+    `%Y-%m-%d %H:%M`) with a live example. It knows `%Y %y %m %d %e %b %B %a %A %H %I %l
+    %M %S %p %Z %z %%` (Settings lists what each gives); anything else, an unknown field
+    too, is kept as written. A custom pattern is used as written everywhere, the widget
+    included: it sets its own hours and adds no zone name unless it has `%Z`.
+  - **Hours**: **Phone setting** (the default, the phone's "Use 24-hour format",
+    read each time the setting is loaded), **12-hour** or **24-hour**.
+  - **Time zone**: **Local time** (the default, the phone's zone) or **UTC** (with
+    " UTC" after Default and ISO times).
+
+  It covers the detail screen's recent changes and Settings' last check and last push.
+  The widget's "Updated" time follows format, hours and zone but is always a clock time
+  (the time of day, or the whole custom pattern), as a relative one would go stale
+  between redraws; Settings says so while Relative is chosen. A change redraws the
+  widgets a second after the last one (so typing a pattern does not redraw on every
+  key). The examples under the choices are the current time less three hours. Daily
+  uptime stays in UTC days, as the hub counts them. `TimeFormat` and `strftime` in
+  `data/Times.kt` do the formatting; saved as `time-style`, `time-date`,
+  `time-pattern`, `time-hours` and `time-utc` in `settings`, and provided to every
+  screen as `LocalTimeFormat`. Text from the hub, such as the backup line, keeps its own
+  wording.
 
 ## Home-screen widget
 
@@ -251,7 +265,7 @@ Material 3.
 | `widget/StatusWidget.kt` | the Glance widget: fetch or cached snapshot, two layouts by size |
 | `widget/StatusWidgetReceiver.kt` | the widget's receiver; schedules the background job |
 | `widget/RefreshWorker.kt` | the background job: fetch, notify changes, redraw widgets, at the chosen interval and on push |
-| `data/Times.kt` | `TimeFormat`: relative or clock times, local or UTC |
+| `data/Times.kt` | `TimeFormat` (relative or clock; default, ISO or custom format; 12 or 24 hours; local or UTC) and `strftime` |
 | `data/Changes.kt` | what changed between two fetches, less the muted names |
 | `Notifier.kt` | the two notification channels, permission and channel checks, the phone's settings pages, posting |
 | `Battery.kt` | the app's battery setting (restricted, optimized, unrestricted) and the page that changes it |
@@ -288,7 +302,7 @@ icon.
 `./tests/run-tests.sh` runs `testDebugUnitTest`: JVM tests, no device needed.
 `StatusApiTest` parses `app/src/test/resources/status-sample.json`, a saved signed-out
 answer from the live API, and checks that unknown fields are ignored and the backup line parses. `ProblemsTest`
-covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `TimesTest` the time formats, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token. `LookupsTest` runs
+covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `TimesTest` the time formats and strftime fields, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token. `LookupsTest` runs
 the `data/Lookups.kt` functions against the same fixture (it relies on the fixture's
 Notes outage on 2026-10-27, so keep an answer with a service event when refreshing it). Refresh the
 fixture when the API changes:
