@@ -24,4 +24,28 @@ class StatusApiTest {
         val view = api.parse("""{"Now":"x","Level":"bad","Headline":"h","Novel":1,"Groups":[]}""")
         assertEquals("bad", view.Level)
     }
+
+    @Test
+    fun parsesTheBackupLine() {
+        // as rootiest-hub's BackupView encodes it; the live answer has none while no report is published
+        val view = api.parse(
+            """{"Now":"x","Level":"ok","Headline":"h","Groups":[{"Name":"G","Services":[""" +
+                """{"Name":"Notes","State":"up","Backup":{"Text":"Last backup 3 h ago (notes → b2, 12 MB)","Level":"ok"}},""" +
+                """{"Name":"Git","State":"up"}]}]}""",
+        )
+        val (notes, git) = view.Groups[0].Services
+        assertEquals(BackupLine("Last backup 3 h ago (notes → b2, 12 MB)", "ok"), notes.Backup)
+        assertNull(git.Backup)
+    }
+
+    @Test
+    fun backupTimeFollowsTheTimesSetting() {
+        val now = java.time.Instant.parse("2026-11-02T16:05:00Z")
+        val line = BackupLine("Last backup 3 h ago (Atlas → Hestia, 2.2 MiB)", "ok", "2026-11-02T13:05:00Z", "Atlas → Hestia, 2.2 MiB")
+        val utc24 = TimeFormat(utc = true, hours = ClockHours.H24, date = DateStyle.Iso)
+        assertEquals("Last backup 2026-11-02 13:05 UTC (Atlas → Hestia, 2.2 MiB)", line.text(utc24, now))
+        assertEquals("Last backup 3 h ago (Atlas → Hestia, 2.2 MiB)", line.text(TimeFormat(style = TimeStyle.Relative), now))
+        // an older hub sends the text alone
+        assertEquals("Last backup 3 h ago (x)", BackupLine("Last backup 3 h ago (x)", "ok").text(utc24, now))
+    }
 }

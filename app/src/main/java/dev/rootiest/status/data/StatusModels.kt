@@ -1,5 +1,6 @@
 package dev.rootiest.status.data
 
+import java.time.Instant
 import kotlinx.serialization.Serializable
 
 // The JSON from rootiest-hub's GET /api/status (internal/status/view.go, type View). Field names match Go's
@@ -41,7 +42,22 @@ data class ServiceView(
     val Bar: List<BarCell> = emptyList(),
     val Detail: String = "",
     val Planned: Boolean = false,
+    val Backup: BackupLine? = null, // only for services that publish a backup report
 )
+
+// The line about a service's last backup, as the page shows it under the service ("Last backup 3 h ago (...)").
+// At (ISO 8601) and Detail ("Atlas → Hestia, 2.2 MiB") are its parts, sent by newer hubs so the time can follow Settings.
+@Serializable
+data class BackupLine(
+    val Text: String,
+    val Level: String = "unknown", // ok, warn (older than the hub allows), unknown (no report)
+    val At: String = "",
+    val Detail: String = "",
+) {
+    // The line with the time written by Settings > Times; the hub's own text when it sent no parts.
+    fun text(times: TimeFormat, now: Instant): String =
+        if (At.isBlank() || Detail.isBlank()) Text else "Last backup ${times.format(At, now)} ($Detail)"
+}
 
 @Serializable
 data class BarCell(

@@ -16,7 +16,12 @@ The app shows the same snapshot as [status.rootiest.dev](https://status.rootiest
   "Failover active" while traffic is served by the standby edge;
 - the Servers section (state, vitals, note per host), only when the API includes it:
   after signing in, for staff and the groups the catalog lets see servers;
-- every group of services: state dot, uptime text and the per-day uptime strip.
+- every group of services: state dot, uptime text and the per-day uptime strip, and
+  for a service that publishes a backup report the hub's backup line ("Last backup 3 h
+  ago (...)"), grey when unknown and yellow when the backup is older than the hub
+  allows (`Backup`, rootiest-hub's `BackupView`; also on the detail screen). Its time
+  follows Settings > Times, built from the hub's `At` and `Detail`; a hub that sends
+  only `Text` is shown as it is.
 
 Section titles (Servers, then each group) stick below the headline while their rows
 scroll, until the next section's title pushes them off. The headline is fixed above
@@ -29,7 +34,7 @@ Tap a service to open its detail screen:
   text, the service's detail line, its hostname (a link to the site, except for services
   probed by TCP connect, whose hostname is only a name) and the uptime strip;
 - **Recent changes**: the snapshot's events for that service (`Kind` `service`, `Subject`
-  equal to its name), newest first, in local time;
+  equal to its name), newest first, with times as the Times setting shows them;
 - **Daily uptime (UTC days)**: one row per day, newest first, from the strip's cells.
   "Recent changes" sticks below the summary card until this title pushes it off. Days are
   UTC days, as rootiest-hub counts them, so tomorrow's date can appear in the evening. Days before
@@ -73,7 +78,8 @@ under an account icon when signed out. Either way it has **Settings**, then **Si
 or **Sign in**, so settings are reachable without an account.
 
 **Settings** is its own screen (back returns to the list), in sections: Notifications,
-Instant alerts and Background check (see [Notifications and the background job](#notifications-and-the-background-job)), then Appearance:
+Instant alerts and Background check (see [Notifications and the background job](#notifications-and-the-background-job)), then Appearance
+Service list and Times:
 
 - **Appearance**: **System default** (the default) follows the phone's dark theme;
   **Light** and **Dark** always use that one. Dark is Catppuccin Mocha, light is
@@ -83,6 +89,36 @@ Instant alerts and Background check (see [Notifications and the background job](
   shown before the app draws matches it too; on Android 10 and 11 that brief window
   follows the phone. The status and navigation bars' icons follow the choice. The
   home-screen widget always stays dark.
+- **Service list**: **As on the status page** (the default); **Problems first**, which
+  keeps every section in place and moves its down services (or unhealthy servers) to
+  the top, in their order; or **Problems only**, which hides what is up or healthy and
+  the sections left empty, and says "Nothing is down" when that leaves nothing. A
+  standby copy is not a problem, as for the widget. Saved as `serviceList` in
+  `settings`; `arranged` in `data/Problems.kt` does it, and only the list uses it (the
+  widget, detail screens and notifications see every service).
+- **Times**: **Relative** ("3 h ago", "2 days ago"; the clock once it is a week old) or
+  **Clock time** (the default), and for the clock:
+  - **Format**: **Default** (the locale's date, "Nov 2, 2026, 4:05 PM"), **ISO**
+    ("2026-11-02 16:05") or **Custom**, a strftime pattern typed in Settings (default
+    `%Y-%m-%d %H:%M`) with a live example. It knows `%Y %y %m %d %e %b %B %a %A %H %I %l
+    %M %S %p %Z %z %%` (Settings lists what each gives); anything else, an unknown field
+    too, is kept as written. A custom pattern is used as written everywhere, the widget
+    included: it sets its own hours and adds no zone name unless it has `%Z`.
+  - **Hours**: **Phone setting** (the default, the phone's "Use 24-hour format",
+    read each time the setting is loaded), **12-hour** or **24-hour**.
+  - **Time zone**: **Local time** (the default, the phone's zone) or **UTC** (with
+    " UTC" after Default and ISO times).
+
+  It covers the detail screen's recent changes and Settings' last check and last push.
+  The widget's "Updated" time follows format, hours and zone but is always a clock time
+  (the time of day, or the whole custom pattern), as a relative one would go stale
+  between redraws; Settings says so while Relative is chosen. A change redraws the
+  widgets a second after the last one (so typing a pattern does not redraw on every
+  key). The examples under the choices are the current time less three hours. Daily
+  uptime stays in UTC days, as the hub counts them. `TimeFormat` and `strftime` in
+  `data/Times.kt` do the formatting; saved as `time-style`, `time-date`,
+  `time-pattern`, `time-hours` and `time-utc` in `settings`, and provided to every
+  screen as `LocalTimeFormat`, the backup line's time included.
 
 ## Home-screen widget
 
@@ -95,7 +131,8 @@ and when the snapshot was fetched. Tapping it opens the app.
   "(planned)" marks one a planned window expects.
 - Each widget update fetches `/api/status` and saves the answer in the app's files
   (`last-status.json`, `data/StatusCache.kt`). When the fetch fails the widget shows
-  the saved snapshot, with "Offline · as of <time>" in yellow.
+  the saved snapshot, with "Offline · as of <time>" in yellow (the time in the zone the
+  Times setting chooses).
 - The background job (below) redraws every widget each time it runs (every 15 minutes by default). The widget's own
   `updatePeriodMillis` is 0, since the system's minimum is 30 minutes.
 - The app's own refresh does not redraw the widget yet.
@@ -214,7 +251,7 @@ Material 3.
 | `data/StatusModels.kt` | `@Serializable` data classes for the API's JSON |
 | `data/StatusApi.kt` | OkHttp GET plus kotlinx.serialization parse, on `Dispatchers.IO` |
 | `data/Lookups.kt` | plain functions over a snapshot: find a service, its events, a day's summary text |
-| `StatusViewModel.kt` | holds `StatusUiState` (last view, loading, error), the appearance and interval settings and the muted names as `StateFlow`s; fetches on start and on `refresh()` |
+| `StatusViewModel.kt` | holds `StatusUiState` (last view, loading, error), the appearance, service list, times and interval settings and the muted names as `StateFlow`s; fetches on start and on `refresh()` |
 | `Routes.kt` | Navigation 3 keys: `Home`, `ServiceDetail(group, name)`, `Settings`, `WatchList` |
 | `ui/App.kt` | the app root: one `StatusViewModel` above the navigation, the back stack and `NavDisplay` |
 | `ui/StatusScreen.kt` | the list: top bar, pull-to-refresh, headline, servers, groups, tappable services |
@@ -222,13 +259,14 @@ Material 3.
 | `ui/SettingsScreen.kt` | settings: notifications, push status, the background check interval, the appearance choice |
 | `ui/WatchListScreen.kt` | the services and servers to notify about, one switch each |
 | `ui/Components.kt` | pieces both screens use: error banner, section title and sticky section header, dot, uptime strip |
-| `data/Problems.kt` | what the widget lists: unhealthy servers and down services |
+| `data/Problems.kt` | what counts as a problem: what the widget lists, and the list arranged by the Service list setting |
 | `data/StatusCache.kt` | the last good snapshot, saved for the widget |
-| `data/Settings.kt` | `Appearance`, `RefreshInterval` and `SettingsStore` (the saved settings: appearance, interval, muted names) |
+| `data/Settings.kt` | `Appearance`, `ServiceListMode`, `RefreshInterval` and `SettingsStore` (the saved settings: appearance, service list, interval, muted names) |
 | `data/Auth.kt` | proof and challenge, reading a token, `AuthStore` (the saved sign-in) |
 | `widget/StatusWidget.kt` | the Glance widget: fetch or cached snapshot, two layouts by size |
 | `widget/StatusWidgetReceiver.kt` | the widget's receiver; schedules the background job |
 | `widget/RefreshWorker.kt` | the background job: fetch, notify changes, redraw widgets, at the chosen interval and on push |
+| `data/Times.kt` | `TimeFormat` (relative or clock; default, ISO or custom format; 12 or 24 hours; local or UTC) and `strftime` |
 | `data/Changes.kt` | what changed between two fetches, less the muted names |
 | `Notifier.kt` | the two notification channels, permission and channel checks, the phone's settings pages, posting |
 | `Battery.kt` | the app's battery setting (restricted, optimized, unrestricted) and the page that changes it |
@@ -264,8 +302,8 @@ icon.
 
 `./tests/run-tests.sh` runs `testDebugUnitTest`: JVM tests, no device needed.
 `StatusApiTest` parses `app/src/test/resources/status-sample.json`, a saved signed-out
-answer from the live API, and checks that unknown fields are ignored. `ProblemsTest` covers
-what the widget lists, `ChangesTest` what counts as a change and muting, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token. `LookupsTest` runs
+answer from the live API, and checks that unknown fields are ignored and the backup line parses and follows the time setting. `ProblemsTest`
+covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `TimesTest` the time formats and strftime fields, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token. `LookupsTest` runs
 the `data/Lookups.kt` functions against the same fixture (it relies on the fixture's
 Notes outage on 2026-10-27, so keep an answer with a service event when refreshing it). Refresh the
 fixture when the API changes:

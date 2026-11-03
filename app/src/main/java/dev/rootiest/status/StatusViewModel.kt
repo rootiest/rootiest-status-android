@@ -6,12 +6,17 @@ import androidx.lifecycle.viewModelScope
 import dev.rootiest.status.data.Appearance
 import dev.rootiest.status.data.AuthStore
 import dev.rootiest.status.data.RefreshInterval
+import dev.rootiest.status.data.ServiceListMode
 import dev.rootiest.status.data.SettingsStore
 import dev.rootiest.status.data.StatusApi
 import dev.rootiest.status.data.StatusView
+import dev.rootiest.status.data.TimeFormat
+import androidx.glance.appwidget.updateAll
+import dev.rootiest.status.widget.StatusWidget
 import dev.rootiest.status.widget.RefreshWorker
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,6 +41,10 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
     val appearance: StateFlow<Appearance> = _appearance.asStateFlow()
     private val _refreshInterval = MutableStateFlow(settings.refreshInterval)
     val refreshInterval: StateFlow<RefreshInterval> = _refreshInterval.asStateFlow()
+    private val _serviceList = MutableStateFlow(settings.serviceList)
+    val serviceList: StateFlow<ServiceListMode> = _serviceList.asStateFlow()
+    private val _timeFormat = MutableStateFlow(settings.timeFormat)
+    val timeFormat: StateFlow<TimeFormat> = _timeFormat.asStateFlow()
     private val _muted = MutableStateFlow(settings.muted)
     val muted: StateFlow<Set<String>> = _muted.asStateFlow()
 
@@ -81,6 +90,24 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
     fun setAppearance(value: Appearance) {
         settings.appearance = value
         _appearance.value = value
+    }
+
+    fun setServiceList(value: ServiceListMode) {
+        settings.serviceList = value
+        _serviceList.value = value
+    }
+
+    private var redrawWidgets: Job? = null
+
+    // Saves the choice and redraws the widgets, whose "Updated" time follows it: once typing in the pattern pauses.
+    fun setTimeFormat(value: TimeFormat) {
+        settings.timeFormat = value
+        _timeFormat.value = value
+        redrawWidgets?.cancel()
+        redrawWidgets = viewModelScope.launch {
+            delay(1_000)
+            StatusWidget().updateAll(getApplication())
+        }
     }
 
     fun setRefreshInterval(value: RefreshInterval) {

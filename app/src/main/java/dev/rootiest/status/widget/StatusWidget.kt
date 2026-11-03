@@ -34,14 +34,12 @@ import dev.rootiest.status.MainActivity
 import dev.rootiest.status.data.AuthStore
 import dev.rootiest.status.data.StatusApi
 import dev.rootiest.status.data.StatusCache
+import dev.rootiest.status.data.SettingsStore
 import dev.rootiest.status.data.StatusView
+import dev.rootiest.status.data.TimeFormat
 import dev.rootiest.status.data.problems
 import dev.rootiest.status.ui.theme.Mocha
 import dev.rootiest.status.ui.theme.toneOf
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 
 class StatusWidget : GlanceAppWidget() {
     private val small = DpSize(110.dp, 40.dp)
@@ -57,11 +55,12 @@ class StatusWidget : GlanceAppWidget() {
         val fresh = cache.load(maxAgeMillis = 60_000)
             ?: runCatching { StatusApi(AuthStore(context)::credentials).fetch() }.getOrNull()?.also(cache::save)
         val view = fresh ?: cache.load()
-        provideContent { Content(view, stale = fresh == null) }
+        val times = SettingsStore(context).timeFormat
+        provideContent { Content(view, stale = fresh == null, times) }
     }
 
     @Composable
-    private fun Content(view: StatusView?, stale: Boolean) {
+    private fun Content(view: StatusView?, stale: Boolean, times: TimeFormat) {
         val showDetail = LocalSize.current.height >= large.height
         Column(
             GlanceModifier.fillMaxSize().cornerRadius(16.dp).background(Mocha.Mantle).padding(12.dp)
@@ -79,7 +78,7 @@ class StatusWidget : GlanceAppWidget() {
                 if (problems.size > MAX_ROWS) Text("and ${problems.size - MAX_ROWS} more", style = text(Mocha.Subtext0, 12))
                 Spacer(GlanceModifier.defaultWeight())
                 Text(
-                    (if (stale) "Offline · as of " else "Updated ") + localTime(view.Now),
+                    (if (stale) "Offline · as of " else "Updated ") + times.timeOfDay(view.Now),
                     style = text(if (stale) Mocha.Yellow else Mocha.Overlay0, 11),
                 )
             }
@@ -91,9 +90,5 @@ class StatusWidget : GlanceAppWidget() {
 
     private companion object {
         const val MAX_ROWS = 4
-        val timeFormat: DateTimeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
-
-        fun localTime(at: String): String =
-            runCatching { timeFormat.format(Instant.parse(at).atZone(ZoneId.systemDefault())) }.getOrDefault(at)
     }
 }

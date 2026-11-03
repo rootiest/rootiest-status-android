@@ -47,7 +47,9 @@ import dev.rootiest.status.R
 import dev.rootiest.status.StatusUiState
 import dev.rootiest.status.data.HostView
 import dev.rootiest.status.data.ServiceView
+import dev.rootiest.status.data.ServiceListMode
 import dev.rootiest.status.data.StatusView
+import dev.rootiest.status.data.arranged
 import dev.rootiest.status.ui.theme.palette
 import dev.rootiest.status.ui.theme.toneOf
 
@@ -55,6 +57,7 @@ import dev.rootiest.status.ui.theme.toneOf
 @Composable
 fun StatusScreen(
     state: StatusUiState,
+    listMode: ServiceListMode,
     onRefresh: () -> Unit,
     onOpenService: (group: String, name: String) -> Unit,
     onSignIn: () -> Unit,
@@ -76,7 +79,7 @@ fun StatusScreen(
         ) {
             val view = state.view
             when {
-                view != null -> StatusList(view, state.error, onOpenService)
+                view != null -> StatusList(view, listMode, state.error, onOpenService)
                 state.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
                 else -> ErrorList(state.error ?: "No data")
             }
@@ -112,11 +115,20 @@ private fun AccountMenu(name: String?, onSignIn: () -> Unit, onSignOut: () -> Un
 // The headline sits above the list and never scrolls; inside the list each section's title sticks until the next
 // section's title pushes it off. (Sticky headers all stick to the list's top edge, so the headline cannot be one.)
 @Composable
-private fun StatusList(view: StatusView, error: String?, onOpenService: (String, String) -> Unit) {
+private fun StatusList(full: StatusView, listMode: ServiceListMode, error: String?, onOpenService: (String, String) -> Unit) {
+    val view = full.arranged(listMode)
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)) { Headline(view) }
         LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp), modifier = Modifier.fillMaxSize()) {
             if (error != null) item { Box(Modifier.padding(top = 12.dp)) { ErrorBanner("Refresh failed: $error") } }
+            // problems only, with none: say so rather than show an empty list
+            if (view.Groups.isEmpty() && view.Hosts.isNullOrEmpty() && full.Groups.isNotEmpty()) item {
+                Text(
+                    "Nothing is down. Settings > Service list shows every service again.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 16.dp),
+                )
+            }
             view.Hosts?.takeIf { it.isNotEmpty() }?.let { hosts ->
                 stickyHeader(key = "servers") { SectionHeader("Servers") }
                 items(hosts, key = { "host:" + it.Name }) { Box(Modifier.padding(bottom = 8.dp)) { HostRow(it) } }
@@ -197,6 +209,7 @@ private fun ServiceRow(service: ServiceView, onClick: () -> Unit) {
             Text(service.Uptime, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (service.Detail.isNotEmpty()) Text(service.Detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        service.Backup?.let { BackupText(it) }
         Spacer(Modifier.height(6.dp))
         UptimeBar(service.Bar)
     }
