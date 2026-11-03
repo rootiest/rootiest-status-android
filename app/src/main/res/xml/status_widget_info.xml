@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- updatePeriodMillis is 0: RefreshWorker refreshes the widget instead (the system's own minimum is 30 minutes).
-     targetCell* apply from Android 12; older versions size it from minWidth/minHeight. -->
+     targetCell* apply from Android 12; older versions size it from minWidth/minHeight.
+     configure: what the widget shows. From Android 12 it is optional (the widget starts with everything) and can be changed
+     later from the widget's settings; before, it opens when the widget is added. -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     tools:ignore="UnusedAttribute"
@@ -12,4 +14,6 @@
     android:targetCellHeight="2"
     android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="0"
-    android:widgetCategory="home_screen" />
+    android:widgetCategory="home_screen"
+    android:configure="dev.rootiest.status.widget.WidgetConfigActivity"
+    android:widgetFeatures="reconfigurable|configuration_optional" />

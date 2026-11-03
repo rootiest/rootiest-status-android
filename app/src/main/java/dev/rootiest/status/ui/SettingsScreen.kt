@@ -335,12 +335,12 @@ private fun CustomPattern(selected: TimeFormat, onSelect: (TimeFormat) -> Unit) 
 }
 
 @Composable
-private fun Label(text: String) {
+internal fun Label(text: String) {
     Text(text, style = MaterialTheme.typography.labelLarge, color = palette.Subtext0, modifier = Modifier.padding(top = 4.dp, start = 4.dp))
 }
 
 @Composable
-private fun Note(text: String) {
+internal fun Note(text: String) {
     Text(text, style = MaterialTheme.typography.bodySmall, color = palette.Subtext0, modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp))
 }
 
@@ -389,11 +389,11 @@ private val appearanceLabels = listOf(
     Appearance.Dark to "Dark",
 )
 
-private class Choice<T>(val value: T, val label: String, val summary: String? = null, val warn: Boolean = false)
+internal class Choice<T>(val value: T, val label: String, val summary: String? = null, val warn: Boolean = false)
 
 // Radio buttons in a card, with optional rows after them.
 @Composable
-private fun <T> ChoiceCard(choices: List<Choice<T>>, selected: T, onSelect: (T) -> Unit, footer: @Composable () -> Unit = {}) {
+internal fun <T> ChoiceCard(choices: List<Choice<T>>, selected: T, onSelect: (T) -> Unit, footer: @Composable () -> Unit = {}) {
     Card(colors = CardDefaults.cardColors(containerColor = palette.Mantle)) {
         Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             Column(Modifier.selectableGroup()) {
