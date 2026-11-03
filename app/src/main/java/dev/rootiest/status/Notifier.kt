@@ -55,11 +55,13 @@ object Notifier {
         createChannels(context)
         for (change in changes) {
             val title = if (change.recovered) "${change.name} is back ${change.to}" else "${change.name} is ${change.to}"
-            // one id per name, so a recovery replaces the "down" notification (ids are per app, not per channel)
             val channel = if (change.recovered) Channel.Recoveries else Channel.Outages
-            post(context, change.name.hashCode(), channel, title, "was ${change.from}")
+            post(context, idFor(change.name), channel, title, "was ${change.from}", muteName = change.name)
         }
     }
+
+    // one id per name, so a recovery replaces the "down" notification (ids are per app, not per channel)
+    fun idFor(name: String) = name.hashCode()
 
     // What an outage looks and sounds like, from the settings screen.
     fun test(context: Context) {
@@ -68,7 +70,8 @@ object Notifier {
         post(context, TEST_ID, Channel.Outages, "Test: Example is down", "was up. This is how an outage looks.")
     }
 
-    private fun post(context: Context, id: Int, channel: Channel, title: String, text: String) {
+    // With a muteName, the notification has a Mute button for it (MuteReceiver).
+    private fun post(context: Context, id: Int, channel: Channel, title: String, text: String, muteName: String? = null) {
         val open = PendingIntent.getActivity(
             context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE,
         )
@@ -78,6 +81,17 @@ object Notifier {
             .setContentText(text)
             .setContentIntent(open)
             .setAutoCancel(true)
+            .apply {
+                if (muteName != null) {
+                    val mute = PendingIntent.getBroadcast(
+                        context,
+                        id, // one per name, so each notification's button mutes its own
+                        Intent(context, MuteReceiver::class.java).putExtra(MuteReceiver.EXTRA_NAME, muteName),
+                        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                    )
+                    addAction(R.drawable.ic_notifications_off, "Mute", mute)
+                }
+            }
             .build()
         try {
             NotificationManagerCompat.from(context).notify(id, notification)

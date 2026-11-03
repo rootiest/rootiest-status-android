@@ -28,7 +28,8 @@ scroll, until the next section's title pushes them off. The headline is fixed ab
 the list rather than a sticky header itself, because every sticky header in a Compose
 list sticks to the same top edge and the next one would push it away too.
 
-Tap a service to open its detail screen:
+Tap a service to open its detail screen. The bell at the top mutes or unmutes its
+notifications (crossed out while muted). Below it:
 
 - a summary card, fixed above the list: state (and "planned" when a planned window expects it down), uptime
   text, the service's detail line, its hostname (a link to the site, except for services
@@ -185,7 +186,10 @@ time it shows, so it is current after a trip to the phone's settings:
   app saves the muted names, not the watched ones, in the preferences file `settings`
   (`SettingsStore.muted`), so a service added later is notified about until muted. The
   list comes from the snapshot on screen; the Settings row says "All" or "All but N
-  muted".
+  muted". The same setting has two shortcuts: the bell at the top of a service's detail
+  screen, and the **Mute** button on each change notification (`MuteReceiver.kt`, which
+  mutes that name and clears the notification). `SettingsStore.watchMuted` keeps an open
+  app in step with a mute from a notification.
 - Instant alerts: whether push is on (and through which distributor app, with when the
   last push arrived), installed but without an address, or off with no distributor.
 - Background check: how often the job runs on its own, every 15 minutes (the default),
@@ -277,7 +281,8 @@ Material 3.
 | `widget/RefreshWorker.kt` | the background job: fetch, notify changes, redraw widgets, at the chosen interval and on push |
 | `data/Times.kt` | `TimeFormat` (relative or clock; default, ISO or custom format; 12 or 24 hours; local or UTC) and `strftime` |
 | `data/Changes.kt` | what changed between two fetches, less the muted names |
-| `Notifier.kt` | the two notification channels, permission and channel checks, the phone's settings pages, posting |
+| `Notifier.kt` | the two notification channels, permission and channel checks, the phone's settings pages, posting with a Mute button |
+| `MuteReceiver.kt` | a notification's Mute button: mutes the name and clears the notification |
 | `Battery.kt` | the app's battery setting (restricted, optimized, unrestricted) and the page that changes it |
 | `Push.kt` | `StatusPushService` (UnifiedPush events), the saved push address and last push time, `pushStatus` |
 | `ui/theme/Theme.kt` | Catppuccin Mocha and Latte palettes, the current one (`palette`), Material colour schemes, state colours |
