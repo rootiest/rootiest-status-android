@@ -5,6 +5,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    // Settings > About > Open-source licenses: the dependencies and their licenses, collected at build time
+    alias(libs.plugins.aboutlibraries)
 }
 
 // The version scripts/release.sh tags (v<appVersion>). versionCode follows from it: 1.2.3 is 10203.
@@ -80,6 +82,7 @@ dependencies {
     implementation(libs.androidx.browser)
     implementation(libs.unifiedpush.connector)
     implementation(libs.okhttp)
+    implementation(libs.aboutlibraries.compose.m3)
     debugImplementation(libs.compose.ui.tooling)
     testImplementation(libs.junit)
 }

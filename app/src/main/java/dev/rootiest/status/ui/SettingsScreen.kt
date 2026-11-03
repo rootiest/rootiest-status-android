@@ -1,6 +1,7 @@
 package dev.rootiest.status.ui
 
 import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -39,7 +40,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.core.net.toUri
 import dev.rootiest.status.BatteryState
+import dev.rootiest.status.BuildConfig
 import dev.rootiest.status.Channel
 import dev.rootiest.status.Notifier
 import dev.rootiest.status.PushStatus
@@ -90,6 +93,7 @@ fun SettingsScreen(
     onOpenWatchList: () -> Unit,
     refreshInterval: RefreshInterval,
     onRefreshInterval: (RefreshInterval) -> Unit,
+    onOpenLicenses: () -> Unit,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -124,6 +128,8 @@ fun SettingsScreen(
             item { ChoiceCard(serviceListChoices, serviceList, onServiceList) }
             item { SectionHeader("Times") }
             item { TimesCards(timeFormat, onTimeFormat) }
+            item { SectionHeader("About") }
+            item { AboutCard(context, onOpenLicenses) }
         }
     }
 }
@@ -203,6 +209,25 @@ private fun BackgroundCheckCard(system: SystemState, context: Context, selected:
         }
     }
 }
+
+@Composable
+private fun AboutCard(context: Context, onOpenLicenses: () -> Unit) {
+    val open = { url: String -> context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) }
+    SettingsCard {
+        SettingRow("Version", "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
+        Divider()
+        SettingRow("Status page", STATUS_PAGE.removePrefix("https://")) { open(STATUS_PAGE) }
+        Divider()
+        SettingRow("Source code", "GPL-3.0-or-later, on ${SOURCE.removePrefix("https://").substringBefore('/')}") { open(SOURCE) }
+        Divider()
+        SettingRow("Report a problem", "Opens a new issue") { open("$SOURCE/issues/new") }
+        Divider()
+        SettingRow("Open-source licenses", "The libraries the app is built with", onClick = onOpenLicenses)
+    }
+}
+
+private const val STATUS_PAGE = "https://status.rootiest.dev"
+private const val SOURCE = "https://git.rootiest.dev/rootiest/rootiest-status-android"
 
 // A time on the phone, as the Times setting shows it, or null for none.
 @Composable
