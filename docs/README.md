@@ -151,7 +151,14 @@ time it shows, so it is current after a trip to the phone's settings:
   marked in yellow while push is not on, since nothing would then run the job: no
   notifications and a stale widget. With push on, the widget then updates only after an
   alert. Below the choice, when the job last ran (the time `last-states.json` was
-  written, which only the job does).
+  written, which only the job does), and the phone's battery setting for the app
+  (`Battery.kt`), the only part of "App battery usage" the system tells apps:
+  **Restricted** (`isBackgroundRestricted`; in yellow, as no check or alert runs then)
+  and **Unrestricted** (`isIgnoringBatteryOptimizations`) open the app's info page, where
+  App battery usage changes it; **Optimized**, the default, opens the system's dialog to
+  let the app run unrestricted (permission `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`; lint's
+  `BatteryLife` warning, a Play Store policy check, is suppressed, as the app is not on
+  Play).
 
 **Push.** The app uses UnifiedPush with the phone's distributor, the ntfy app. On start
 it asks for the current or default distributor and registers; the distributor hands it a
@@ -224,6 +231,7 @@ Material 3.
 | `widget/RefreshWorker.kt` | the background job: fetch, notify changes, redraw widgets, at the chosen interval and on push |
 | `data/Changes.kt` | what changed between two fetches, less the muted names |
 | `Notifier.kt` | the two notification channels, permission and channel checks, the phone's settings pages, posting |
+| `Battery.kt` | the app's battery setting (restricted, optimized, unrestricted) and the page that changes it |
 | `Push.kt` | `StatusPushService` (UnifiedPush events), the saved push address and last push time, `pushStatus` |
 | `ui/theme/Theme.kt` | Catppuccin Mocha and Latte palettes, the current one (`palette`), Material colour schemes, state colours |
 | `MainActivity.kt` | edge-to-edge activity that hosts the screen; applies the appearance setting |
