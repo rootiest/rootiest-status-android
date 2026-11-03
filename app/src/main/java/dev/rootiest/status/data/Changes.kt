@@ -1,7 +1,10 @@
 package dev.rootiest.status.data
 
 // A service or server whose state differs from the previous fetch.
-data class Change(val name: String, val from: String, val to: String)
+data class Change(val name: String, val from: String, val to: String) {
+    // back to a green state; anything else (down, degraded...) is an outage
+    val recovered: Boolean get() = to == "up" || to == "healthy"
+}
 
 // Every service's and server's state by name, as saved between background fetches.
 // shortcut: a server and a service with the same name would share a key; none do today, prefix them if that changes

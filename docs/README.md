@@ -113,11 +113,29 @@ to arrive; ntfy remains the fast path.
   (`data/Changes.kt`; states saved in `last-states.json`). Nothing is posted on the
   first run, for a name not seen before, or for one a planned window expects (as
   rootiest-hub holds its own alerts for those).
-- Notifications go to the "Service changes" channel: "Gitea is down / was up",
-  "Gitea is back up / was down". Each name has one notification id, so a recovery
-  replaces the down notification. Tapping one opens the app.
+- Notifications go to one of two channels (`Notifier.kt`), so the phone's own settings
+  can treat them apart: "Outages" (high importance: sound and a heads-up banner), for
+  "Gitea is down / was up" and any other move away from green, and "Recoveries" (low:
+  silent, in the shade only), for "Gitea is back up / was down". Each name has one
+  notification id across both, so a recovery replaces the down notification. Tapping
+  one opens the app. The channels are created on every app start, so they show in the
+  phone's settings before the first change; the single "Service changes" channel of
+  1.3.0 and earlier is deleted then.
 - On Android 13 and later the app asks for notification permission on first launch.
   Refusing only turns notifications off.
+
+**Settings.** The settings screen (`ui/SettingsScreen.kt`) reads the phone's state each
+time it shows, so it is current after a trip to the phone's settings:
+
+- Notifications: when they are off (permission refused, or the app switched off), one
+  row opens the app's notification page in the phone's settings, where Android 13+ also
+  grants the permission. Otherwise a row per channel, saying "Off" when that channel is
+  off, opens that channel's page, and "Send a test notification" posts a sample outage
+  on the Outages channel.
+- Instant alerts: whether push is on (and through which distributor app, with when the
+  last push arrived), installed but without an address, or off with no distributor; and
+  when the background job last ran (the time `last-states.json` was written, which only
+  the job does).
 
 **Push.** The app uses UnifiedPush with the phone's distributor, the ntfy app. On start
 it asks for the current or default distributor and registers; the distributor hands it a
@@ -178,7 +196,7 @@ Material 3.
 | `ui/App.kt` | the app root: one `StatusViewModel` above the navigation, the back stack and `NavDisplay` |
 | `ui/StatusScreen.kt` | the list: top bar, pull-to-refresh, headline, servers, groups, tappable services |
 | `ui/ServiceScreen.kt` | a service's detail: summary, recent changes, daily uptime |
-| `ui/SettingsScreen.kt` | settings: the appearance choice |
+| `ui/SettingsScreen.kt` | settings: notifications, push and background check status, the appearance choice |
 | `ui/Components.kt` | pieces both screens use: error banner, section title and sticky section header, dot, uptime strip |
 | `data/Problems.kt` | what the widget lists: unhealthy servers and down services |
 | `data/StatusCache.kt` | the last good snapshot, saved for the widget |
@@ -188,8 +206,8 @@ Material 3.
 | `widget/StatusWidgetReceiver.kt` | the widget's receiver; schedules the background job |
 | `widget/RefreshWorker.kt` | the background job: fetch, notify changes, redraw widgets, every 15 minutes |
 | `data/Changes.kt` | what changed between two fetches |
-| `Notifier.kt` | the notification channel, permission check and posting |
-| `Push.kt` | `StatusPushService` (UnifiedPush events) and the saved push address |
+| `Notifier.kt` | the two notification channels, permission and channel checks, the phone's settings pages, posting |
+| `Push.kt` | `StatusPushService` (UnifiedPush events), the saved push address and last push time, `pushStatus` |
 | `ui/theme/Theme.kt` | Catppuccin Mocha and Latte palettes, the current one (`palette`), Material colour schemes, state colours |
 | `MainActivity.kt` | edge-to-edge activity that hosts the screen; applies the appearance setting |
 

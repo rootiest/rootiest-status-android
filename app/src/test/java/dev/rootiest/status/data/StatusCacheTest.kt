@@ -25,6 +25,16 @@ class StatusCacheTest {
     }
 
     @Test
+    fun statesSavedAtIsNullUntilTheFirstSave() {
+        val cache = StatusCache(dir.root)
+        assertNull(cache.statesSavedAt())
+        cache.save(view) // the snapshot does not count; the widget saves it too
+        assertNull(cache.statesSavedAt())
+        cache.saveStates(mapOf("Gitea" to "up"))
+        assertEquals(true, cache.statesSavedAt() != null)
+    }
+
+    @Test
     fun aSnapshotOlderThanAskedIsNotReturned() {
         val cache = StatusCache(dir.root)
         assertNull(cache.load()) // none yet
