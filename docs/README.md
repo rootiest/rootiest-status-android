@@ -16,7 +16,10 @@ The app shows the same snapshot as [status.rootiest.dev](https://status.rootiest
   "Failover active" while traffic is served by the standby edge;
 - the Servers section (state, vitals, note per host), only when the API includes it:
   after signing in, for staff and the groups the catalog lets see servers;
-- every group of services: state dot, uptime text and the per-day uptime strip.
+- every group of services: state dot, uptime text and the per-day uptime strip, and
+  for a service that publishes a backup report the hub's backup line ("Last backup 3 h
+  ago (...)"), grey when unknown and yellow when the backup is older than the hub
+  allows (`Backup`, rootiest-hub's `BackupView`; also on the detail screen).
 
 Section titles (Servers, then each group) stick below the headline while their rows
 scroll, until the next section's title pushes them off. The headline is fixed above
@@ -73,7 +76,8 @@ under an account icon when signed out. Either way it has **Settings**, then **Si
 or **Sign in**, so settings are reachable without an account.
 
 **Settings** is its own screen (back returns to the list), in sections: Notifications,
-Instant alerts and Background check (see [Notifications and the background job](#notifications-and-the-background-job)), then Appearance:
+Instant alerts and Background check (see [Notifications and the background job](#notifications-and-the-background-job)), then Appearance
+and Service list:
 
 - **Appearance**: **System default** (the default) follows the phone's dark theme;
   **Light** and **Dark** always use that one. Dark is Catppuccin Mocha, light is
@@ -83,6 +87,13 @@ Instant alerts and Background check (see [Notifications and the background job](
   shown before the app draws matches it too; on Android 10 and 11 that brief window
   follows the phone. The status and navigation bars' icons follow the choice. The
   home-screen widget always stays dark.
+- **Service list**: **As on the status page** (the default); **Problems first**, which
+  keeps every section in place and moves its down services (or unhealthy servers) to
+  the top, in their order; or **Problems only**, which hides what is up or healthy and
+  the sections left empty, and says "Nothing is down" when that leaves nothing. A
+  standby copy is not a problem, as for the widget. Saved as `serviceList` in
+  `settings`; `arranged` in `data/Problems.kt` does it, and only the list uses it (the
+  widget, detail screens and notifications see every service).
 
 ## Home-screen widget
 
@@ -214,7 +225,7 @@ Material 3.
 | `data/StatusModels.kt` | `@Serializable` data classes for the API's JSON |
 | `data/StatusApi.kt` | OkHttp GET plus kotlinx.serialization parse, on `Dispatchers.IO` |
 | `data/Lookups.kt` | plain functions over a snapshot: find a service, its events, a day's summary text |
-| `StatusViewModel.kt` | holds `StatusUiState` (last view, loading, error), the appearance and interval settings and the muted names as `StateFlow`s; fetches on start and on `refresh()` |
+| `StatusViewModel.kt` | holds `StatusUiState` (last view, loading, error), the appearance, service list and interval settings and the muted names as `StateFlow`s; fetches on start and on `refresh()` |
 | `Routes.kt` | Navigation 3 keys: `Home`, `ServiceDetail(group, name)`, `Settings`, `WatchList` |
 | `ui/App.kt` | the app root: one `StatusViewModel` above the navigation, the back stack and `NavDisplay` |
 | `ui/StatusScreen.kt` | the list: top bar, pull-to-refresh, headline, servers, groups, tappable services |
@@ -222,9 +233,9 @@ Material 3.
 | `ui/SettingsScreen.kt` | settings: notifications, push status, the background check interval, the appearance choice |
 | `ui/WatchListScreen.kt` | the services and servers to notify about, one switch each |
 | `ui/Components.kt` | pieces both screens use: error banner, section title and sticky section header, dot, uptime strip |
-| `data/Problems.kt` | what the widget lists: unhealthy servers and down services |
+| `data/Problems.kt` | what counts as a problem: what the widget lists, and the list arranged by the Service list setting |
 | `data/StatusCache.kt` | the last good snapshot, saved for the widget |
-| `data/Settings.kt` | `Appearance`, `RefreshInterval` and `SettingsStore` (the saved settings: appearance, interval, muted names) |
+| `data/Settings.kt` | `Appearance`, `ServiceListMode`, `RefreshInterval` and `SettingsStore` (the saved settings: appearance, service list, interval, muted names) |
 | `data/Auth.kt` | proof and challenge, reading a token, `AuthStore` (the saved sign-in) |
 | `widget/StatusWidget.kt` | the Glance widget: fetch or cached snapshot, two layouts by size |
 | `widget/StatusWidgetReceiver.kt` | the widget's receiver; schedules the background job |
@@ -264,8 +275,8 @@ icon.
 
 `./tests/run-tests.sh` runs `testDebugUnitTest`: JVM tests, no device needed.
 `StatusApiTest` parses `app/src/test/resources/status-sample.json`, a saved signed-out
-answer from the live API, and checks that unknown fields are ignored. `ProblemsTest` covers
-what the widget lists, `ChangesTest` what counts as a change and muting, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token. `LookupsTest` runs
+answer from the live API, and checks that unknown fields are ignored and the backup line parses. `ProblemsTest`
+covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token. `LookupsTest` runs
 the `data/Lookups.kt` functions against the same fixture (it relies on the fixture's
 Notes outage on 2026-10-27, so keep an answer with a service event when refreshing it). Refresh the
 fixture when the API changes:

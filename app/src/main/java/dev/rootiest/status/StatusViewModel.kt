@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dev.rootiest.status.data.Appearance
 import dev.rootiest.status.data.AuthStore
 import dev.rootiest.status.data.RefreshInterval
+import dev.rootiest.status.data.ServiceListMode
 import dev.rootiest.status.data.SettingsStore
 import dev.rootiest.status.data.StatusApi
 import dev.rootiest.status.data.StatusView
@@ -36,6 +37,8 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
     val appearance: StateFlow<Appearance> = _appearance.asStateFlow()
     private val _refreshInterval = MutableStateFlow(settings.refreshInterval)
     val refreshInterval: StateFlow<RefreshInterval> = _refreshInterval.asStateFlow()
+    private val _serviceList = MutableStateFlow(settings.serviceList)
+    val serviceList: StateFlow<ServiceListMode> = _serviceList.asStateFlow()
     private val _muted = MutableStateFlow(settings.muted)
     val muted: StateFlow<Set<String>> = _muted.asStateFlow()
 
@@ -81,6 +84,11 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
     fun setAppearance(value: Appearance) {
         settings.appearance = value
         _appearance.value = value
+    }
+
+    fun setServiceList(value: ServiceListMode) {
+        settings.serviceList = value
+        _serviceList.value = value
     }
 
     fun setRefreshInterval(value: RefreshInterval) {

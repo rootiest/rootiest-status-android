@@ -41,6 +41,14 @@ data class ServiceView(
     val Bar: List<BarCell> = emptyList(),
     val Detail: String = "",
     val Planned: Boolean = false,
+    val Backup: BackupLine? = null, // only for services that publish a backup report
+)
+
+// The line about a service's last backup, as the page shows it under the service ("Last backup 3 h ago (...)").
+@Serializable
+data class BackupLine(
+    val Text: String,
+    val Level: String = "unknown", // ok, warn (older than the hub allows), unknown (no report)
 )
 
 @Serializable

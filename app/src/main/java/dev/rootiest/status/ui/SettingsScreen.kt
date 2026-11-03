@@ -47,6 +47,7 @@ import dev.rootiest.status.batteryIntent
 import dev.rootiest.status.batteryState
 import dev.rootiest.status.data.Appearance
 import dev.rootiest.status.data.RefreshInterval
+import dev.rootiest.status.data.ServiceListMode
 import dev.rootiest.status.data.StatusCache
 import dev.rootiest.status.pushStatus
 import dev.rootiest.status.ui.theme.palette
@@ -74,6 +75,8 @@ private fun readSystemState(context: Context) = SystemState(
 fun SettingsScreen(
     appearance: Appearance,
     onAppearance: (Appearance) -> Unit,
+    serviceList: ServiceListMode,
+    onServiceList: (ServiceListMode) -> Unit,
     mutedCount: Int,
     onOpenWatchList: () -> Unit,
     refreshInterval: RefreshInterval,
@@ -108,6 +111,8 @@ fun SettingsScreen(
             item { BackgroundCheckCard(system, context, refreshInterval, onRefreshInterval) }
             item { SectionHeader("Appearance") }
             item { ChoiceCard(appearanceLabels.map { (value, label) -> Choice(value, label) }, appearance, onAppearance) }
+            item { SectionHeader("Service list") }
+            item { ChoiceCard(serviceListChoices, serviceList, onServiceList) }
         }
     }
 }
@@ -217,6 +222,12 @@ private fun SettingRow(title: String, summary: String, warn: Boolean = false, on
         Text(summary, style = MaterialTheme.typography.bodySmall, color = palette.Subtext0)
     }
 }
+
+private val serviceListChoices = listOf(
+    Choice(ServiceListMode.All, "As on the status page"),
+    Choice(ServiceListMode.ProblemsFirst, "Problems first", "Down services and unhealthy servers at the top of their section"),
+    Choice(ServiceListMode.ProblemsOnly, "Problems only", "Hide what is up and healthy"),
+)
 
 private val appearanceLabels = listOf(
     Appearance.System to "System default",

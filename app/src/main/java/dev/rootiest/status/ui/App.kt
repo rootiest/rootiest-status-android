@@ -31,6 +31,7 @@ fun RootiestApp(vm: StatusViewModel) {
     val appearance by vm.appearance.collectAsStateWithLifecycle()
     val muted by vm.muted.collectAsStateWithLifecycle()
     val refreshInterval by vm.refreshInterval.collectAsStateWithLifecycle()
+    val serviceList by vm.serviceList.collectAsStateWithLifecycle()
     val backStack = rememberNavBackStack(Home)
     // Ask once for notifications (Android 13+); a refusal only means no change notifications.
     val context = LocalContext.current
@@ -49,6 +50,7 @@ fun RootiestApp(vm: StatusViewModel) {
             entry<Home> {
                 StatusScreen(
                     state,
+                    listMode = serviceList,
                     onRefresh = vm::refresh,
                     onOpenService = { g, s -> backStack.add(ServiceDetail(g, s)) },
                     onSignIn = { CustomTabsIntent.Builder().build().launchUrl(context, vm.signInUrl().toUri()) },
@@ -63,6 +65,8 @@ fun RootiestApp(vm: StatusViewModel) {
                 SettingsScreen(
                     appearance,
                     onAppearance = vm::setAppearance,
+                    serviceList = serviceList,
+                    onServiceList = vm::setServiceList,
                     mutedCount = muted.size,
                     refreshInterval = refreshInterval,
                     onRefreshInterval = vm::setRefreshInterval,

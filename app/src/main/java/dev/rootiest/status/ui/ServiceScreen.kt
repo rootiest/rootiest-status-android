@@ -121,6 +121,7 @@ private fun Summary(service: ServiceView) {
             }
             Text(service.Uptime, color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (service.Detail.isNotEmpty()) Text(service.Detail)
+            service.Backup?.let { BackupText(it) }
             // a Direct service is probed by TCP connect: its Host is a name, not a web page
             if (service.Host.isNotEmpty()) {
                 if (service.Direct) {

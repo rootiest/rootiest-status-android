@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import dev.rootiest.status.data.BackupLine
 import dev.rootiest.status.data.BarCell
 import dev.rootiest.status.ui.theme.palette
 import dev.rootiest.status.ui.theme.toneOf
@@ -62,4 +63,15 @@ internal fun UptimeBar(cells: List<BarCell>) {
             )
         }
     }
+}
+
+// A service's last backup, as the page shows it: yellow when older than the hub allows, grey when unknown.
+@Composable
+internal fun BackupText(backup: BackupLine) {
+    val color = when (backup.Level) {
+        "ok" -> MaterialTheme.colorScheme.onSurfaceVariant
+        "warn" -> palette.Yellow
+        else -> palette.Overlay0
+    }
+    Text(backup.Text, style = MaterialTheme.typography.bodySmall, color = color)
 }
