@@ -41,10 +41,10 @@ list.
 
 ## Signing in
 
-**Sign in** (in the account menu, top right) signs in with RootiestID through rootiest-hub, which then shows
-what that account may see, as on the web page (staff see everything, including the
-Servers section). The flow is rootiest-hub's app sign-in (its `docs/README.md`, "The
-Android app"):
+**Sign in** (in the account menu, top right) signs in with RootiestID, the Rootiest
+single sign-on, through rootiest-hub, which then shows what that account may see, as on
+the web page (staff see everything, including the Servers section). Without an account
+the app shows the public view. The flow is rootiest-hub's app sign-in:
 
 1. The app makes a random proof (32 bytes, base64url), saves it, and opens
    `https://status.rootiest.dev/app/login?challenge=<base64url SHA-256 of the proof>`
@@ -162,9 +162,9 @@ next run.
 
 ## Data source
 
-`GET https://status.rootiest.dev/api/status`, served by rootiest-hub
-(`internal/status/web.go`). The body is rootiest-hub's `View` struct
-(`internal/status/view.go`) encoded as JSON, so field names are Go's exported names
+`GET https://status.rootiest.dev/api/status`, served by rootiest-hub (the status page's
+server, whose repository is not public). The body is rootiest-hub's `View` struct
+encoded as JSON, so field names are Go's exported names
 (`Level`, `Groups`, `Services`, `Bar`...). It depends on the viewer: a signed-out
 request gets only what is public.
 
@@ -218,8 +218,8 @@ shows the same snapshot as the list, and refreshing either refreshes both. A ser
 identified by group and name; if it leaves the catalog while its screen is open, the
 screen says so instead of crashing.
 
-The launcher icon is a placeholder (green dot on Mocha base) until rootiest-icons has a
-status app icon.
+The launcher icon is a placeholder (green dot on Mocha base) until the app has its own
+icon.
 
 ## Build configuration
 
@@ -251,19 +251,18 @@ curl -sSf https://status.rootiest.dev/api/status > app/src/test/resources/status
 
 ## Releases
 
-Releases are built and signed on the workstation that holds the release key, and
-published as Gitea releases with the APK attached. The key never leaves that machine
+Releases are built and signed on the maintainer's machine, which holds the release key,
+and published as Gitea releases with the APK attached. The key never leaves that machine
 and CI holds no secrets.
 
-- **The key**: `~/.local/share/android/rootiest-status-release.jks` (PKCS12, alias
-  `rootiest-status`, RSA 4096, valid until 2126), its passwords in
-  `rootiest-status-release.properties` next to it (both mode 600). Certificate SHA-256
+- **The key**: a PKCS12 keystore (alias `rootiest-status`, RSA 4096, valid until 2126)
+  with its passwords in a properties file beside it. Certificate SHA-256
   `36:15:BB:5F:65:09:81:1F:A5:BB:82:83:03:B5:72:64:2C:36:3E:40:5A:F9:3D:47:75:23:27:9A:D0:EC:93:A4`.
-  Keep a copy of both files somewhere safe (a password manager): an update must be
-  signed with the same key, so losing it means every phone has to uninstall and
-  reinstall.
-- **Gradle** finds the key through `rootiest.signing=<path to the properties file>` in
-  `~/.gradle/gradle.properties`. Without it, release builds get the debug key.
+  Both files are backed up off the machine: an update must be signed with the same key,
+  so losing it would mean every phone has to uninstall and reinstall.
+- **Gradle** finds the key through `rootiest.signing=<path to the properties file>`
+  (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`) in `~/.gradle/gradle.properties`.
+  Without it, as in CI or on a contributor's machine, release builds get the debug key.
 - **To release**: bump `appVersion` in `app/build.gradle.kts` through a PR, merge it,
   then on an up-to-date `main` run `scripts/release.sh`. It refuses a dirty tree, a
   `main` that differs from `origin/main`, and a tag that exists; runs the tests; builds
@@ -272,9 +271,8 @@ and CI holds no secrets.
   `rootiest-status-<version>.apk` attached and the pull requests merged since the last
   release as notes. `scripts/release.sh --dry-run` does all of it but publishing.
 - **Installing and updates**: Obtainium, with its Forgejo source (Gitea serves the same
-  releases API): the repository URL `https://git.rootiest.dev/rootiest/rootiest-status-android`
-  and a Gitea access token with read access to repositories, since the repository is
-  private. Obtainium then offers each new release.
+  releases API) and the repository URL `https://git.rootiest.dev/rootiest/rootiest-status-android`.
+  No token is needed: the repository is public. Obtainium then offers each new release.
 - A build signed with another key (a debug build, or a release build from a machine
   without the key) cannot update an installed release, and the reverse: Android
   refuses the signature. Switching between them means uninstalling first, which loses
@@ -283,7 +281,7 @@ and CI holds no secrets.
 ## CI
 
 `.github/workflows/ci.yml` is a GitHub-only workflow: the Android build needs the SDK
-and about 2 GB of Gradle heap, and no Gitea runner is sized for that. It runs on every
+and about 2 GB of Gradle heap, more than the Gitea runners are sized for. It runs on every
 push the Gitea push mirror copies to GitHub, and on demand. It runs the tests, builds
 the debug APK and uploads it as the `app-debug` artifact. Results appear on GitHub,
 not on the Gitea pull request.
