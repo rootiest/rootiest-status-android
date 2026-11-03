@@ -22,12 +22,14 @@ import dev.rootiest.status.Notifier
 import dev.rootiest.status.ServiceDetail
 import dev.rootiest.status.Settings
 import dev.rootiest.status.StatusViewModel
+import dev.rootiest.status.WatchList
 
 // One ViewModel for the whole app, above the navigation: every screen shows the same snapshot.
 @Composable
 fun RootiestApp(vm: StatusViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     val appearance by vm.appearance.collectAsStateWithLifecycle()
+    val muted by vm.muted.collectAsStateWithLifecycle()
     val backStack = rememberNavBackStack(Home)
     // Ask once for notifications (Android 13+); a refusal only means no change notifications.
     val context = LocalContext.current
@@ -57,7 +59,16 @@ fun RootiestApp(vm: StatusViewModel) {
                 ServiceScreen(state, key.group, key.name, onRefresh = vm::refresh, onBack = { backStack.removeLastOrNull() })
             }
             entry<Settings> {
-                SettingsScreen(appearance, onAppearance = vm::setAppearance, onBack = { backStack.removeLastOrNull() })
+                SettingsScreen(
+                    appearance,
+                    onAppearance = vm::setAppearance,
+                    mutedCount = muted.size,
+                    onOpenWatchList = { backStack.add(WatchList) },
+                    onBack = { backStack.removeLastOrNull() },
+                )
+            }
+            entry<WatchList> {
+                WatchListScreen(state.view, muted, onMute = vm::setMuted, onBack = { backStack.removeLastOrNull() })
             }
         },
     )

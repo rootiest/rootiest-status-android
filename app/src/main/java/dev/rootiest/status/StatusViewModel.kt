@@ -32,6 +32,8 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
     private val settings = SettingsStore(app)
     private val _appearance = MutableStateFlow(settings.appearance)
     val appearance: StateFlow<Appearance> = _appearance.asStateFlow()
+    private val _muted = MutableStateFlow(settings.muted)
+    val muted: StateFlow<Set<String>> = _muted.asStateFlow()
 
     init {
         refresh()
@@ -75,5 +77,12 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
     fun setAppearance(value: Appearance) {
         settings.appearance = value
         _appearance.value = value
+    }
+
+    // Mute or unmute notifications about one service or server.
+    fun setMuted(name: String, mute: Boolean) {
+        val value = if (mute) _muted.value + name else _muted.value - name
+        settings.muted = value
+        _muted.value = value
     }
 }

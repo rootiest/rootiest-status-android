@@ -112,7 +112,8 @@ to arrive; ntfy remains the fast path.
 - A change is a service or server whose state differs from the previous run
   (`data/Changes.kt`; states saved in `last-states.json`). Nothing is posted on the
   first run, for a name not seen before, or for one a planned window expects (as
-  rootiest-hub holds its own alerts for those).
+  rootiest-hub holds its own alerts for those). Nothing is posted for a muted name
+  either (below).
 - Notifications go to one of two channels (`Notifier.kt`), so the phone's own settings
   can treat them apart: "Outages" (high importance: sound and a heads-up banner), for
   "Gitea is down / was up" and any other move away from green, and "Recoveries" (low:
@@ -130,8 +131,15 @@ time it shows, so it is current after a trip to the phone's settings:
 - Notifications: when they are off (permission refused, or the app switched off), one
   row opens the app's notification page in the phone's settings, where Android 13+ also
   grants the permission. Otherwise a row per channel, saying "Off" when that channel is
-  off, opens that channel's page, and "Send a test notification" posts a sample outage
-  on the Outages channel.
+  off, opens that channel's page; "Services to notify about" (below); and "Send a test
+  notification" posts a sample outage on the Outages channel.
+- **Services to notify about** (`ui/WatchListScreen.kt`) lists every server (when the
+  viewer may see them) and every service by group, each with a switch. Turning one off
+  mutes it: the background job drops its changes (`unmuted` in `data/Changes.kt`). The
+  app saves the muted names, not the watched ones, in the preferences file `settings`
+  (`SettingsStore.muted`), so a service added later is notified about until muted. The
+  list comes from the snapshot on screen; the Settings row says "All" or "All but N
+  muted".
 - Instant alerts: whether push is on (and through which distributor app, with when the
   last push arrived), installed but without an address, or off with no distributor; and
   when the background job last ran (the time `last-states.json` was written, which only
@@ -191,21 +199,22 @@ Material 3.
 | `data/StatusModels.kt` | `@Serializable` data classes for the API's JSON |
 | `data/StatusApi.kt` | OkHttp GET plus kotlinx.serialization parse, on `Dispatchers.IO` |
 | `data/Lookups.kt` | plain functions over a snapshot: find a service, its events, a day's summary text |
-| `StatusViewModel.kt` | holds `StatusUiState` (last view, loading, error) and the appearance setting as `StateFlow`s; fetches on start and on `refresh()` |
-| `Routes.kt` | Navigation 3 keys: `Home`, `ServiceDetail(group, name)`, `Settings` |
+| `StatusViewModel.kt` | holds `StatusUiState` (last view, loading, error), the appearance setting and the muted names as `StateFlow`s; fetches on start and on `refresh()` |
+| `Routes.kt` | Navigation 3 keys: `Home`, `ServiceDetail(group, name)`, `Settings`, `WatchList` |
 | `ui/App.kt` | the app root: one `StatusViewModel` above the navigation, the back stack and `NavDisplay` |
 | `ui/StatusScreen.kt` | the list: top bar, pull-to-refresh, headline, servers, groups, tappable services |
 | `ui/ServiceScreen.kt` | a service's detail: summary, recent changes, daily uptime |
 | `ui/SettingsScreen.kt` | settings: notifications, push and background check status, the appearance choice |
+| `ui/WatchListScreen.kt` | the services and servers to notify about, one switch each |
 | `ui/Components.kt` | pieces both screens use: error banner, section title and sticky section header, dot, uptime strip |
 | `data/Problems.kt` | what the widget lists: unhealthy servers and down services |
 | `data/StatusCache.kt` | the last good snapshot, saved for the widget |
-| `data/Settings.kt` | `Appearance` and `SettingsStore` (the saved settings) |
+| `data/Settings.kt` | `Appearance` and `SettingsStore` (the saved settings: appearance, muted names) |
 | `data/Auth.kt` | proof and challenge, reading a token, `AuthStore` (the saved sign-in) |
 | `widget/StatusWidget.kt` | the Glance widget: fetch or cached snapshot, two layouts by size |
 | `widget/StatusWidgetReceiver.kt` | the widget's receiver; schedules the background job |
 | `widget/RefreshWorker.kt` | the background job: fetch, notify changes, redraw widgets, every 15 minutes |
-| `data/Changes.kt` | what changed between two fetches |
+| `data/Changes.kt` | what changed between two fetches, less the muted names |
 | `Notifier.kt` | the two notification channels, permission and channel checks, the phone's settings pages, posting |
 | `Push.kt` | `StatusPushService` (UnifiedPush events), the saved push address and last push time, `pushStatus` |
 | `ui/theme/Theme.kt` | Catppuccin Mocha and Latte palettes, the current one (`palette`), Material colour schemes, state colours |
@@ -240,7 +249,7 @@ icon.
 `./tests/run-tests.sh` runs `testDebugUnitTest`: JVM tests, no device needed.
 `StatusApiTest` parses `app/src/test/resources/status-sample.json`, a saved signed-out
 answer from the live API, and checks that unknown fields are ignored. `ProblemsTest` covers
-what the widget lists, `ChangesTest` what counts as a change, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token. `LookupsTest` runs
+what the widget lists, `ChangesTest` what counts as a change and muting, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token. `LookupsTest` runs
 the `data/Lookups.kt` functions against the same fixture (it relies on the fixture's
 Notes outage on 2026-10-27, so keep an answer with a service event when refreshing it). Refresh the
 fixture when the API changes:
