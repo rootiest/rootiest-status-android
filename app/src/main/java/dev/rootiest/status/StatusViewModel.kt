@@ -47,6 +47,8 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
     val timeFormat: StateFlow<TimeFormat> = _timeFormat.asStateFlow()
     private val _muted = MutableStateFlow(settings.muted)
     val muted: StateFlow<Set<String>> = _muted.asStateFlow()
+    // a notification's Mute button changes the setting while the app may be open
+    private val mutedWatch = settings.watchMuted { _muted.value = settings.muted }
 
     init {
         refresh()
@@ -117,6 +119,8 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // Mute or unmute notifications about one service or server.
+    override fun onCleared() = settings.stopWatching(mutedWatch)
+
     fun setMuted(name: String, mute: Boolean) {
         val value = if (mute) _muted.value + name else _muted.value - name
         settings.muted = value

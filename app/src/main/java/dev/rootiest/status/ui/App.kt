@@ -62,7 +62,15 @@ fun RootiestApp(vm: StatusViewModel) {
                 )
             }
             entry<ServiceDetail> { key ->
-                ServiceScreen(state, key.group, key.name, onRefresh = vm::refresh, onBack = { backStack.removeLastOrNull() })
+                ServiceScreen(
+                    state,
+                    key.group,
+                    key.name,
+                    muted = key.name in muted,
+                    onMute = { vm.setMuted(key.name, it) },
+                    onRefresh = vm::refresh,
+                    onBack = { backStack.removeLastOrNull() },
+                )
             }
             entry<Settings> {
                 SettingsScreen(

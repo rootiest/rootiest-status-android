@@ -45,13 +45,30 @@ import java.time.Instant
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ServiceScreen(state: StatusUiState, group: String, name: String, onRefresh: () -> Unit, onBack: () -> Unit) {
+fun ServiceScreen(
+    state: StatusUiState,
+    group: String,
+    name: String,
+    muted: Boolean,
+    onMute: (Boolean) -> Unit,
+    onRefresh: () -> Unit,
+    onBack: () -> Unit,
+) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(name) },
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = "Back") }
+                },
+                // the same setting as its switch in Settings > Services to notify about
+                actions = {
+                    IconButton(onClick = { onMute(!muted) }) {
+                        Icon(
+                            painterResource(if (muted) R.drawable.ic_notifications_off else R.drawable.ic_notifications),
+                            contentDescription = if (muted) "Muted: notify about $name" else "Notifying: mute $name",
+                        )
+                    }
                 },
             )
         },

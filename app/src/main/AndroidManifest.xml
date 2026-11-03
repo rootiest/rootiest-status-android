@@ -37,6 +37,11 @@
             </intent-filter>
         </service>
 
+        <!-- a notification's Mute button -->
+        <receiver
+            android:name=".MuteReceiver"
+            android:exported="false" />
+
         <receiver
             android:name=".widget.StatusWidgetReceiver"
             android:exported="true"

@@ -1,6 +1,7 @@
 package dev.rootiest.status.data
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.text.format.DateFormat
 import androidx.core.content.edit
 
@@ -53,4 +54,13 @@ class SettingsStore(private val context: Context) {
     var muted: Set<String>
         get() = prefs.getStringSet("muted", null)?.toSet() ?: emptySet() // a copy: the returned set must not be changed
         set(value) = prefs.edit { putStringSet("muted", value) }
+
+    // Calls [changed] whenever the muted names change, from the app or a notification's Mute button. Keep the
+    // returned listener while it should run (SharedPreferences holds it weakly) and pass it to [stopWatching].
+    fun watchMuted(changed: () -> Unit) =
+        SharedPreferences.OnSharedPreferenceChangeListener { _, key -> if (key == "muted") changed() }
+            .also(prefs::registerOnSharedPreferenceChangeListener)
+
+    fun stopWatching(listener: SharedPreferences.OnSharedPreferenceChangeListener) =
+        prefs.unregisterOnSharedPreferenceChangeListener(listener)
 }
