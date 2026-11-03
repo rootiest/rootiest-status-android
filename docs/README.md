@@ -120,7 +120,9 @@ Service list, Times and About:
   `time-pattern`, `time-hours` and `time-utc` in `settings`, and provided to every
   screen as `LocalTimeFormat`, the backup line's time included.
 - **About**: the version (name and code), then links that open in the browser: the
-  status page, the source code and **Report a problem** (a new issue on Gitea). Last,
+  status page, the source code and **Report a problem**, a new ticket on the support desk
+  (rootiest-hub's prefill link, `data/Support.kt`: category Problem, service Status page,
+  and the app version, Android version and phone filled in for the person to review). Last,
   **Open-source licenses** (`ui/LicensesScreen.kt`) lists the libraries the app is
   built with and their licenses, tap one for its text. The AboutLibraries Gradle plugin
   writes that list at build time from the release dependencies, as
@@ -312,7 +314,7 @@ icon.
 `./tests/run-tests.sh` runs `testDebugUnitTest`: JVM tests, no device needed.
 `StatusApiTest` parses `app/src/test/resources/status-sample.json`, a saved signed-out
 answer from the live API, and checks that unknown fields are ignored and the backup line parses and follows the time setting. `ProblemsTest`
-covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `TimesTest` the time formats and strftime fields, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token. `LookupsTest` runs
+covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `TimesTest` the time formats and strftime fields, `SupportTest` the ticket link, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token. `LookupsTest` runs
 the `data/Lookups.kt` functions against the same fixture (it relies on the fixture's
 Notes outage on 2026-10-27, so keep an answer with a service event when refreshing it). Refresh the
 fixture when the API changes:

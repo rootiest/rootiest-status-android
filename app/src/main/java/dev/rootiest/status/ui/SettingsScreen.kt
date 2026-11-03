@@ -2,6 +2,7 @@ package dev.rootiest.status.ui
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -59,6 +60,7 @@ import dev.rootiest.status.data.DateStyle
 import dev.rootiest.status.data.STRFTIME_FIELDS
 import java.time.Instant
 import dev.rootiest.status.data.StatusCache
+import dev.rootiest.status.data.supportTicketUrl
 import dev.rootiest.status.pushStatus
 import dev.rootiest.status.ui.theme.palette
 
@@ -220,7 +222,15 @@ private fun AboutCard(context: Context, onOpenLicenses: () -> Unit) {
         Divider()
         SettingRow("Source code", "GPL-3.0-or-later, on ${SOURCE.removePrefix("https://").substringBefore('/')}") { open(SOURCE) }
         Divider()
-        SettingRow("Report a problem", "Opens a new issue") { open("$SOURCE/issues/new") }
+        SettingRow("Report a problem", "Opens a ticket on the support desk, with the app and phone filled in") {
+            open(
+                supportTicketUrl(
+                    app = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                    android = "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
+                    phone = "${Build.MANUFACTURER} ${Build.MODEL}",
+                ),
+            )
+        }
         Divider()
         SettingRow("Open-source licenses", "The libraries the app is built with", onClick = onOpenLicenses)
     }
