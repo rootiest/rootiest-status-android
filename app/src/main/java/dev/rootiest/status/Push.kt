@@ -11,7 +11,7 @@ import org.unifiedpush.android.connector.data.PushEndpoint
 import org.unifiedpush.android.connector.data.PushMessage
 
 // Push through UnifiedPush, with the ntfy app as distributor: rootiest-hub posts "refresh" to this phone's address after each alert
-// (its docs/README.md, "Waking the app"), and the app then runs the refresh job at once instead of at its next 15 minutes.
+// (its docs/README.md, "Waking the app"), and the app then runs the refresh job at once instead of at its next periodic run.
 class StatusPushService : PushService() {
     override fun onNewEndpoint(endpoint: PushEndpoint, instance: String) {
         savePushAddress(this, endpoint.url)

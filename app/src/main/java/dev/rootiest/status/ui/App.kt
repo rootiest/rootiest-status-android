@@ -30,6 +30,7 @@ fun RootiestApp(vm: StatusViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     val appearance by vm.appearance.collectAsStateWithLifecycle()
     val muted by vm.muted.collectAsStateWithLifecycle()
+    val refreshInterval by vm.refreshInterval.collectAsStateWithLifecycle()
     val backStack = rememberNavBackStack(Home)
     // Ask once for notifications (Android 13+); a refusal only means no change notifications.
     val context = LocalContext.current
@@ -63,6 +64,8 @@ fun RootiestApp(vm: StatusViewModel) {
                     appearance,
                     onAppearance = vm::setAppearance,
                     mutedCount = muted.size,
+                    refreshInterval = refreshInterval,
+                    onRefreshInterval = vm::setRefreshInterval,
                     onOpenWatchList = { backStack.add(WatchList) },
                     onBack = { backStack.removeLastOrNull() },
                 )
