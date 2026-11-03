@@ -12,4 +12,9 @@ class StatusWidgetReceiver : GlanceAppWidgetReceiver() {
         super.onEnabled(context)
         RefreshWorker.schedule(context)
     }
+
+    override fun onDeleted(context: Context, appWidgetIds: IntArray) {
+        super.onDeleted(context, appWidgetIds)
+        WidgetStore(context).forget(appWidgetIds)
+    }
 }

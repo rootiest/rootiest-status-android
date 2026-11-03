@@ -131,9 +131,24 @@ Service list, Times and About:
 
 ## Home-screen widget
 
-The **Rootiest Status** widget shows the overall level's colour and the headline. At
-two cells tall or more it also lists what is wrong (up to four rows, then "and N more")
+The **Rootiest Status** widget shows a coloured dot and a headline. At two cells tall or
+more it also lists rows under it, each with its own dot (up to four, then "and N more"),
 and when the snapshot was fetched. Tapping it opens the app.
+
+Each widget chooses what it shows (`widget/WidgetConfigActivity.kt`, saved per widget id
+in the preferences file `widgets` and forgotten when the widget is removed; the content
+is `widgetContent` in `data/WidgetContent.kt`):
+
+- **Everything** (the default): the status page's level and headline, then what is wrong.
+- **One section**: the servers (when the viewer may see them) or one group of services,
+  as "Smart home: all up" or "Code: 2 problems", then every row with problems first.
+  The dot is red when one is down, yellow when the only problems are milder. A group
+  renamed or removed since says "<name> is not in the status"; the servers when signed
+  out say "Sign in to see the servers".
+
+From Android 12 a new widget starts with Everything, and the choice is changed from the
+widget's settings on the home screen (long-press it); on Android 10 and 11 the choice is
+asked when the widget is added.
 
 - What is wrong (`data/Problems.kt`): servers whose state is not `healthy`, then
   services whose state is not `up` or `standby` (a standby copy is down on purpose).
@@ -294,6 +309,8 @@ Material 3.
 | `data/Times.kt` | `TimeFormat` (relative or clock; default, ISO or custom format; 12 or 24 hours; local or UTC) and `strftime` |
 | `data/Changes.kt` | what changed between two fetches, less the muted names |
 | `data/Damping.kt` | `NotifyAfter` and `damp`: outages held until they have lasted the Settings delay |
+| `data/WidgetContent.kt` | `WidgetScope` and `widgetContent`: a widget's headline and rows for everything, one group or the servers |
+| `widget/WidgetConfigActivity.kt` | the screen that chooses what one widget shows; `WidgetStore` keeps the choice per widget |
 | `Notifier.kt` | the two notification channels, permission and channel checks, the phone's settings pages, posting with a Mute button |
 | `MuteReceiver.kt` | a notification's Mute button: mutes the name and clears the notification |
 | `Battery.kt` | the app's battery setting (restricted, optimized, unrestricted) and the page that changes it |
@@ -332,7 +349,7 @@ icon.
 `./tests/run-tests.sh` runs `testDebugUnitTest`: JVM tests, no device needed.
 `StatusApiTest` parses `app/src/test/resources/status-sample.json`, a saved signed-out
 answer from the live API, and checks that unknown fields are ignored and the backup line parses and follows the time setting. `ProblemsTest`
-covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `DampingTest` the outage delay, `TimesTest` the time formats and strftime fields, `SupportTest` the ticket link, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token. `LookupsTest` runs
+covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `DampingTest` the outage delay, `TimesTest` the time formats and strftime fields, `WidgetContentTest` what each widget choice shows, `SupportTest` the ticket link, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token. `LookupsTest` runs
 the `data/Lookups.kt` functions against the same fixture (it relies on the fixture's
 Notes outage on 2026-10-27, so keep an answer with a service event when refreshing it). Refresh the
 fixture when the API changes:

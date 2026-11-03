@@ -11,6 +11,7 @@ import androidx.glance.GlanceModifier
 import androidx.glance.LocalSize
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
@@ -35,9 +36,9 @@ import dev.rootiest.status.data.AuthStore
 import dev.rootiest.status.data.StatusApi
 import dev.rootiest.status.data.StatusCache
 import dev.rootiest.status.data.SettingsStore
-import dev.rootiest.status.data.StatusView
 import dev.rootiest.status.data.TimeFormat
-import dev.rootiest.status.data.problems
+import dev.rootiest.status.data.WidgetContent
+import dev.rootiest.status.data.widgetContent
 import dev.rootiest.status.ui.theme.Mocha
 import dev.rootiest.status.ui.theme.toneOf
 
@@ -45,7 +46,8 @@ class StatusWidget : GlanceAppWidget() {
     private val small = DpSize(110.dp, 40.dp)
     private val large = DpSize(180.dp, 110.dp)
 
-    // Two layouts: the headline alone, or the headline with what is wrong and when it was fetched.
+    // Two layouts: the headline alone, or the headline with its rows and when it was fetched. What the headline and rows are
+    // depends on the widget's choice (WidgetConfigActivity): everything, one group, or the servers.
     override val sizeMode = SizeMode.Responsive(setOf(small, large))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -56,33 +58,47 @@ class StatusWidget : GlanceAppWidget() {
             ?: runCatching { StatusApi(AuthStore(context)::credentials).fetch() }.getOrNull()?.also(cache::save)
         val view = fresh ?: cache.load()
         val times = SettingsStore(context).timeFormat
-        provideContent { Content(view, stale = fresh == null, times) }
+        val scope = WidgetStore(context).scope(GlanceAppWidgetManager(context).getAppWidgetId(id))
+        provideContent { Content(view?.let { it.widgetContent(scope) to it.Now }, stale = fresh == null, times) }
     }
 
+    // content and the snapshot's time, or null when there has never been a snapshot
     @Composable
-    private fun Content(view: StatusView?, stale: Boolean, times: TimeFormat) {
+    private fun Content(shown: Pair<WidgetContent, String>?, stale: Boolean, times: TimeFormat) {
         val showDetail = LocalSize.current.height >= large.height
+        val content = shown?.first
         Column(
             GlanceModifier.fillMaxSize().cornerRadius(16.dp).background(Mocha.Mantle).padding(12.dp)
                 .clickable(actionStartActivity<MainActivity>()),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(GlanceModifier.size(12.dp).cornerRadius(6.dp).background(toneOf(view?.Level ?: "none"))) {}
+                Dot(content?.level ?: "none", 12)
                 Spacer(GlanceModifier.width(8.dp))
-                Text(view?.Headline ?: "Status unavailable", style = text(Mocha.Text, 15, bold = true), maxLines = 2)
+                Text(content?.headline ?: "Status unavailable", style = text(Mocha.Text, 15, bold = true), maxLines = 2)
             }
-            if (view != null && showDetail) {
+            if (shown != null && showDetail) {
                 Spacer(GlanceModifier.height(6.dp))
-                val problems = view.problems()
-                problems.take(MAX_ROWS).forEach { Text(it, style = text(Mocha.Red, 13), maxLines = 1) }
-                if (problems.size > MAX_ROWS) Text("and ${problems.size - MAX_ROWS} more", style = text(Mocha.Subtext0, 12))
+                val rows = shown.first.rows
+                rows.take(MAX_ROWS).forEach { row ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Dot(row.state, 8)
+                        Spacer(GlanceModifier.width(6.dp))
+                        Text(row.text, style = text(Mocha.Text, 13), maxLines = 1)
+                    }
+                }
+                if (rows.size > MAX_ROWS) Text("and ${rows.size - MAX_ROWS} more", style = text(Mocha.Subtext0, 12))
                 Spacer(GlanceModifier.defaultWeight())
                 Text(
-                    (if (stale) "Offline · as of " else "Updated ") + times.timeOfDay(view.Now),
+                    (if (stale) "Offline · as of " else "Updated ") + times.timeOfDay(shown.second),
                     style = text(if (stale) Mocha.Yellow else Mocha.Overlay0, 11),
                 )
             }
         }
+    }
+
+    @Composable
+    private fun Dot(state: String, size: Int) {
+        Box(GlanceModifier.size(size.dp).cornerRadius((size / 2).dp).background(toneOf(state))) {}
     }
 
     private fun text(color: Color, size: Int, bold: Boolean = false) =

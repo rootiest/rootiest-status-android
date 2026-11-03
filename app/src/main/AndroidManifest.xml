@@ -37,6 +37,15 @@
             </intent-filter>
         </service>
 
+        <!-- what one widget shows: opened by the home screen, so exported -->
+        <activity
+            android:name=".widget.WidgetConfigActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
+
         <!-- a notification's Mute button -->
         <receiver
             android:name=".MuteReceiver"
