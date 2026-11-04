@@ -138,7 +138,7 @@ class SupportScreenTest {
         val prefill = reportProblemTicket("1.7.0 (10700)", "16 (API 36)", "Pixel")
         newTicket(SupportUiState(signedIn = true, form = form), prefill, onSend = { sent += it })
         compose.onNodeWithText("Report a Problem").assertIsDisplayed()
-        compose.onNodeWithText("Status page (Rootiest Hub)").assertIsDisplayed()
+        compose.onNodeWithText("Android app (Apps)").assertIsDisplayed()
         compose.onNodeWithText("Android app:", substring = true).assertIsDisplayed()
         compose.onNodeWithText("Send").performScrollTo().performClick()
         assertEquals(1, sent.size)

@@ -123,7 +123,7 @@ Service list, Times and About:
 - **About**: the version (name and code), then links that open in the browser (the
   status page, the source code), and **Report a problem**, which opens the app's new-ticket form
   (see [Support tickets](#support-tickets)) filled in by `reportProblemTicket` in `data/Support.kt`:
-  category Problem, service Status page, and the app version, Android version and phone, for the
+  category Problem, about the Android app (a support topic on the desk, not a service the status page checks), and the app version, Android version and phone, for the
   person to review and send. Last,
   **Open-source licenses** (`ui/LicensesScreen.kt`) lists the libraries the app is
   built with and their licenses, tap one for its text. The AboutLibraries Gradle plugin
