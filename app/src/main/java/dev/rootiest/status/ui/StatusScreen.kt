@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -33,6 +34,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -79,7 +81,7 @@ fun StatusScreen(
         ) {
             val view = state.view
             when {
-                view != null -> StatusList(view, listMode, state.error, onOpenService)
+                view != null -> StatusList(view, state.viewFor, listMode, state.error, onOpenService)
                 state.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
                 else -> ErrorList(state.error ?: "No data")
             }
@@ -114,12 +116,15 @@ private fun AccountMenu(name: String?, onSignIn: () -> Unit, onSignOut: () -> Un
 
 // The headline sits above the list and never scrolls; inside the list each section's title sticks until the next
 // section's title pushes it off. (Sticky headers all stick to the list's top edge, so the headline cannot be one.)
+// Signing in or out starts the list over at the top: otherwise it keeps its place on the first section it showed, and
+// the Servers section that signing in adds above it opens scrolled out of sight.
 @Composable
-private fun StatusList(full: StatusView, listMode: ServiceListMode, error: String?, onOpenService: (String, String) -> Unit) {
+private fun StatusList(full: StatusView, viewer: String?, listMode: ServiceListMode, error: String?, onOpenService: (String, String) -> Unit) {
     val view = full.arranged(listMode)
+    val listState = key(viewer) { rememberLazyListState() }
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)) { Headline(view) }
-        LazyColumn(contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp), modifier = Modifier.fillMaxSize()) {
+        LazyColumn(state = listState, contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp), modifier = Modifier.fillMaxSize()) {
             if (error != null) item { Box(Modifier.padding(top = 12.dp)) { ErrorBanner("Refresh failed: $error") } }
             // problems only, with none: say so rather than show an empty list
             if (view.Groups.isEmpty() && view.Hosts.isNullOrEmpty() && full.Groups.isNotEmpty()) item {
