@@ -3,6 +3,7 @@ package dev.rootiest.status
 import android.content.Context
 import android.util.Log
 import androidx.core.content.edit
+import dev.rootiest.status.data.ticketPush
 import dev.rootiest.status.widget.RefreshWorker
 import org.unifiedpush.android.connector.FailedReason
 import org.unifiedpush.android.connector.PushService
@@ -10,18 +11,20 @@ import org.unifiedpush.android.connector.UnifiedPush
 import org.unifiedpush.android.connector.data.PushEndpoint
 import org.unifiedpush.android.connector.data.PushMessage
 
-// Push through UnifiedPush, with the ntfy app as distributor: rootiest-hub posts "refresh" to this phone's address after each alert
-// (its docs/README.md, "Waking the app"), and the app then runs the refresh job at once instead of at its next periodic run.
+// Push through UnifiedPush, with the ntfy app as distributor. The same address gets two kinds of message from rootiest-hub (its docs/README.md):
+// "refresh" from the status page after each alert, and the app then runs the refresh job at once instead of at its next periodic run; and
+// "ticket <id>" from the support desk when staff replied to or closed one of this person's tickets, and the app fetches it and says so.
 class StatusPushService : PushService() {
     override fun onNewEndpoint(endpoint: PushEndpoint, instance: String) {
         savePushAddress(this, endpoint.url)
         RefreshWorker.runNow(this) // sends the address to the hub
     }
 
-    // The message says nothing; it only means the status changed.
+    // Neither message says anything more: the app fetches what changed itself.
     override fun onMessage(message: PushMessage, instance: String) {
         prefs(this).edit { putLong("last-push", System.currentTimeMillis()) }
-        RefreshWorker.runNow(this)
+        val ticket = ticketPush(message.content.decodeToString())
+        if (ticket != null) SupportReplyWorker.enqueue(this, ticket) else RefreshWorker.runNow(this)
     }
 
     override fun onRegistrationFailed(reason: FailedReason, instance: String) {

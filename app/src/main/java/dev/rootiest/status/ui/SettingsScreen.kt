@@ -167,6 +167,10 @@ private fun NotificationsCard(system: SystemState, context: Context, mutedCount:
             context.startActivity(Notifier.settingsIntent(context, Channel.Recoveries))
         }
         Divider()
+        SettingRow("Support replies", channelSummary(system, Channel.SupportReplies, "Support replied to or closed one of your tickets")) {
+            context.startActivity(Notifier.settingsIntent(context, Channel.SupportReplies))
+        }
+        Divider()
         SettingRow("Services to notify about", if (mutedCount == 0) "All" else "All but $mutedCount muted", onClick = onOpenWatchList)
         Divider()
         SettingRow("Send a test notification", "Shows how an outage alert looks and sounds") { Notifier.test(context) }

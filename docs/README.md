@@ -166,7 +166,19 @@ opens a ticket, as on the desk's web form.
   desk checks it again; its refusals show above the form, in its words. Once it is taken, the new
   ticket's thread replaces the form. A prefilled service the person may not see is left out, as on
   the web form.
-- **The API** is the desk's `/api/tickets`, `/api/tickets/{id}`, `.../reply`, `.../status` and
+- **Reply notifications.** After signing in to the desk the app gives it the phone's push address
+  (`POST /api/push`, the same UnifiedPush address the status page gets), and the background check
+  renews it on every run, since the desk forgets one not renewed for 30 days. When staff reply to
+  one of your tickets, or close it, the desk posts `ticket <id>` to that address and nothing more.
+  `StatusPushService` tells it from the status page's `refresh` (`ticketPush`) and queues
+  `SupportReplyWorker`, which fetches that ticket with the desk's sign-in and posts "Support replied:
+  <subject>" with the reply's first line, or "Ticket closed: <subject>" (`ticketNotice`). Nothing
+  is shown if the thread's last word is yours and it is still open. They go to the **Support
+  replies** channel, which has its own row in Settings > Notifications. One notification per
+  ticket; tapping it opens the thread over Support's list (`openTicket`). Signing out removes the
+  address from the desk first (`DELETE /api/push`), so the phone stops hearing about the
+  tickets. Test it with `curl -d 'ticket <id>' '<address>'` for a ticket of yours.
+- **The API** is the desk's `/api/tickets`, `/api/tickets/{id}`, `.../reply`, `.../status`, `/api/push` and
   `/api/form` (rootiest-hub `docs/README.md`, "Support desk"), with the token and proof as for the
   status page. Every field is sent, defaults included (`encodeDefaults`), since Go reads a missing
   one as empty or false. A 401 means sign in again; other errors show the desk's own words.
@@ -230,11 +242,12 @@ to arrive; ntfy remains the fast path.
   waiting keeps waiting from its start. While one waits, a one-off run is scheduled for
   when it is due (5 seconds after, or a minute after a failed fetch), so it arrives on
   time whatever the interval, push only included.
-- Notifications go to one of two channels (`Notifier.kt`), so the phone's own settings
+- Notifications go to one of three channels (`Notifier.kt`), so the phone's own settings
   can treat them apart: "Outages" (high importance: sound and a heads-up banner), for
-  "Gitea is down / was up" and any other move away from green, and "Recoveries" (low:
-  silent, in the shade only), for "Gitea is back up / was down". Each name has one
-  notification id across both, so a recovery replaces the down notification. Tapping
+  "Gitea is down / was up" and any other move away from green, "Recoveries" (low:
+  silent, in the shade only), for "Gitea is back up / was down", and "Support replies"
+  (default importance; see [Support tickets](#support-tickets)). Each name has one
+  notification id across the first two, so a recovery replaces the down notification. Tapping
   one opens the app. The channels are created on every app start, so they show in the
   phone's settings before the first change; the single "Service changes" channel of
   1.3.0 and earlier is deleted then.
@@ -285,7 +298,8 @@ push address, an `up...` topic on the ntfy app's default server, which must be
 it and sends it to the hub (`POST /app/push`) on every run of the job, so the host
 serving the page learns it soon after a failover. After each alert the hub posts
 `refresh` to every address; the ntfy app hands it to `StatusPushService`, which queues
-the job at once (expedited on Android 12+). The message carries no data and is not
+the job at once (expedited on Android 12+). The support desk posts `ticket <id>` to the same
+address instead (see [Support tickets](#support-tickets)), which goes to `SupportReplyWorker`. The message carries no data and is not
 encrypted (the connector logs "Could not decrypt message, trying with plain text"), so
 each run fetches what its viewer may see. Runs take turns (a lock), so a push arriving
 during the periodic run cannot notify a change twice. Without a distributor, or with the
@@ -349,6 +363,7 @@ Material 3.
 | `SupportViewModel.kt` | `SupportUiState`: the desk's sign-in, the ticket list, the open thread, sending replies, closing and opening tickets |
 | `ui/SupportScreen.kt` | Support: the ticket list (or the sign-in prompt) and a ticket's thread with its reply box |
 | `ui/NewTicketScreen.kt` | opening a ticket: the desk's form, with its choices for this person |
+| `SupportReplyWorker.kt` | the desk pushed `ticket <id>`: fetch it and post the Support replies notification |
 | `ui/Markdown.kt` | a message's Markdown as styled text (commonmark-java) |
 | `widget/StatusWidget.kt` | the Glance widget: fetch or cached snapshot, two layouts by size |
 | `widget/StatusWidgetReceiver.kt` | the widget's receiver; schedules the background job |

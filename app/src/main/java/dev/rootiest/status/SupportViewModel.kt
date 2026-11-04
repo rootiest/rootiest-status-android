@@ -1,6 +1,7 @@
 package dev.rootiest.status
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.rootiest.status.data.AuthStore
@@ -33,6 +34,7 @@ data class SupportUiState(
     val form: TicketForm? = null, // the new-ticket form's choices
     val formErrors: List<String> = emptyList(),
     val created: Long? = null, // the ticket just opened, for the screen to go to once
+    val openRequest: Long? = null, // a ticket whose notification was tapped, for the navigation to open once
 )
 
 // The Support screens: the person's tickets on the support desk and one ticket's thread. The desk has its own sign-in (rootiest-hub
@@ -170,13 +172,31 @@ class SupportViewModel(app: Application) : AndroidViewModel(app) {
         }
         _state.update { it.copy(signedIn = true, error = null) }
         refresh()
+        registerPush()
     }
 
-    // Signing out of the app signs out of both: called with the status page's sign-out.
+    // Gives the desk this phone's push address, so it can say when support replies. The background check renews it (RefreshWorker).
+    private fun registerPush() {
+        val address = pushAddress(getApplication()) ?: return
+        viewModelScope.launch { runCatching { api.registerPush(address) }.onFailure { Log.w("SupportPush", "register: ${it.message}") } }
+    }
+
+    // Signing out of the app signs out of both: called with the status page's sign-out. The desk stops pushing to this phone first, with the
+    // sign-in it still has; the sign-in is gone from the phone at once either way.
     fun signOut() {
+        val credentials = auth.credentials()
+        val address = pushAddress(getApplication())
         auth.signOut()
         listing?.cancel()
         reading?.cancel()
         _state.update { SupportUiState(signedIn = false) }
+        if (credentials != null && address != null) {
+            viewModelScope.launch { runCatching { SupportApi({ credentials }).unregisterPush(address) } }
+        }
     }
+
+    // A support reply's notification was tapped (MainActivity).
+    fun requestOpen(id: Long) = _state.update { it.copy(openRequest = id) }
+
+    fun openHandled() = _state.update { it.copy(openRequest = null) }
 }

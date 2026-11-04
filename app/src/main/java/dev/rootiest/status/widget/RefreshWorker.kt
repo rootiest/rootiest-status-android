@@ -25,6 +25,7 @@ import dev.rootiest.status.data.damp
 import dev.rootiest.status.data.nextDue
 import dev.rootiest.status.data.stateMap
 import dev.rootiest.status.data.unmuted
+import dev.rootiest.status.data.SupportApi
 import dev.rootiest.status.pushAddress
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -58,6 +59,11 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
         // renewed on every run, so the host serving the page learns it soon after a failover (each host keeps its own list)
         pushAddress(applicationContext)?.let { address ->
             runCatching { api.registerPush(address) }.onFailure { Log.w("StatusPush", "${it.message} for $address") }
+            // and to the support desk, when signed in there: it forgets an address not renewed for 30 days
+            val support = AuthStore.forSupport(applicationContext)
+            if (support.credentials() != null) {
+                runCatching { SupportApi(support::credentials).registerPush(address) }.onFailure { Log.w("SupportPush", "register: ${it.message}") }
+            }
         }
         // last: when this run is the recheck, replacing it cancels it
         due?.let { recheckAt(applicationContext, it) }

@@ -21,6 +21,7 @@ import dev.rootiest.status.widget.RefreshWorker
 import org.unifiedpush.android.connector.UnifiedPush
 
 class MainActivity : ComponentActivity() {
+
     private val vm: StatusViewModel by viewModels()
     private val support: SupportViewModel by viewModels()
 
@@ -73,6 +74,11 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleSignIn(intent: Intent) {
+        // a support reply's notification: open that ticket
+        intent.getLongExtra(EXTRA_TICKET, 0).takeIf { it > 0 }?.let {
+            intent.removeExtra(EXTRA_TICKET) // once, not again after a rotation
+            support.requestOpen(it)
+        }
         val uri = intent.data ?: return
         if (uri.scheme != "dev.rootiest.status") return
         when (uri.path) {
@@ -81,9 +87,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private companion object {
+    companion object {
+        const val EXTRA_TICKET = "dev.rootiest.status.TICKET" // a support ticket to open (Notifier.ticket)
+
         // the scrims enableEdgeToEdge puts behind three-button navigation by default
-        val LIGHT_SCRIM = Color.argb(0xe6, 0xFF, 0xFF, 0xFF)
-        val DARK_SCRIM = Color.argb(0x80, 0x1b, 0x1b, 0x1b)
+        private val LIGHT_SCRIM = Color.argb(0xe6, 0xFF, 0xFF, 0xFF)
+        private val DARK_SCRIM = Color.argb(0x80, 0x1b, 0x1b, 0x1b)
     }
 }
