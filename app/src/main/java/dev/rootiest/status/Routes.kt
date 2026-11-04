@@ -19,6 +19,14 @@ data object Settings : NavKey
 @Serializable
 data object WatchList : NavKey
 
+// The account menu > Support: the person's tickets on the support desk.
+@Serializable
+data object SupportTickets : NavKey
+
+// One ticket's thread.
+@Serializable
+data class SupportTicket(val id: Long) : NavKey
+
 // Settings > About > Open-source licenses.
 @Serializable
 data object Licenses : NavKey

@@ -22,6 +22,7 @@ import org.unifiedpush.android.connector.UnifiedPush
 
 class MainActivity : ComponentActivity() {
     private val vm: StatusViewModel by viewModels()
+    private val support: SupportViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,7 +48,7 @@ class MainActivity : ComponentActivity() {
                 )
             }
             RootiestTheme(dark) {
-                RootiestApp(vm)
+                RootiestApp(vm, support)
             }
         }
     }
@@ -73,8 +74,10 @@ class MainActivity : ComponentActivity() {
 
     private fun handleSignIn(intent: Intent) {
         val uri = intent.data ?: return
-        if (uri.scheme == "dev.rootiest.status" && uri.path == "/signed-in") {
-            uri.getQueryParameter("token")?.let(vm::completeSignIn)
+        if (uri.scheme != "dev.rootiest.status") return
+        when (uri.path) {
+            "/signed-in" -> uri.getQueryParameter("token")?.let(vm::completeSignIn)
+            "/support-signed-in" -> uri.getQueryParameter("token")?.let(support::completeSignIn) // the support desk's own sign-in
         }
     }
 

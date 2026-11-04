@@ -65,12 +65,13 @@ fun StatusScreen(
     onSignIn: () -> Unit,
     onSignOut: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenSupport: () -> Unit = {},
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Rootiest Status") },
-                actions = { AccountMenu(state.signedInAs, onSignIn, onSignOut, onOpenSettings) },
+                actions = { AccountMenu(state.signedInAs, onSignIn, onSignOut, onOpenSettings, onOpenSupport) },
             )
         },
     ) { padding ->
@@ -91,7 +92,7 @@ fun StatusScreen(
 
 // The account and settings menu: under the name when signed in, under an account icon when not.
 @Composable
-private fun AccountMenu(name: String?, onSignIn: () -> Unit, onSignOut: () -> Unit, onOpenSettings: () -> Unit) {
+private fun AccountMenu(name: String?, onSignIn: () -> Unit, onSignOut: () -> Unit, onOpenSettings: () -> Unit, onOpenSupport: () -> Unit) {
     var open by remember { mutableStateOf(false) }
     Box {
         if (name != null) {
@@ -104,6 +105,7 @@ private fun AccountMenu(name: String?, onSignIn: () -> Unit, onSignOut: () -> Un
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
             DropdownMenuItem(text = { Text("Settings") }, onClick = { open = false; onOpenSettings() })
+            DropdownMenuItem(text = { Text("Support") }, onClick = { open = false; onOpenSupport() })
             HorizontalDivider()
             if (name != null) {
                 DropdownMenuItem(text = { Text("Sign out") }, onClick = { open = false; onSignOut() })

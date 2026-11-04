@@ -100,6 +100,18 @@ class ScreenshotTest {
         )
     }
 
+    private val supportApi = dev.rootiest.status.data.SupportApi({ null })
+
+    @Test fun supportTickets() = shoot("support-tickets") {
+        val tickets = supportApi.parseList(javaClass.getResource("/support-tickets.json")!!.readText()).Tickets
+        SupportScreen(dev.rootiest.status.SupportUiState(signedIn = true, tickets = tickets), onSignIn = {}, onRefresh = {}, onOpen = {}, onWeb = {}, onBack = {})
+    }
+
+    @Test fun supportThread() = shoot("support-thread") {
+        val thread = supportApi.parseThread(javaClass.getResource("/support-thread.json")!!.readText())
+        TicketScreen(dev.rootiest.status.SupportUiState(signedIn = true, thread = thread), 1, onRefresh = {}, onLink = {}, onBack = {})
+    }
+
     // The widget, drawn by Glance into the RemoteViews a launcher would show, from a cached snapshot (no network).
     private fun widget(name: String, scope: WidgetScope, size: DpSize) {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
