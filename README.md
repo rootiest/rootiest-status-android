@@ -48,7 +48,7 @@ the platform and build tools it needs.
   On the maintainer's machine, which holds the release key, the two are signed with
   different keys, so switching between them means uninstalling first.
 - Release: `scripts/release.sh` (see [docs/README.md](docs/README.md#releases)).
-- Test: `./tests/run-tests.sh` (JVM unit tests, no device). CI runs the same command on
+- Test: `./tests/run-tests.sh` (JVM unit and screen tests, no device). CI runs the same command on
   GitHub Actions, on the branches the Gitea mirror copies there; see
   [docs/README.md](docs/README.md#ci).
 
