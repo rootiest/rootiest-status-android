@@ -91,6 +91,8 @@ dependencies {
     implementation(libs.androidx.browser)
     implementation(libs.unifiedpush.connector)
     implementation(libs.okhttp)
+    // support ticket messages are Markdown: parsed here, drawn as styled text (ui/Markdown.kt)
+    implementation(libs.commonmark)
     implementation(libs.aboutlibraries.compose.m3)
     debugImplementation(libs.compose.ui.tooling)
     testImplementation(libs.junit)

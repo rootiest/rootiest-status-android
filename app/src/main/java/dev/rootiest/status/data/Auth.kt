@@ -44,12 +44,23 @@ fun tokenInfo(token: String): TokenInfo? = runCatching {
 fun tokenMatches(token: String, proof: String): Boolean = tokenInfo(token)?.challenge == challengeOf(proof)
 
 // The sign-in kept in the app's private storage. The pending proof is saved before the browser opens, so a sign-in
-// still completes if Android stops the app meanwhile.
-class AuthStore(context: Context) {
-    private val prefs = context.getSharedPreferences("auth", Context.MODE_PRIVATE)
+// still completes if Android stops the app meanwhile. The status page and the support desk each have their own (forStatus,
+// forSupport): they are separate RootiestID clients with separate keys, so neither's token works on the other.
+class AuthStore(context: Context, prefsName: String = "auth", private val baseUrl: String = STATUS_URL) {
+    private val prefs = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+
+    companion object {
+        const val STATUS_URL = "https://status.rootiest.dev"
+        const val SUPPORT_URL = "https://support.rootiest.dev"
+
+        fun forStatus(context: Context) = AuthStore(context)
+
+        // rootiest-hub's support desk: /app/login there returns to dev.rootiest.status:/support-signed-in
+        fun forSupport(context: Context) = AuthStore(context, "support-auth", SUPPORT_URL)
+    }
 
     // The address to open: starts a sign-in with a new proof.
-    fun start(baseUrl: String = "https://status.rootiest.dev"): String {
+    fun start(): String {
         val proof = newProof()
         prefs.edit { putString("pending", proof) }
         return "$baseUrl/app/login?challenge=${challengeOf(proof)}"

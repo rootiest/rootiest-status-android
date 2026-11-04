@@ -19,7 +19,8 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- where rootiest-hub's /app/login returns: dev.rootiest.status:/signed-in?token=...
+            <!-- where rootiest-hub's /app/login returns: dev.rootiest.status:/signed-in?token=... (the status page)
+                 or dev.rootiest.status:/support-signed-in?token=... (the support desk)
                  (with no host Android ignores a path, so MainActivity checks it) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

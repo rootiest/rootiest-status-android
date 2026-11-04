@@ -64,7 +64,7 @@ the app shows the public view. The flow is rootiest-hub's app sign-in:
    token only with that proof, so a token caught on its way back is useless.
 
 The top bar shows the RootiestID display name; tapping it opens the account menu, with
-**Settings** and **Sign out**, which deletes the token.
+**Settings**, **Support** and **Sign out**, which deletes the token (and the support desk's, below).
 The app reads the name and expiry from the token (signed by the hub, only read here). A
 sign-in lasts 14 days, the hub's `STATUS_SESSION_TTL`; once it expires, or after the
 hub's `signout-all`, the app shows the public view again and the menu offers **Sign in**
@@ -75,8 +75,8 @@ is not reported as a change.
 ## Account menu and settings
 
 The top bar's right side opens the account menu: under the display name when signed in,
-under an account icon when signed out. Either way it has **Settings**, then **Sign out**
-or **Sign in**, so settings are reachable without an account.
+under an account icon when signed out. Either way it has **Settings**, **Support** (see
+[Support tickets](#support-tickets)), then **Sign out** or **Sign in**, so settings are reachable without an account.
 
 **Settings** is its own screen (back returns to the list), in sections: Notifications,
 Instant alerts and Background check (see [Notifications and the background job](#notifications-and-the-background-job)), then Appearance,
@@ -128,6 +128,35 @@ Service list, Times and About:
   built with and their licenses, tap one for its text. The AboutLibraries Gradle plugin
   writes that list at build time from the release dependencies, as
   `res/raw/aboutlibraries.json`, so it is never out of date.
+
+## Support tickets
+
+**Support** in the account menu lists your tickets on the support desk
+([support.rootiest.dev](https://support.rootiest.dev), rootiest-hub's desk) and opens each one's
+thread. It is read-only for now: **New ticket**, **Reply on the web** and **Open a ticket** open the
+desk in a Custom Tab, and Settings > About > Report a problem still opens the prefilled form there.
+
+- **Its own sign-in.** The desk is a separate RootiestID client with its own key, so the status
+  page's token does not work there. The first time Support opens without the desk's sign-in, the app
+  starts it on its own (once per run of the app, so cancelling it does not loop; the screen then has
+  **Sign in to the support desk**). It is the same flow as the status page's: a new proof, the
+  desk's `/app/login?challenge=...`, and back to `dev.rootiest.status:/support-signed-in?token=...`,
+  which `MainActivity` hands to `SupportViewModel`. If RootiestID remembers you it is a brief browser
+  visit with no prompt (and a one-time consent screen). The token and proof are kept in the
+  preferences file `support-auth` (`AuthStore.forSupport`); a sign-in lasts 30 days.
+- **Signing out** of the app clears both sign-ins. When the desk refuses the token (expired, or its
+  `signout-all`), the app drops it and asks for a new sign-in.
+- **What it shows.** Your own tickets only, newest change first, with whose turn it is (**Waiting for
+  support**, **Answered**, **Closed**), the service (or the category) and the last change, in the
+  Times format. A thread shows the subject, status, category, service, importance and when it was
+  opened, then the messages oldest first: staff replies are from **Rootiest Support**, in a lighter
+  card. Staff-only notes never reach the app (the desk does not send them). Messages are Markdown,
+  drawn as styled text (`ui/Markdown.kt`, with commonmark-java): bold, italics, code, headings,
+  lists, quotes and links. Raw HTML is dropped and an image is its description, as on the desk, and
+  only http(s) and mailto links open (in a Custom Tab).
+- **The API** is the desk's `/api/tickets` and `/api/tickets/{id}` (rootiest-hub `docs/README.md`,
+  "Support desk"), with the token and proof as for the status page. A 401 means sign in again; other
+  errors show the desk's own words.
 
 ## Home-screen widget
 
@@ -291,8 +320,8 @@ Material 3.
 | `data/StatusApi.kt` | OkHttp GET plus kotlinx.serialization parse, on `Dispatchers.IO` |
 | `data/Lookups.kt` | plain functions over a snapshot: find a service, its events, a day's summary text |
 | `StatusViewModel.kt` | holds `StatusUiState` (last view, loading, error), the appearance, service list, times and interval settings and the muted names as `StateFlow`s; fetches on start and on `refresh()` |
-| `Routes.kt` | Navigation 3 keys: `Home`, `ServiceDetail(group, name)`, `Settings`, `WatchList`, `Licenses` |
-| `ui/App.kt` | the app root: one `StatusViewModel` above the navigation, the back stack and `NavDisplay` |
+| `Routes.kt` | Navigation 3 keys: `Home`, `ServiceDetail(group, name)`, `Settings`, `WatchList`, `Licenses`, `SupportTickets`, `SupportTicket(id)` |
+| `ui/App.kt` | the app root: `StatusViewModel` and `SupportViewModel` above the navigation, the back stack and `NavDisplay` |
 | `ui/StatusScreen.kt` | the list: top bar, pull-to-refresh, headline, servers, groups, tappable services |
 | `ui/ServiceScreen.kt` | a service's detail: summary, recent changes, daily uptime |
 | `ui/SettingsScreen.kt` | settings: notifications, push status, the background check, appearance, service list, times, about |
@@ -302,7 +331,11 @@ Material 3.
 | `data/Problems.kt` | what counts as a problem: what the widget lists, and the list arranged by the Service list setting |
 | `data/StatusCache.kt` | the last good snapshot, saved for the widget |
 | `data/Settings.kt` | `Appearance`, `ServiceListMode`, `RefreshInterval` and `SettingsStore` (the saved settings: appearance, service list, interval, muted names) |
-| `data/Auth.kt` | proof and challenge, reading a token, `AuthStore` (the saved sign-in) |
+| `data/Auth.kt` | proof and challenge, reading a token, `AuthStore` (a saved sign-in: `forStatus`, `forSupport`) |
+| `data/Tickets.kt` | the support desk's ticket models and `SupportApi` (list, thread; `SignInNeeded`, `DeskRefused`) |
+| `SupportViewModel.kt` | `SupportUiState`: the desk's sign-in, the ticket list and the open thread |
+| `ui/SupportScreen.kt` | Support: the ticket list (or the sign-in prompt) and a ticket's thread |
+| `ui/Markdown.kt` | a message's Markdown as styled text (commonmark-java) |
 | `widget/StatusWidget.kt` | the Glance widget: fetch or cached snapshot, two layouts by size |
 | `widget/StatusWidgetReceiver.kt` | the widget's receiver; schedules the background job |
 | `widget/RefreshWorker.kt` | the background job: fetch, notify changes, redraw widgets, at the chosen interval and on push |
@@ -350,7 +383,7 @@ icon.
 comparison): JVM tests, no device needed, including the screen and screenshot tests below.
 `StatusApiTest` parses `app/src/test/resources/status-sample.json`, a saved signed-out
 answer from the live API, and checks that unknown fields are ignored and the backup line parses and follows the time setting. `ProblemsTest`
-covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `DampingTest` the outage delay, `TimesTest` the time formats and strftime fields, `WidgetContentTest` what each widget choice shows, `SupportTest` the ticket link, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token. `LookupsTest` runs
+covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `DampingTest` the outage delay, `TimesTest` the time formats and strftime fields, `WidgetContentTest` what each widget choice shows, `SupportTest` the ticket link, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token, `TicketsTest` the support desk's answers (`support-tickets.json` and `support-thread.json`, written by rootiest-hub's own API handlers) and how the client sends the sign-in and reads refusals, `MarkdownTest` how messages are drawn and which links open. `LookupsTest` runs
 the `data/Lookups.kt` functions against the same fixture (it relies on the fixture's
 Notes outage on 2026-10-27, so keep an answer with a service event when refreshing it). Refresh the
 fixture when the API changes:
@@ -366,7 +399,9 @@ JVM with Robolectric and check what is on screen with Compose's test rule
 (`createComposeRule()`), so they run in the same `testDebugUnitTest` with no device or
 emulator. `StatusScreenTest` covers the status list: signing in shows the Servers section at
 the top (#32), Problems only with nothing down says so, a section's title sticks while its rows
-scroll, and a failed refresh keeps the list under its error banner.
+scroll, and a failed refresh keeps the list under its error banner. `SupportScreenTest`
+covers Support: the sign-in prompt, no tickets, the list with whose turn it is, and a thread with its
+Markdown drawn and staff replies from Rootiest Support.
 
 To write one, give the screen a fixed state (`StatusScreen` takes a whole `StatusUiState`, so no
 view model or network is involved), wrap it in `RootiestTheme`, then find nodes by their text
@@ -377,7 +412,7 @@ Check that a new test fails when the behaviour it guards is broken.
 ### Screenshot tests
 
 `ScreenshotTest` draws the status list (signed out and signed in as staff with a server and a
-service in trouble, dark and light), the Notes detail screen, Settings, and the widget (each
+service in trouble, dark and light), the Notes detail screen, Settings, Support (the ticket list and a thread), and the widget (each
 choice: everything, the servers, one group, and the small layout) and compares them with the
 golden images in `app/src/test/screenshots/`, using [Roborazzi](https://github.com/takahirom/roborazzi).
 `./tests/run-tests.sh` runs `verifyRoborazziDebug`, which is `testDebugUnitTest` with the

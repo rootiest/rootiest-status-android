@@ -24,12 +24,16 @@ import dev.rootiest.status.Notifier
 import dev.rootiest.status.ServiceDetail
 import dev.rootiest.status.Settings
 import dev.rootiest.status.StatusViewModel
+import dev.rootiest.status.SupportTicket
+import dev.rootiest.status.SupportTickets
+import dev.rootiest.status.SupportViewModel
 import dev.rootiest.status.WatchList
 
 // One ViewModel for the whole app, above the navigation: every screen shows the same snapshot.
 @Composable
-fun RootiestApp(vm: StatusViewModel) {
+fun RootiestApp(vm: StatusViewModel, support: SupportViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
+    val supportState by support.state.collectAsStateWithLifecycle()
     val appearance by vm.appearance.collectAsStateWithLifecycle()
     val muted by vm.muted.collectAsStateWithLifecycle()
     val refreshInterval by vm.refreshInterval.collectAsStateWithLifecycle()
@@ -58,8 +62,9 @@ fun RootiestApp(vm: StatusViewModel) {
                     onRefresh = vm::refresh,
                     onOpenService = { g, s -> backStack.add(ServiceDetail(g, s)) },
                     onSignIn = { CustomTabsIntent.Builder().build().launchUrl(context, vm.signInUrl().toUri()) },
-                    onSignOut = vm::signOut,
+                    onSignOut = { vm.signOut(); support.signOut() }, // both sign-ins: the status page's and the support desk's
                     onOpenSettings = { backStack.add(Settings) },
+                    onOpenSupport = { backStack.add(SupportTickets) },
                 )
             }
             entry<ServiceDetail> { key ->
@@ -95,6 +100,32 @@ fun RootiestApp(vm: StatusViewModel) {
                 WatchListScreen(state.view, muted, onMute = vm::setMuted, onBack = { backStack.removeLastOrNull() })
             }
             entry<Licenses> { LicensesScreen(onBack = { backStack.removeLastOrNull() }) }
+            entry<SupportTickets> {
+                val browse = { url: String -> CustomTabsIntent.Builder().build().launchUrl(context, url.toUri()) }
+                // the first time Support opens without the desk's sign-in, start it; once per run, so backing out of it does not loop
+                LaunchedEffect(supportState.signedIn) {
+                    if (supportState.signedIn) support.refresh()
+                    else if (!support.autoSignInTried) browse(support.signInUrl(auto = true))
+                }
+                SupportScreen(
+                    supportState,
+                    onSignIn = { browse(support.signInUrl()) },
+                    onRefresh = support::refresh,
+                    onOpen = { backStack.add(SupportTicket(it)) },
+                    onWeb = browse,
+                    onBack = { backStack.removeLastOrNull() },
+                )
+            }
+            entry<SupportTicket> { key ->
+                LaunchedEffect(key.id) { support.open(key.id) }
+                TicketScreen(
+                    supportState,
+                    key.id,
+                    onRefresh = { support.open(key.id) },
+                    onLink = { CustomTabsIntent.Builder().build().launchUrl(context, it.toUri()) },
+                    onBack = { backStack.removeLastOrNull() },
+                )
+            }
         },
     ) }
 }
