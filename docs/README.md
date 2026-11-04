@@ -346,8 +346,8 @@ icon.
 
 ## Tests
 
-`./tests/run-tests.sh` runs `testDebugUnitTest`: JVM tests, no device needed, including the
-screen tests below.
+`./tests/run-tests.sh` runs `verifyRoborazziDebug` (`testDebugUnitTest` with screenshot
+comparison): JVM tests, no device needed, including the screen and screenshot tests below.
 `StatusApiTest` parses `app/src/test/resources/status-sample.json`, a saved signed-out
 answer from the live API, and checks that unknown fields are ignored and the backup line parses and follows the time setting. `ProblemsTest`
 covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `DampingTest` the outage delay, `TimesTest` the time formats and strftime fields, `WidgetContentTest` what each widget choice shows, `SupportTest` the ticket link, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token. `LookupsTest` runs
@@ -373,6 +373,35 @@ view model or network is involved), wrap it in `RootiestTheme`, then find nodes 
 (`onNodeWithText`) and assert or act on them (`assertIsDisplayed`, `performScrollToNode`). To
 change the state mid-test, hold it in `mutableStateOf` and call `waitForIdle()` after each change.
 Check that a new test fails when the behaviour it guards is broken.
+
+### Screenshot tests
+
+`ScreenshotTest` draws the status list (signed out and signed in as staff with a server and a
+service in trouble, dark and light), the Notes detail screen, Settings, and the widget (each
+choice: everything, the servers, one group, and the small layout) and compares them with the
+golden images in `app/src/test/screenshots/`, using [Roborazzi](https://github.com/takahirom/roborazzi).
+`./tests/run-tests.sh` runs `verifyRoborazziDebug`, which is `testDebugUnitTest` with the
+comparison on, so any pixel that changed fails it. After a deliberate change to how something
+looks:
+
+```sh
+./gradlew recordRoborazziDebug   # rewrite the goldens
+git diff --stat app/src/test/screenshots   # and look at the new images before committing them
+```
+
+When a comparison fails, `app/build/outputs/roborazzi/` holds each failing image as drawn
+(`*_actual.png`) and a side-by-side with the differences marked (`*_compare.png`); CI uploads
+that folder as the `screenshot-diffs` artifact.
+
+What the images can and cannot show:
+
+- Times are fixed: the screens get a 24-hour UTC clock and the test sets the JVM's zone to UTC
+  (the widget reads the phone's zone), so the images match on every machine.
+- The widget is drawn by Glance into the same `RemoteViews` a launcher gets, from a snapshot
+  saved in `StatusCache`, so no network is used. Robolectric does not round views the way
+  Android 12+ launchers do, so its dots and corners come out square in the images.
+- Screens are captured at 360×740 dp, so only what fits is compared: Settings' Version row
+  is out of the picture, and a version bump does not change any golden.
 
 Setup notes, in `app/build.gradle.kts`: the tests need the app's resources
 (`isIncludeAndroidResources`); Espresso is pinned to 3.7.0 because the one Compose's test library

@@ -19,6 +19,12 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Test
         run: ./tests/run-tests.sh
+      # what the screenshots looked like and how they differ from the goldens, to download when they do
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: screenshot-diffs
+          path: app/build/outputs/roborazzi/
       - name: Build debug APK
         run: ./gradlew --no-daemon assembleDebug
       - uses: actions/upload-artifact@v4
