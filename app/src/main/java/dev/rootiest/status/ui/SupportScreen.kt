@@ -42,6 +42,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -112,6 +113,24 @@ internal fun SignInPrompt(error: String?, onSignIn: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Button(onClick = onSignIn) { Text("Sign in to the support desk") }
+        SignUpHint()
+    }
+}
+
+// The RootiestID page for creating an account, as the desk's own landing page links it.
+internal const val SIGN_UP_URL = "https://auth.rootiest.dev/signup"
+
+// For someone without a RootiestID yet: where to make one, then come back and sign in.
+@Composable
+private fun SignUpHint() {
+    val uri = LocalUriHandler.current
+    Column {
+        Text(
+            "New here? Create a free RootiestID in the browser, then come back and sign in.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        TextButton(onClick = { uri.openUri(SIGN_UP_URL) }, contentPadding = PaddingValues(0.dp)) { Text("Create a free RootiestID") }
     }
 }
 
