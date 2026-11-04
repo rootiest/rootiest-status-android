@@ -1,5 +1,3 @@
-import java.util.Properties
-
 // AGP 9 compiles Kotlin itself: no org.jetbrains.kotlin.android plugin.
 plugins {
     alias(libs.plugins.android.application)
@@ -11,16 +9,10 @@ plugins {
     alias(libs.plugins.roborazzi)
 }
 
-// The version scripts/release.sh tags (v<appVersion>). versionCode follows from it: 1.2.3 is 10203.
-val appVersion = "1.7.1"
+// the version and the release key, shared with the watch app (the root build.gradle.kts)
+val appVersion = rootProject.extra["appVersion"] as String
 val (major, minor, patch) = appVersion.split(".").map(String::toInt)
-
-// The release key's properties file (storeFile, storePassword, keyAlias, keyPassword), named by the Gradle property
-// rootiest.signing in ~/.gradle/gradle.properties. Without it (CI, another machine) release builds get the debug key,
-// which scripts/release.sh refuses to publish.
-val releaseKey = providers.gradleProperty("rootiest.signing").orNull?.let { path ->
-    Properties().apply { file(path).inputStream().use(::load) }
-}
+val releaseKey = rootProject.extra["releaseKey"] as java.util.Properties?
 
 android {
     namespace = "dev.rootiest.status"
@@ -95,6 +87,9 @@ dependencies {
     implementation(libs.androidx.browser)
     implementation(libs.unifiedpush.connector)
     implementation(libs.okhttp)
+    // each snapshot goes to the watch app over the Wearable Data Layer (Watch.kt)
+    implementation(libs.play.services.wearable)
+    implementation(libs.kotlinx.coroutines.play.services)
     // support ticket messages are Markdown: parsed here, drawn as styled text (ui/Markdown.kt)
     implementation(libs.commonmark)
     implementation(libs.aboutlibraries.compose.m3)

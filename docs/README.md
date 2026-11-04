@@ -235,6 +235,35 @@ something is down).
 - The content is `tileContent` in `data/TileContent.kt`, built from `widgetContent`, so
   the tile and the widget always agree.
 
+## Wear OS
+
+The watch app (module `:wear`) has a **Rootiest Status** tile and a list screen. It
+shows what the phone app last fetched, so it needs the phone app, but no network or
+sign-in of its own: the Servers section appears when the phone is signed in.
+
+- **How the data gets there**: after each good fetch (the background job, a push, or a
+  refresh in the app) the phone puts the snapshot on the Wearable Data Layer
+  (`Watch.kt`, path `/status`, the JSON under `view`). The watch's `SnapshotListener`
+  saves it in its own `last-status.json` and asks the tile to redraw. A newly installed
+  watch app reads the item the phone left there. The Data Layer runs over Google Play
+  services, and only connects apps with the same package name and signing key, which is
+  why both apps are `dev.rootiest.status` signed with the release key.
+- **The tile** (`StatusTile.kt`, ProtoLayout Material 3): the headline in its level's
+  colour and the first three problems, then "and N more" (`watchSummary` in
+  `data/Watch.kt`, built from the Everything widget's content). Tapping it opens the list.
+- **The list** (`StatusActivity.kt`, Wear Compose): the headline, then the servers and
+  each group with problems first, as the phone's Problems first setting arranges them.
+- **Installing**: the watch APK is `wear-rootiest-status-<version>.apk` on each release.
+  Sideload it with adb over Wi-Fi: on the watch turn on Developer options (tap Build
+  number seven times), then Wireless debugging; pair with
+  `adb pair <ip>:<pairing port>` and the code it shows, then `adb connect <ip>:<port>`
+  and `adb -s <ip>:<port> install wear-rootiest-status-<version>.apk`. Updates must be
+  signed with the same key, as on the phone.
+- **The emulator**: install a Wear OS system image and the emulator, create a Wear OS
+  device in Android Studio's Device Manager (or `avdmanager`), and pair it with a
+  phone with Android Studio's Wear OS pairing assistant. Without a paired phone the
+  emulator's tile says to open the phone app.
+
 ## Notifications and the background job
 
 `RefreshWorker` (WorkManager) runs every 15 minutes by default, the shortest period
@@ -366,6 +395,8 @@ Two modules, package `dev.rootiest.status`, Kotlin with Jetpack Compose and Mate
   share it.
 - `:app` is the phone app: the screens, the widget, the tile, notifications and the
   background job.
+- `:wear` is the Wear OS app: a tile and a list, fed by the phone over the Data Layer
+  (see [Wear OS](#wear-os)).
 
 | File | Role |
 |---|---|
@@ -398,6 +429,9 @@ Two modules, package `dev.rootiest.status`, Kotlin with Jetpack Compose and Mate
 | `data/Changes.kt` | what changed between two fetches, less the muted names |
 | `data/Damping.kt` | `NotifyAfter` and `damp`: outages held until they have lasted the Settings delay |
 | `data/WidgetContent.kt` | `WidgetScope` and `widgetContent`: a widget's headline and rows for everything, one group or the servers |
+| `data/Watch.kt` | `WatchSnapshot` (the Data Layer path, key and JSON) and `watchSummary`: what the watch tile shows |
+| `Watch.kt` | sends each new snapshot to the watch over the Wearable Data Layer |
+| `wear/.../StatusTile.kt`, `SnapshotListener.kt`, `Snapshots.kt`, `StatusActivity.kt` | the watch app: its tile, receiving snapshots, its saved copy, its list screen |
 | `data/TileContent.kt` | `tileContent`: the tile's subtitle and level, from the Everything widget's content |
 | `StatusTileService.kt` | the Quick Settings tile: reads the saved snapshot, opens the app or its Settings |
 | `widget/WidgetConfigActivity.kt` | the screen that chooses what one widget shows; `WidgetStore` keeps the choice per widget |
@@ -425,8 +459,9 @@ icon.
   (`com.mikepenz.aboutlibraries.plugin.android`), which collects the dependencies'
   licenses for Settings > About.
 - `compileSdk`/`targetSdk` 37, `minSdk` 29 (Android 10).
-- Application id `dev.rootiest.status`. The version is `appVersion` in
-  `app/build.gradle.kts`; `versionCode` follows from it (`1.2.3` is 10203).
+- Application id `dev.rootiest.status`, for the watch app too. The version is
+  `appVersion` in the root `build.gradle.kts`, shared by both apps; `versionCode`
+  follows from it (`1.2.3` is 10203).
 - `./gradlew install*` installs for the phone's main user only (`--user 0`), not into a
   work profile or Private space; `adb install` without it installs into every profile.
 - Release builds are minified with R8 and shrink unused resources, and are signed with
@@ -517,16 +552,19 @@ and CI holds no secrets.
 - **Gradle** finds the key through `rootiest.signing=<path to the properties file>`
   (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`) in `~/.gradle/gradle.properties`.
   Without it, as in CI or on a contributor's machine, release builds get the debug key.
-- **To release**: bump `appVersion` in `app/build.gradle.kts` through a PR, merge it,
+- **To release**: bump `appVersion` in `build.gradle.kts` through a PR, merge it,
   then on an up-to-date `main` run `scripts/release.sh`. It refuses a dirty tree, a
   `main` that differs from `origin/main`, and a tag that exists; runs the tests; builds
-  the release APK; refuses one not signed with the release certificate; and creates the
+  the release APKs; refuses one not signed with the release certificate; and creates the
   Gitea release `v<appVersion>` (the tag on the current commit) with
-  `rootiest-status-<version>.apk` attached and the pull requests merged since the last
+  `rootiest-status-<version>.apk` (the phone) and `wear-rootiest-status-<version>.apk`
+  (the watch) attached and the pull requests merged since the last
   release as notes. `scripts/release.sh --dry-run` does all of it but publishing.
 - **Installing and updates**: Obtainium, with its Forgejo source (Gitea serves the same
   releases API) and the repository URL `https://git.rootiest.dev/rootiest/rootiest-status-android`.
   No token is needed: the repository is public. Obtainium then offers each new release.
+  Each release carries two APKs, so set the app's **Filter APKs by regular expression**
+  to `^rootiest-status-[0-9]` in Obtainium, or it asks which one to install.
 - A build signed with another key (a debug build, or a release build from a machine
   without the key) cannot update an installed release, and the reverse: Android
   refuses the signature. Switching between them means uninstalling first, which loses

@@ -74,6 +74,7 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
                 StatusCache(getApplication()).save(view)
                 StatusWidget().updateAll(getApplication())
                 StatusTileService.update(getApplication())
+                Watch.send(getApplication(), view)
             } catch (e: CancellationException) {
                 throw e // replaced by a newer refresh, which owns the state now
             } catch (e: Exception) {

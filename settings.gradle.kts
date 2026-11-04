@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "rootiest-status-android"
-include(":app", ":core")
+include(":app", ":core", ":wear")
