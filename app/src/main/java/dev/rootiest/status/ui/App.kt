@@ -58,6 +58,12 @@ fun RootiestApp(vm: StatusViewModel, support: SupportViewModel) {
         support.openHandled()
         openTicket(backStack, id)
     }
+    // the launcher icon's Support shortcut
+    LaunchedEffect(supportState.listRequest) {
+        if (!supportState.listRequest) return@LaunchedEffect
+        support.listHandled()
+        openSupport(backStack)
+    }
     // the Quick Settings tile was long-pressed
     val settingsRequest by vm.settingsRequest.collectAsStateWithLifecycle()
     LaunchedEffect(settingsRequest) {
@@ -183,6 +189,12 @@ fun RootiestApp(vm: StatusViewModel, support: SupportViewModel) {
 // Opens Settings from the tile's long-press: over whatever is open, unless Settings is already on screen.
 internal fun openSettings(backStack: MutableList<NavKey>) {
     if (backStack.lastOrNull() != Settings) backStack.add(Settings)
+}
+
+// Opens Support's list from the shortcut: back from it goes to the status list; nothing if it is already on screen.
+internal fun openSupport(backStack: MutableList<NavKey>) {
+    val at = backStack.indexOf(SupportTickets)
+    if (at >= 0) repeat(backStack.size - at - 1) { backStack.removeAt(backStack.lastIndex) } else backStack.add(SupportTickets)
 }
 
 // Opens a ticket from its notification: over Support's list, so back goes there; nothing if it is already on screen.
