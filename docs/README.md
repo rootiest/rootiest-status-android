@@ -346,7 +346,8 @@ icon.
 
 ## Tests
 
-`./tests/run-tests.sh` runs `testDebugUnitTest`: JVM tests, no device needed.
+`./tests/run-tests.sh` runs `testDebugUnitTest`: JVM tests, no device needed, including the
+screen tests below.
 `StatusApiTest` parses `app/src/test/resources/status-sample.json`, a saved signed-out
 answer from the live API, and checks that unknown fields are ignored and the backup line parses and follows the time setting. `ProblemsTest`
 covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `DampingTest` the outage delay, `TimesTest` the time formats and strftime fields, `WidgetContentTest` what each widget choice shows, `SupportTest` the ticket link, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token. `LookupsTest` runs
@@ -357,6 +358,26 @@ fixture when the API changes:
 ```sh
 curl -sSf https://status.rootiest.dev/api/status > app/src/test/resources/status-sample.json
 ```
+
+### Screen tests
+
+Tests under `app/src/test/java/dev/rootiest/status/ui/` draw the real Compose screens on the
+JVM with Robolectric and check what is on screen with Compose's test rule
+(`createComposeRule()`), so they run in the same `testDebugUnitTest` with no device or
+emulator. `StatusScreenTest` covers the status list: signing in shows the Servers section at
+the top (#32), Problems only with nothing down says so, a section's title sticks while its rows
+scroll, and a failed refresh keeps the list under its error banner.
+
+To write one, give the screen a fixed state (`StatusScreen` takes a whole `StatusUiState`, so no
+view model or network is involved), wrap it in `RootiestTheme`, then find nodes by their text
+(`onNodeWithText`) and assert or act on them (`assertIsDisplayed`, `performScrollToNode`). To
+change the state mid-test, hold it in `mutableStateOf` and call `waitForIdle()` after each change.
+Check that a new test fails when the behaviour it guards is broken.
+
+Setup notes, in `app/build.gradle.kts`: the tests need the app's resources
+(`isIncludeAndroidResources`); Espresso is pinned to 3.7.0 because the one Compose's test library
+brings fails on Android 16 and later; and the test JVM gets `--add-exports`/`--add-opens` flags
+because Robolectric reaches into JDK internals that JDK 25 closes by default.
 
 ## Releases
 

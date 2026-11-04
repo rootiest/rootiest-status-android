@@ -58,6 +58,13 @@ android {
         installOptions += listOf("--user", "0")
     }
 
+    // Compose UI tests run on the JVM under Robolectric, which needs the app's resources (drawables, strings)
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+        // Robolectric reaches into the JDK's file descriptors, which JDK 25 no longer allows by default (CI's 21 does)
+        unitTests.all { it.jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED", "--add-opens=java.base/java.io=ALL-UNNAMED") }
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true
@@ -85,4 +92,11 @@ dependencies {
     implementation(libs.aboutlibraries.compose.m3)
     debugImplementation(libs.compose.ui.tooling)
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(platform(libs.compose.bom))
+    testImplementation(libs.compose.ui.test.junit4)
+    // newer than the one ui-test brings, whose idling check calls an InputManager method Android 16 removed
+    testImplementation(libs.espresso.core)
+    // the empty activity createComposeRule() starts
+    debugImplementation(libs.compose.ui.test.manifest)
 }
