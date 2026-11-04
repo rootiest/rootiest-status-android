@@ -237,7 +237,7 @@ something is down).
 
 ## Wear OS
 
-The watch app (module `:wear`) has a **Rootiest Status** tile and a list screen. It
+The watch app (module `:wear`) has a **Rootiest Status** tile, a watch-face complication and a list screen. It
 shows what the phone app last fetched, so it needs the phone app, but no network or
 sign-in of its own: the Servers section appears when the phone is signed in.
 
@@ -251,6 +251,13 @@ sign-in of its own: the Servers section appears when the phone is signed in.
 - **The tile** (`StatusTile.kt`, ProtoLayout Material 3): the headline in its level's
   colour and the first three problems, then "and N more" (`watchSummary` in
   `data/Watch.kt`, built from the Everything widget's content). Tapping it opens the list.
+- **The complication** (`StatusComplication.kt`), for a watch face's slots: a short
+  text slot shows the level's icon and "OK" or how many are down ("3 down", servers
+  included); a gauge (ranged value) slot shows the services up out of all of them; an
+  icon slot shows the level's icon alone. It does not poll: each new snapshot asks the
+  watch face for an update, so it changes as soon as the phone's snapshot arrives. A tap
+  opens the list; the face's editor shows a sample until the first snapshot. The
+  mapping is `watchComplication` in `data/Watch.kt`.
 - **The list** (`StatusActivity.kt`, Wear Compose): the headline, then the servers and
   each group with problems first, as the phone's Problems first setting arranges them.
 - **Installing**: the watch APK is `wear-rootiest-status-<version>.apk` on each release.
@@ -429,9 +436,9 @@ Two modules, package `dev.rootiest.status`, Kotlin with Jetpack Compose and Mate
 | `data/Changes.kt` | what changed between two fetches, less the muted names |
 | `data/Damping.kt` | `NotifyAfter` and `damp`: outages held until they have lasted the Settings delay |
 | `data/WidgetContent.kt` | `WidgetScope` and `widgetContent`: a widget's headline and rows for everything, one group or the servers |
-| `data/Watch.kt` | `WatchSnapshot` (the Data Layer path, key and JSON) and `watchSummary`: what the watch tile shows |
+| `data/Watch.kt` | `WatchSnapshot` (the Data Layer path, key and JSON), `watchSummary` and `watchComplication`: what the watch tile and complication show |
 | `Watch.kt` | sends each new snapshot to the watch over the Wearable Data Layer |
-| `wear/.../StatusTile.kt`, `SnapshotListener.kt`, `Snapshots.kt`, `StatusActivity.kt` | the watch app: its tile, receiving snapshots, its saved copy, its list screen |
+| `wear/.../StatusTile.kt`, `StatusComplication.kt`, `SnapshotListener.kt`, `Snapshots.kt`, `StatusActivity.kt` | the watch app: its tile, its complication, receiving snapshots, its saved copy, its list screen |
 | `data/TileContent.kt` | `tileContent`: the tile's subtitle and level, from the Everything widget's content |
 | `StatusTileService.kt` | the Quick Settings tile: reads the saved snapshot, opens the app or its Settings |
 | `widget/WidgetConfigActivity.kt` | the screen that chooses what one widget shows; `WidgetStore` keeps the choice per widget |

@@ -18,6 +18,7 @@ object Snapshots {
     fun save(context: Context, view: StatusView) {
         StatusCache(context).save(view)
         TileService.getUpdater(context).requestUpdate(StatusTile::class.java)
+        StatusComplication.update(context)
     }
 
     private suspend fun fromDataLayer(context: Context): StatusView? = runCatching {
