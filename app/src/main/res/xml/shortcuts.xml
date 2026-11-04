@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shown on a long-press of the launcher icon. Support opens the support tickets (MainActivity.ACTION_SUPPORT). -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="support"
+        android:enabled="true"
+        android:icon="@mipmap/ic_shortcut_support"
+        android:shortcutShortLabel="@string/shortcut_support_short"
+        android:shortcutLongLabel="@string/shortcut_support_long">
+        <intent
+            android:action="dev.rootiest.status.action.SUPPORT"
+            android:targetPackage="dev.rootiest.status"
+            android:targetClass="dev.rootiest.status.MainActivity" />
+    </shortcut>
+</shortcuts>

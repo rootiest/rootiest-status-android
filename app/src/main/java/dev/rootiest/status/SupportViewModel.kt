@@ -35,6 +35,7 @@ data class SupportUiState(
     val formErrors: List<String> = emptyList(),
     val created: Long? = null, // the ticket just opened, for the screen to go to once
     val openRequest: Long? = null, // a ticket whose notification was tapped, for the navigation to open once
+    val listRequest: Boolean = false, // the Support shortcut was tapped: open the ticket list once
 )
 
 // The Support screens: the person's tickets on the support desk and one ticket's thread. The desk has its own sign-in (rootiest-hub
@@ -199,4 +200,8 @@ class SupportViewModel(app: Application) : AndroidViewModel(app) {
     fun requestOpen(id: Long) = _state.update { it.copy(openRequest = id) }
 
     fun openHandled() = _state.update { it.copy(openRequest = null) }
+
+    fun requestList() = _state.update { it.copy(listRequest = true) }
+
+    fun listHandled() = _state.update { it.copy(listRequest = false) }
 }

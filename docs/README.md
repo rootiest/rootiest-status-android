@@ -132,7 +132,8 @@ Service list, Times and About:
 
 ## Support tickets
 
-**Support** in the account menu lists your tickets on the support desk
+**Support** in the account menu, or the **Support** shortcut on a long-press of the app's
+launcher icon, lists your tickets on the support desk
 ([support.rootiest.dev](https://support.rootiest.dev), rootiest-hub's desk) and opens each one's
 thread, where you can reply and close it. **New ticket** (or **Open a ticket** when there are none)
 opens a ticket, as on the desk's web form.
@@ -185,6 +186,11 @@ opens a ticket, as on the desk's web form.
   `/api/form` (rootiest-hub `docs/README.md`, "Support desk"), with the token and proof as for the
   status page. Every field is sent, defaults included (`encodeDefaults`), since Go reads a missing
   one as empty or false. A 401 means sign in again; other errors show the desk's own words.
+- **The shortcut** is a static launcher shortcut (`res/xml/shortcuts.xml`, icon
+  `mipmap-anydpi/ic_shortcut_support.xml`). It starts `MainActivity` with the action
+  `dev.rootiest.status.action.SUPPORT`, and `openSupport` puts the ticket list over the status
+  list, so back goes there (or back to the list if a ticket is open). Signed out of the desk, the
+  usual sign-in starts.
 
 ## Home-screen widget
 

@@ -80,6 +80,11 @@ class MainActivity : ComponentActivity() {
             intent.action = null // once, not again after a rotation
             vm.requestSettings()
         }
+        // the launcher icon's Support shortcut
+        if (intent.action == ACTION_SUPPORT) {
+            intent.action = null // once, not again after a rotation
+            support.requestList()
+        }
         // a support reply's notification: open that ticket
         intent.getLongExtra(EXTRA_TICKET, 0).takeIf { it > 0 }?.let {
             intent.removeExtra(EXTRA_TICKET) // once, not again after a rotation
@@ -94,6 +99,7 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
+        const val ACTION_SUPPORT = "dev.rootiest.status.action.SUPPORT" // the Support shortcut (res/xml/shortcuts.xml)
         const val EXTRA_TICKET = "dev.rootiest.status.TICKET" // a support ticket to open (Notifier.ticket)
 
         // the scrims enableEdgeToEdge puts behind three-button navigation by default
