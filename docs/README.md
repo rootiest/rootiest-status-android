@@ -343,7 +343,7 @@ encoded as JSON, so field names are Go's exported names
 (`Level`, `Groups`, `Services`, `Bar`...). It depends on the viewer: a signed-out
 request gets only what is public.
 
-`app/.../data/StatusModels.kt` declares only the fields the app shows and the parser
+`core/.../data/StatusModels.kt` declares only the fields the app shows and the parser
 ignores the rest, so new server fields never break the app. A renamed or removed field
 does: when rootiest-hub changes `View`, update the models and refresh the test fixture.
 
@@ -358,8 +358,14 @@ States and their colours (`ui/theme/Theme.kt`, `toneOf`):
 
 ## Architecture
 
-Single module `:app`, package `dev.rootiest.status`, Kotlin with Jetpack Compose and
-Material 3.
+Two modules, package `dev.rootiest.status`, Kotlin with Jetpack Compose and Material 3:
+
+- `:core` (an Android library) holds everything under `data/`: the API's models and
+  clients, the saved snapshot and settings, and the plain logic over a snapshot (problems,
+  changes, the widget's and the tile's content). It has no UI, so the Wear OS app can
+  share it.
+- `:app` is the phone app: the screens, the widget, the tile, notifications and the
+  background job.
 
 | File | Role |
 |---|---|
@@ -430,9 +436,10 @@ icon.
 
 ## Tests
 
-`./tests/run-tests.sh` runs `verifyRoborazziDebug` (`testDebugUnitTest` with screenshot
+`./tests/run-tests.sh` runs `:core`'s unit tests and `verifyRoborazziDebug` (`:app`'s `testDebugUnitTest` with screenshot
 comparison): JVM tests, no device needed, including the screen and screenshot tests below.
-`StatusApiTest` parses `app/src/test/resources/status-sample.json`, a saved signed-out
+The `data/` tests live in `core/src/test`, with the JSON fixtures in
+`core/src/test/resources` (the app's screen tests read the same files). `StatusApiTest` parses `status-sample.json`, a saved signed-out
 answer from the live API, and checks that unknown fields are ignored and the backup line parses and follows the time setting. `ProblemsTest`
 covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `DampingTest` the outage delay, `TimesTest` the time formats and strftime fields, `WidgetContentTest` what each widget choice shows, `SupportTest` what Report a problem fills in, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token, `TicketsTest` the support desk's answers (`support-tickets.json`, `support-thread.json`, `support-form.json` and the refusal `support-422.json`, written by rootiest-hub's own API handlers), how the client sends the sign-in and each request's JSON, and how it reads refusals, `MarkdownTest` how messages are drawn and which links open. `LookupsTest` runs
 the `data/Lookups.kt` functions against the same fixture (it relies on the fixture's
@@ -440,7 +447,7 @@ Notes outage on 2026-10-27, so keep an answer with a service event when refreshi
 fixture when the API changes:
 
 ```sh
-curl -sSf https://status.rootiest.dev/api/status > app/src/test/resources/status-sample.json
+curl -sSf https://status.rootiest.dev/api/status > core/src/test/resources/status-sample.json
 ```
 
 ### Screen tests

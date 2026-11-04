@@ -67,6 +67,9 @@ android {
         unitTests.all { it.jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED", "--add-opens=java.base/java.io=ALL-UNNAMED") }
     }
 
+    // the JSON fixtures (the hub's real answers) live with :core's tests, which use them too
+    sourceSets.getByName("test").resources.directories.add("../core/src/test/resources")
+
     buildFeatures {
         compose = true
         buildConfig = true
@@ -74,6 +77,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":core"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
