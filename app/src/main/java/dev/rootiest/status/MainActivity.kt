@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.service.quicksettings.TileService
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -74,6 +75,11 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleSignIn(intent: Intent) {
+        // a long-press on the Quick Settings tile
+        if (intent.action == TileService.ACTION_QS_TILE_PREFERENCES) {
+            intent.action = null // once, not again after a rotation
+            vm.requestSettings()
+        }
         // a support reply's notification: open that ticket
         intent.getLongExtra(EXTRA_TICKET, 0).takeIf { it > 0 }?.let {
             intent.removeExtra(EXTRA_TICKET) // once, not again after a rotation

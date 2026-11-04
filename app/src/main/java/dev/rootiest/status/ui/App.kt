@@ -58,6 +58,13 @@ fun RootiestApp(vm: StatusViewModel, support: SupportViewModel) {
         support.openHandled()
         openTicket(backStack, id)
     }
+    // the Quick Settings tile was long-pressed
+    val settingsRequest by vm.settingsRequest.collectAsStateWithLifecycle()
+    LaunchedEffect(settingsRequest) {
+        if (!settingsRequest) return@LaunchedEffect
+        vm.settingsHandled()
+        openSettings(backStack)
+    }
     CompositionLocalProvider(LocalTimeFormat provides timeFormat) { NavDisplay(
         backStack = backStack,
         onBack = { backStack.removeLastOrNull() },
@@ -171,6 +178,11 @@ fun RootiestApp(vm: StatusViewModel, support: SupportViewModel) {
             }
         },
     ) }
+}
+
+// Opens Settings from the tile's long-press: over whatever is open, unless Settings is already on screen.
+internal fun openSettings(backStack: MutableList<NavKey>) {
+    if (backStack.lastOrNull() != Settings) backStack.add(Settings)
 }
 
 // Opens a ticket from its notification: over Support's list, so back goes there; nothing if it is already on screen.

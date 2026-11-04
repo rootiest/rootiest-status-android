@@ -10,6 +10,7 @@ import dev.rootiest.status.data.RefreshInterval
 import dev.rootiest.status.data.ServiceListMode
 import dev.rootiest.status.data.SettingsStore
 import dev.rootiest.status.data.StatusApi
+import dev.rootiest.status.data.StatusCache
 import dev.rootiest.status.data.StatusView
 import dev.rootiest.status.data.TimeFormat
 import androidx.glance.appwidget.updateAll
@@ -69,6 +70,10 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 val view = api.fetch()
                 _state.update { it.copy(view = view, viewFor = who, loading = false) }
+                // the widget and the tile show what the app just saw
+                StatusCache(getApplication()).save(view)
+                StatusWidget().updateAll(getApplication())
+                StatusTileService.update(getApplication())
             } catch (e: CancellationException) {
                 throw e // replaced by a newer refresh, which owns the state now
             } catch (e: Exception) {
@@ -131,6 +136,14 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     override fun onCleared() = settings.stopWatching(mutedWatch)
+
+    // The Quick Settings tile was long-pressed (MainActivity): the navigation opens Settings once.
+    private val _settingsRequest = MutableStateFlow(false)
+    val settingsRequest: StateFlow<Boolean> = _settingsRequest.asStateFlow()
+
+    fun requestSettings() = _settingsRequest.update { true }
+
+    fun settingsHandled() = _settingsRequest.update { false }
 
     fun setMuted(name: String, mute: Boolean) {
         val value = if (mute) _muted.value + name else _muted.value - name
