@@ -87,6 +87,48 @@ class TicketsTest {
     }
 
     @Test
+    fun aNewTicketSendsEveryFieldTheDeskReads() = runBlocking {
+        val desk = FakeDesk(201, resource("support-thread.json"))
+        api(desk).create(NewTicket(Category = "problem", Subject = "s", Body = "b"))
+        val req = desk.seen!!
+        assertEquals("POST", req.method)
+        assertEquals("https://desk.test/api/tickets", req.url.toString())
+        val buf = okio.Buffer().also { req.body!!.writeTo(it) }
+        // the defaults too: without them Go would read no importance and no email
+        assertEquals("""{"Category":"problem","Service":"","Importance":"normal","Subject":"s","Body":"b","NotifyEmail":true}""", buf.readUtf8())
+    }
+
+    @Test
+    fun replyAndCloseSendWhatTheDeskExpects() = runBlocking {
+        val desk = FakeDesk(200, resource("support-thread.json"))
+        api(desk).reply(1, "thanks")
+        assertEquals("https://desk.test/api/tickets/1/reply", desk.seen!!.url.toString())
+        assertEquals("""{"Body":"thanks"}""", okio.Buffer().also { desk.seen!!.body!!.writeTo(it) }.readUtf8())
+        api(desk).close(1)
+        assertEquals("https://desk.test/api/tickets/1/status", desk.seen!!.url.toString())
+        assertEquals("""{"Status":"closed"}""", okio.Buffer().also { desk.seen!!.body!!.writeTo(it) }.readUtf8())
+    }
+
+    // support-422.json is the desk's real answer to a ticket with no category and no subject
+    @Test
+    fun aRefusedTicketCarriesEachOfTheDesksReasons() = runBlocking {
+        try {
+            api(FakeDesk(422, resource("support-422.json"))).create(NewTicket())
+            fail("no error")
+        } catch (e: DeskRefused) {
+            assertEquals(listOf("Choose a category.", "Give the ticket a short subject (up to 150 characters)."), e.messages)
+        }
+    }
+
+    @Test
+    fun parsesTheFormsChoices() = runBlocking {
+        val form = api(FakeDesk(200, resource("support-form.json"))).form()
+        assertEquals("problem", form.Categories.first { it.Label == "Report a Problem" }.ID)
+        assertTrue(form.Services.any { it.ID == "status" && it.Name == "Status page" })
+        assertEquals(5000, form.MaxBody)
+    }
+
+    @Test
     fun theDesksOwnWordsComeThrough() = runBlocking {
         try {
             api(FakeDesk(404, """{"Errors":["That ticket does not exist."]}""")).thread(9)

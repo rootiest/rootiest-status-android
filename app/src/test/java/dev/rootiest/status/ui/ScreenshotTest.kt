@@ -104,12 +104,22 @@ class ScreenshotTest {
 
     @Test fun supportTickets() = shoot("support-tickets") {
         val tickets = supportApi.parseList(javaClass.getResource("/support-tickets.json")!!.readText()).Tickets
-        SupportScreen(dev.rootiest.status.SupportUiState(signedIn = true, tickets = tickets), onSignIn = {}, onRefresh = {}, onOpen = {}, onWeb = {}, onBack = {})
+        SupportScreen(dev.rootiest.status.SupportUiState(signedIn = true, tickets = tickets), onSignIn = {}, onRefresh = {}, onOpen = {}, onNew = {}, onBack = {})
     }
 
     @Test fun supportThread() = shoot("support-thread") {
         val thread = supportApi.parseThread(javaClass.getResource("/support-thread.json")!!.readText())
-        TicketScreen(dev.rootiest.status.SupportUiState(signedIn = true, thread = thread), 1, onRefresh = {}, onLink = {}, onBack = {})
+        TicketScreen(dev.rootiest.status.SupportUiState(signedIn = true, thread = thread), 1, onRefresh = {}, onLink = {}, onReply = {}, onClose = {}, onBack = {})
+    }
+
+    @Test fun supportNewTicket() = shoot("support-new-ticket") {
+        val form = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+            .decodeFromString<dev.rootiest.status.data.TicketForm>(javaClass.getResource("/support-form.json")!!.readText())
+        NewTicketScreen(
+            dev.rootiest.status.SupportUiState(signedIn = true, form = form),
+            dev.rootiest.status.data.reportProblemTicket("1.7.0 (10700)", "16 (API 36)", "Google Pixel 9 Pro"),
+            onSignIn = {}, onSend = {}, onBack = {},
+        )
     }
 
     // The widget, drawn by Glance into the RemoteViews a launcher would show, from a cached snapshot (no network).

@@ -4,6 +4,9 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.rootiest.status.data.AuthStore
+import dev.rootiest.status.data.DeskRefused
+import dev.rootiest.status.data.NewTicket
+import dev.rootiest.status.data.TicketForm
 import dev.rootiest.status.data.SignInNeeded
 import dev.rootiest.status.data.SupportApi
 import dev.rootiest.status.data.Ticket
@@ -24,6 +27,12 @@ data class SupportUiState(
     val thread: TicketThread? = null, // the ticket open on screen, if any
     val threadLoading: Boolean = false,
     val threadError: String? = null,
+    val sending: Boolean = false, // a reply or a close on its way; the reply's text stays in the box until the desk takes it
+    val sendErrors: List<String> = emptyList(), // why the desk refused it, in its words
+    val sent: Int = 0, // counts replies the desk took, so the screen knows to clear the box
+    val form: TicketForm? = null, // the new-ticket form's choices
+    val formErrors: List<String> = emptyList(),
+    val created: Long? = null, // the ticket just opened, for the screen to go to once
 )
 
 // The Support screens: the person's tickets on the support desk and one ticket's thread. The desk has its own sign-in (rootiest-hub
@@ -73,6 +82,63 @@ class SupportViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
     }
+
+    // Replies to the open ticket. The thread comes back as it now is (a reply reopens a closed ticket).
+    fun reply(id: Long, body: String) = send { api.reply(id, body).also { thread -> _state.update { it.copy(thread = thread, sent = it.sent + 1) } } }
+
+    fun close(id: Long) = send { api.close(id).also { thread -> _state.update { it.copy(thread = thread) } } }
+
+    private fun send(call: suspend () -> Unit) {
+        if (!checkSignedIn() || _state.value.sending) return
+        _state.update { it.copy(sending = true, sendErrors = emptyList()) }
+        viewModelScope.launch {
+            try {
+                call()
+                _state.update { it.copy(sending = false) }
+                refresh() // the list's order and statuses changed
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                failed(e) { msg -> copy(sending = false, sendErrors = (e as? DeskRefused)?.messages?.ifEmpty { null } ?: listOf(msg)) }
+            }
+        }
+    }
+
+    // The new-ticket form: its choices, once per sign-in.
+    fun loadForm() {
+        if (!checkSignedIn() || _state.value.form != null) return
+        viewModelScope.launch {
+            try {
+                val form = api.form()
+                _state.update { it.copy(form = form) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                failed(e) { msg -> copy(formErrors = listOf(msg)) }
+            }
+        }
+    }
+
+    fun create(ticket: NewTicket) {
+        if (!checkSignedIn() || _state.value.sending) return
+        _state.update { it.copy(sending = true, formErrors = emptyList()) }
+        viewModelScope.launch {
+            try {
+                val thread = api.create(ticket)
+                _state.update { it.copy(sending = false, thread = thread, created = thread.Ticket.ID) }
+                refresh()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                failed(e) { msg -> copy(sending = false, formErrors = (e as? DeskRefused)?.messages?.ifEmpty { null } ?: listOf(msg)) }
+            }
+        }
+    }
+
+    // The screen went to the new ticket.
+    fun createdShown() = _state.update { it.copy(created = null) }
+
+    fun clearSendErrors() = _state.update { it.copy(sendErrors = emptyList()) }
 
     // A refused sign-in is dropped, so the screen asks for a new one; anything else is shown.
     private fun failed(e: Exception, show: SupportUiState.(String) -> SupportUiState) {

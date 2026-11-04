@@ -24,7 +24,11 @@ import dev.rootiest.status.Notifier
 import dev.rootiest.status.ServiceDetail
 import dev.rootiest.status.Settings
 import dev.rootiest.status.StatusViewModel
+import dev.rootiest.status.BuildConfig
+import dev.rootiest.status.NewSupportTicket
 import dev.rootiest.status.SupportTicket
+import dev.rootiest.status.data.NewTicket
+import dev.rootiest.status.data.reportProblemTicket
 import dev.rootiest.status.SupportTickets
 import dev.rootiest.status.SupportViewModel
 import dev.rootiest.status.WatchList
@@ -94,6 +98,14 @@ fun RootiestApp(vm: StatusViewModel, support: SupportViewModel) {
                     onOpenWatchList = { backStack.add(WatchList) },
                     onOpenLicenses = { backStack.add(Licenses) },
                     onBack = { backStack.removeLastOrNull() },
+                    onReportProblem = {
+                        val t = reportProblemTicket(
+                            app = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                            android = "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
+                            phone = "${Build.MANUFACTURER} ${Build.MODEL}",
+                        )
+                        backStack.add(NewSupportTicket(t.Category, t.Service, t.Subject, t.Body))
+                    },
                 )
             }
             entry<WatchList> {
@@ -112,7 +124,29 @@ fun RootiestApp(vm: StatusViewModel, support: SupportViewModel) {
                     onSignIn = { browse(support.signInUrl()) },
                     onRefresh = support::refresh,
                     onOpen = { backStack.add(SupportTicket(it)) },
-                    onWeb = browse,
+                    onNew = { backStack.add(NewSupportTicket()) },
+                    onBack = { backStack.removeLastOrNull() },
+                )
+            }
+            entry<NewSupportTicket> { key ->
+                val browse = { url: String -> CustomTabsIntent.Builder().build().launchUrl(context, url.toUri()) }
+                LaunchedEffect(supportState.signedIn) {
+                    if (supportState.signedIn) support.loadForm()
+                    else if (!support.autoSignInTried) browse(support.signInUrl(auto = true))
+                }
+                // once the desk has taken it, go to the new ticket in place of the form
+                LaunchedEffect(supportState.created) {
+                    supportState.created?.let { id ->
+                        support.createdShown()
+                        backStack.removeLastOrNull()
+                        backStack.add(SupportTicket(id))
+                    }
+                }
+                NewTicketScreen(
+                    supportState,
+                    prefill = NewTicket(Category = key.category, Service = key.service, Subject = key.subject, Body = key.body),
+                    onSignIn = { browse(support.signInUrl()) },
+                    onSend = support::create,
                     onBack = { backStack.removeLastOrNull() },
                 )
             }
@@ -123,6 +157,8 @@ fun RootiestApp(vm: StatusViewModel, support: SupportViewModel) {
                     key.id,
                     onRefresh = { support.open(key.id) },
                     onLink = { CustomTabsIntent.Builder().build().launchUrl(context, it.toUri()) },
+                    onReply = { support.reply(key.id, it) },
+                    onClose = { support.close(key.id) },
                     onBack = { backStack.removeLastOrNull() },
                 )
             }

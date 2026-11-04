@@ -4,8 +4,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import java.io.IOException
 
@@ -46,6 +48,41 @@ data class TicketThread(val Ticket: Ticket, val Messages: List<TicketMessage> = 
 @Serializable
 private data class ApiErrors(val Errors: List<String> = emptyList())
 
+// The new-ticket form's choices for this person (GET /api/form): only the services they may see, as on the web form.
+@Serializable
+data class FormOption(val ID: String, val Label: String)
+
+@Serializable
+data class FormService(val ID: String, val Name: String, val Group: String = "")
+
+@Serializable
+data class TicketForm(
+    val Categories: List<FormOption> = emptyList(),
+    val Importances: List<FormOption> = emptyList(),
+    val Services: List<FormService> = emptyList(),
+    val MaxBody: Int = 5000,
+)
+
+// A new ticket, as the web form sends it. Service is empty when it is not about one service.
+@Serializable
+data class NewTicket(
+    val Category: String = "",
+    val Service: String = "",
+    val Importance: String = "normal",
+    val Subject: String = "",
+    val Body: String = "",
+    val NotifyEmail: Boolean = true,
+)
+
+// The desk's limits, the same as its web form's.
+const val MAX_SUBJECT = 150
+
+@Serializable
+private data class ReplyBody(val Body: String)
+
+@Serializable
+private data class StatusBody(val Status: String)
+
 // The desk refused the token (expired, signed out everywhere, or another sign-in's): sign in again.
 class SignInNeeded : IOException("Sign in to the support desk again.")
 
@@ -65,17 +102,32 @@ class SupportApi(
     private val baseUrl: String = AuthStore.SUPPORT_URL,
     private val client: OkHttpClient = OkHttpClient(),
 ) {
-    private val json = Json { ignoreUnknownKeys = true }
+    // encodeDefaults: a field left at its default (Importance "normal", NotifyEmail true) must still be sent, or Go reads it as empty or false
+    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
 
     suspend fun tickets(): List<Ticket> = get("/api/tickets") { parseList(it).Tickets }
 
     suspend fun thread(id: Long): TicketThread = get("/api/tickets/$id") { parseThread(it) }
 
-    private suspend fun <T> get(path: String, parse: (String) -> T): T = withContext(Dispatchers.IO) {
+    suspend fun form(): TicketForm = get("/api/form") { json.decodeFromString(it) }
+
+    // Each answers with the ticket's thread as it now is.
+    suspend fun create(ticket: NewTicket): TicketThread = post("/api/tickets", json.encodeToString(ticket)) { parseThread(it) }
+
+    suspend fun reply(id: Long, body: String): TicketThread = post("/api/tickets/$id/reply", json.encodeToString(ReplyBody(body))) { parseThread(it) }
+
+    suspend fun close(id: Long): TicketThread = post("/api/tickets/$id/status", json.encodeToString(StatusBody("closed"))) { parseThread(it) }
+
+    private suspend fun <T> get(path: String, parse: (String) -> T): T = send(path, null, parse)
+
+    private suspend fun <T> post(path: String, body: String, parse: (String) -> T): T = send(path, body, parse)
+
+    private suspend fun <T> send(path: String, body: String?, parse: (String) -> T): T = withContext(Dispatchers.IO) {
         val c = credentials() ?: throw SignInNeeded()
         val request = Request.Builder().url(baseUrl + path)
             .header("Authorization", "Bearer ${c.token}")
             .header("X-Rootiest-Proof", c.proof)
+            .apply { if (body != null) post(body.toRequestBody("application/json".toMediaType())) }
             .build()
         client.newCall(request).execute().use { response -> parse(body(response)) }
     }

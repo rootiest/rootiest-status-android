@@ -120,10 +120,11 @@ Service list, Times and About:
   `data/Times.kt` do the formatting; saved as `time-style`, `time-date`,
   `time-pattern`, `time-hours` and `time-utc` in `settings`, and provided to every
   screen as `LocalTimeFormat`, the backup line's time included.
-- **About**: the version (name and code), then links that open in the browser: the
-  status page, the source code and **Report a problem**, a new ticket on the support desk
-  (rootiest-hub's prefill link, `data/Support.kt`: category Problem, service Status page,
-  and the app version, Android version and phone filled in for the person to review). Last,
+- **About**: the version (name and code), then links that open in the browser (the
+  status page, the source code), and **Report a problem**, which opens the app's new-ticket form
+  (see [Support tickets](#support-tickets)) filled in by `reportProblemTicket` in `data/Support.kt`:
+  category Problem, service Status page, and the app version, Android version and phone, for the
+  person to review and send. Last,
   **Open-source licenses** (`ui/LicensesScreen.kt`) lists the libraries the app is
   built with and their licenses, tap one for its text. The AboutLibraries Gradle plugin
   writes that list at build time from the release dependencies, as
@@ -133,8 +134,8 @@ Service list, Times and About:
 
 **Support** in the account menu lists your tickets on the support desk
 ([support.rootiest.dev](https://support.rootiest.dev), rootiest-hub's desk) and opens each one's
-thread. It is read-only for now: **New ticket**, **Reply on the web** and **Open a ticket** open the
-desk in a Custom Tab, and Settings > About > Report a problem still opens the prefilled form there.
+thread, where you can reply and close it. **New ticket** (or **Open a ticket** when there are none)
+opens a ticket, as on the desk's web form.
 
 - **Its own sign-in.** The desk is a separate RootiestID client with its own key, so the status
   page's token does not work there. The first time Support opens without the desk's sign-in, the app
@@ -154,9 +155,21 @@ desk in a Custom Tab, and Settings > About > Report a problem still opens the pr
   drawn as styled text (`ui/Markdown.kt`, with commonmark-java): bold, italics, code, headings,
   lists, quotes and links. Raw HTML is dropped and an image is its description, as on the desk, and
   only http(s) and mailto links open (in a Custom Tab).
-- **The API** is the desk's `/api/tickets` and `/api/tickets/{id}` (rootiest-hub `docs/README.md`,
-  "Support desk"), with the token and proof as for the status page. A 401 means sign in again; other
-  errors show the desk's own words.
+- **Replying and closing.** The thread has a reply box at the bottom (Markdown, up to 5000
+  characters) and **Close ticket** in the top bar while the ticket is open; a closed ticket's box
+  says a reply reopens it, as on the desk. The text stays in the box until the desk has taken the
+  reply, so a refused or failed send loses nothing, and the desk's reason (its hourly limit, say)
+  shows above it.
+- **Opening a ticket** (`ui/NewTicketScreen.kt`): category, service ("Not about a specific
+  service", or one of the services the desk offers this person, from its `/api/form`), importance,
+  subject (up to 150 characters), message (up to 5000) and "Email me when support replies". The
+  desk checks it again; its refusals show above the form, in its words. Once it is taken, the new
+  ticket's thread replaces the form. A prefilled service the person may not see is left out, as on
+  the web form.
+- **The API** is the desk's `/api/tickets`, `/api/tickets/{id}`, `.../reply`, `.../status` and
+  `/api/form` (rootiest-hub `docs/README.md`, "Support desk"), with the token and proof as for the
+  status page. Every field is sent, defaults included (`encodeDefaults`), since Go reads a missing
+  one as empty or false. A 401 means sign in again; other errors show the desk's own words.
 
 ## Home-screen widget
 
@@ -320,7 +333,7 @@ Material 3.
 | `data/StatusApi.kt` | OkHttp GET plus kotlinx.serialization parse, on `Dispatchers.IO` |
 | `data/Lookups.kt` | plain functions over a snapshot: find a service, its events, a day's summary text |
 | `StatusViewModel.kt` | holds `StatusUiState` (last view, loading, error), the appearance, service list, times and interval settings and the muted names as `StateFlow`s; fetches on start and on `refresh()` |
-| `Routes.kt` | Navigation 3 keys: `Home`, `ServiceDetail(group, name)`, `Settings`, `WatchList`, `Licenses`, `SupportTickets`, `SupportTicket(id)` |
+| `Routes.kt` | Navigation 3 keys: `Home`, `ServiceDetail(group, name)`, `Settings`, `WatchList`, `Licenses`, `SupportTickets`, `SupportTicket(id)`, `NewSupportTicket(prefill)` |
 | `ui/App.kt` | the app root: `StatusViewModel` and `SupportViewModel` above the navigation, the back stack and `NavDisplay` |
 | `ui/StatusScreen.kt` | the list: top bar, pull-to-refresh, headline, servers, groups, tappable services |
 | `ui/ServiceScreen.kt` | a service's detail: summary, recent changes, daily uptime |
@@ -332,9 +345,10 @@ Material 3.
 | `data/StatusCache.kt` | the last good snapshot, saved for the widget |
 | `data/Settings.kt` | `Appearance`, `ServiceListMode`, `RefreshInterval` and `SettingsStore` (the saved settings: appearance, service list, interval, muted names) |
 | `data/Auth.kt` | proof and challenge, reading a token, `AuthStore` (a saved sign-in: `forStatus`, `forSupport`) |
-| `data/Tickets.kt` | the support desk's ticket models and `SupportApi` (list, thread; `SignInNeeded`, `DeskRefused`) |
-| `SupportViewModel.kt` | `SupportUiState`: the desk's sign-in, the ticket list and the open thread |
-| `ui/SupportScreen.kt` | Support: the ticket list (or the sign-in prompt) and a ticket's thread |
+| `data/Tickets.kt` | the support desk's ticket models and `SupportApi` (list, thread, form, create, reply, close; `SignInNeeded`, `DeskRefused`) |
+| `SupportViewModel.kt` | `SupportUiState`: the desk's sign-in, the ticket list, the open thread, sending replies, closing and opening tickets |
+| `ui/SupportScreen.kt` | Support: the ticket list (or the sign-in prompt) and a ticket's thread with its reply box |
+| `ui/NewTicketScreen.kt` | opening a ticket: the desk's form, with its choices for this person |
 | `ui/Markdown.kt` | a message's Markdown as styled text (commonmark-java) |
 | `widget/StatusWidget.kt` | the Glance widget: fetch or cached snapshot, two layouts by size |
 | `widget/StatusWidgetReceiver.kt` | the widget's receiver; schedules the background job |
@@ -383,7 +397,7 @@ icon.
 comparison): JVM tests, no device needed, including the screen and screenshot tests below.
 `StatusApiTest` parses `app/src/test/resources/status-sample.json`, a saved signed-out
 answer from the live API, and checks that unknown fields are ignored and the backup line parses and follows the time setting. `ProblemsTest`
-covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `DampingTest` the outage delay, `TimesTest` the time formats and strftime fields, `WidgetContentTest` what each widget choice shows, `SupportTest` the ticket link, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token, `TicketsTest` the support desk's answers (`support-tickets.json` and `support-thread.json`, written by rootiest-hub's own API handlers) and how the client sends the sign-in and reads refusals, `MarkdownTest` how messages are drawn and which links open. `LookupsTest` runs
+covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `DampingTest` the outage delay, `TimesTest` the time formats and strftime fields, `WidgetContentTest` what each widget choice shows, `SupportTest` what Report a problem fills in, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token, `TicketsTest` the support desk's answers (`support-tickets.json`, `support-thread.json`, `support-form.json` and the refusal `support-422.json`, written by rootiest-hub's own API handlers), how the client sends the sign-in and each request's JSON, and how it reads refusals, `MarkdownTest` how messages are drawn and which links open. `LookupsTest` runs
 the `data/Lookups.kt` functions against the same fixture (it relies on the fixture's
 Notes outage on 2026-10-27, so keep an answer with a service event when refreshing it). Refresh the
 fixture when the API changes:
@@ -400,8 +414,10 @@ JVM with Robolectric and check what is on screen with Compose's test rule
 emulator. `StatusScreenTest` covers the status list: signing in shows the Servers section at
 the top (#32), Problems only with nothing down says so, a section's title sticks while its rows
 scroll, and a failed refresh keeps the list under its error banner. `SupportScreenTest`
-covers Support: the sign-in prompt, no tickets, the list with whose turn it is, and a thread with its
-Markdown drawn and staff replies from Rootiest Support.
+covers Support: the sign-in prompt, no tickets, the list with whose turn it is, a thread with its
+Markdown drawn and staff replies from Rootiest Support, the reply box (its text kept until the
+desk takes the reply), closing, and the new-ticket form (Report a problem's prefill, the desk's
+refusals, a hidden service left out).
 
 To write one, give the screen a fixed state (`StatusScreen` takes a whole `StatusUiState`, so no
 view model or network is involved), wrap it in `RootiestTheme`, then find nodes by their text
@@ -412,7 +428,7 @@ Check that a new test fails when the behaviour it guards is broken.
 ### Screenshot tests
 
 `ScreenshotTest` draws the status list (signed out and signed in as staff with a server and a
-service in trouble, dark and light), the Notes detail screen, Settings, Support (the ticket list and a thread), and the widget (each
+service in trouble, dark and light), the Notes detail screen, Settings, Support (the ticket list, a thread, and the new-ticket form as Report a problem fills it), and the widget (each
 choice: everything, the servers, one group, and the small layout) and compares them with the
 golden images in `app/src/test/screenshots/`, using [Roborazzi](https://github.com/takahirom/roborazzi).
 `./tests/run-tests.sh` runs `verifyRoborazziDebug`, which is `testDebugUnitTest` with the
