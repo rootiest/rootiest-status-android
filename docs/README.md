@@ -465,8 +465,13 @@ shows the same snapshot as the list, and refreshing either refreshes both. A ser
 identified by group and name; if it leaves the catalog while its screen is open, the
 screen says so instead of crashing.
 
-The launcher icon is a placeholder (green dot on Mocha base) until the app has its own
-icon.
+The launcher icon is the Rootiest Status icon from rootiest-icons (`rootiest-status`: the
+infra-cyan swirl with the heartbeat emblem) on Mocha base, with a monochrome version for themed
+icons; the status-bar icon (`ic_stat_status`, also the tile's and complication's fallback) is the
+heartbeat alone. It never shows the status, which a launcher icon cannot change; the widget, tile
+and notifications do. The phone and watch share the same drawables, written from
+`icons/color/rootiest-status.svg` and `emblems/status.svg`: redo them when that icon changes
+(rootiest-icons `docs/deployments.md`).
 
 ## Build configuration
 
