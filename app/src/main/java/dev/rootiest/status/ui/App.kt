@@ -15,6 +15,7 @@ import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
@@ -50,6 +51,12 @@ fun RootiestApp(vm: StatusViewModel, support: SupportViewModel) {
     val askNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
     LaunchedEffect(Unit) {
         if (Build.VERSION.SDK_INT >= 33 && !Notifier.canNotify(context)) askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+    // a support reply's notification was tapped: its ticket, over Support's list so back goes there
+    LaunchedEffect(supportState.openRequest) {
+        val id = supportState.openRequest ?: return@LaunchedEffect
+        support.openHandled()
+        openTicket(backStack, id)
     }
     CompositionLocalProvider(LocalTimeFormat provides timeFormat) { NavDisplay(
         backStack = backStack,
@@ -164,4 +171,11 @@ fun RootiestApp(vm: StatusViewModel, support: SupportViewModel) {
             }
         },
     ) }
+}
+
+// Opens a ticket from its notification: over Support's list, so back goes there; nothing if it is already on screen.
+internal fun openTicket(backStack: MutableList<NavKey>, id: Long) {
+    if (backStack.lastOrNull() == SupportTicket(id)) return
+    if (SupportTickets !in backStack) backStack.add(SupportTickets)
+    backStack.add(SupportTicket(id))
 }

@@ -12,11 +12,13 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import dev.rootiest.status.data.Change
+import dev.rootiest.status.data.TicketNotice
 
 // Two channels, so Android's own settings can treat them apart: outages loud, recoveries quiet, by default.
 enum class Channel(val id: String, val title: String, val description: String, val importance: Int) {
     Outages("outages", "Outages", "A service or server went down or degraded", NotificationManagerCompat.IMPORTANCE_HIGH),
     Recoveries("recoveries", "Recoveries", "A service or server came back", NotificationManagerCompat.IMPORTANCE_LOW),
+    SupportReplies("support-replies", "Support replies", "Support replied to or closed one of your tickets", NotificationManagerCompat.IMPORTANCE_DEFAULT),
 }
 
 object Notifier {
@@ -70,9 +72,24 @@ object Notifier {
         post(context, TEST_ID, Channel.Outages, "Test: Example is down", "was up. This is how an outage looks.")
     }
 
-    // With a muteName, the notification has a Mute button for it (MuteReceiver).
-    private fun post(context: Context, id: Int, channel: Channel, title: String, text: String, muteName: String? = null) {
+    // A ticket the support desk pushed about. One notification per ticket (a newer reply replaces it); tapping it opens the thread.
+    fun ticket(context: Context, id: Long, notice: TicketNotice) {
+        if (!canNotify(context)) return
+        createChannels(context)
         val open = PendingIntent.getActivity(
+            context,
+            idForTicket(id), // one per ticket, so each opens its own
+            Intent(context, MainActivity::class.java).putExtra(MainActivity.EXTRA_TICKET, id).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        post(context, idForTicket(id), Channel.SupportReplies, notice.title, notice.text, open = open)
+    }
+
+    fun idForTicket(id: Long) = "ticket:$id".hashCode()
+
+    // With a muteName, the notification has a Mute button for it (MuteReceiver).
+    private fun post(context: Context, id: Int, channel: Channel, title: String, text: String, muteName: String? = null, open: PendingIntent? = null) {
+        val open = open ?: PendingIntent.getActivity(
             context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE,
         )
         val notification = NotificationCompat.Builder(context, channel.id)

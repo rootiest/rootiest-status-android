@@ -83,6 +83,34 @@ private data class ReplyBody(val Body: String)
 @Serializable
 private data class StatusBody(val Status: String)
 
+@Serializable
+private data class PushBody(val Address: String)
+
+// What the desk's push says: "ticket <id>" when staff replied to or closed that ticket (rootiest-hub, "Telling the app about replies").
+// Anything else (the status page's "refresh") is not about a ticket.
+fun ticketPush(content: String): Long? = Regex("""^ticket (\d{1,18})$""").find(content.trim())?.groupValues?.get(1)?.toLongOrNull()
+
+// The notification for a ticket the desk pushed about: from its newest staff reply, or that it was closed. Null when neither is so (a
+// push can arrive after the person already read it, or for a ticket reopened since); then nothing is shown.
+data class TicketNotice(val title: String, val text: String)
+
+fun ticketNotice(thread: TicketThread): TicketNotice? {
+    val last = thread.Messages.lastOrNull()
+    val subject = thread.Ticket.Subject
+    return when {
+        last?.Role == "staff" -> TicketNotice("Support replied: $subject", firstLine(last.Body))
+        thread.Ticket.Status == "closed" -> TicketNotice("Ticket closed: $subject", "Rootiest Support closed ticket #${thread.Ticket.ID}")
+        else -> null
+    }
+}
+
+// A message's first line with its Markdown marks taken off, for a notification's one line.
+internal fun firstLine(body: String): String =
+    body.lineSequence().map { it.trim() }.firstOrNull { it.isNotEmpty() }.orEmpty()
+        .replace(Regex("""\[([^\]]*)]\([^)]*\)"""), "$1") // [text](url) -> text
+        .replace(Regex("""[*_`#>]+"""), "")
+        .removePrefix("- ").trim()
+
 // The desk refused the token (expired, signed out everywhere, or another sign-in's): sign in again.
 class SignInNeeded : IOException("Sign in to the support desk again.")
 
@@ -118,16 +146,21 @@ class SupportApi(
 
     suspend fun close(id: Long): TicketThread = post("/api/tickets/$id/status", json.encodeToString(StatusBody("closed"))) { parseThread(it) }
 
-    private suspend fun <T> get(path: String, parse: (String) -> T): T = send(path, null, parse)
+    // Tells the desk (or stops telling it) where to push about this person's tickets: the phone's UnifiedPush address.
+    suspend fun registerPush(address: String) = send("/api/push", json.encodeToString(PushBody(address)), "POST") {}
 
-    private suspend fun <T> post(path: String, body: String, parse: (String) -> T): T = send(path, body, parse)
+    suspend fun unregisterPush(address: String) = send("/api/push", json.encodeToString(PushBody(address)), "DELETE") {}
 
-    private suspend fun <T> send(path: String, body: String?, parse: (String) -> T): T = withContext(Dispatchers.IO) {
+    private suspend fun <T> get(path: String, parse: (String) -> T): T = send(path, null, "GET", parse)
+
+    private suspend fun <T> post(path: String, body: String, parse: (String) -> T): T = send(path, body, "POST", parse)
+
+    private suspend fun <T> send(path: String, body: String?, method: String, parse: (String) -> T): T = withContext(Dispatchers.IO) {
         val c = credentials() ?: throw SignInNeeded()
         val request = Request.Builder().url(baseUrl + path)
             .header("Authorization", "Bearer ${c.token}")
             .header("X-Rootiest-Proof", c.proof)
-            .apply { if (body != null) post(body.toRequestBody("application/json".toMediaType())) }
+            .apply { if (body != null) method(method, body.toRequestBody("application/json".toMediaType())) }
             .build()
         client.newCall(request).execute().use { response -> parse(body(response)) }
     }

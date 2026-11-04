@@ -129,6 +129,51 @@ class TicketsTest {
     }
 
     @Test
+    fun theDesksPushNamesATicketAndTheStatusPagesDoesNot() {
+        assertEquals(42L, ticketPush("ticket 42"))
+        assertEquals(7L, ticketPush(" ticket 7\n"))
+        assertNull(ticketPush("refresh"))
+        assertNull(ticketPush("ticket"))
+        assertNull(ticketPush("ticket 4x"))
+        assertNull(ticketPush("ticket 42 and more"))
+    }
+
+    @Test
+    fun aStaffReplyIsToldWithItsFirstLine() {
+        val t = SupportApi({ null }).parseThread(resource("support-thread.json"))
+        assertEquals(TicketNotice("Support replied: Cannot push to Gitea", "Thanks, looking now. It was the edge; try again?"), ticketNotice(t))
+    }
+
+    @Test
+    fun aCloseIsToldAndAThreadEndingWithYouIsNot() {
+        val t = SupportApi({ null }).parseThread(resource("support-thread.json"))
+        val yours = t.copy(Messages = t.Messages.take(1))
+        assertNull(ticketNotice(yours)) // open, and the last word is yours: nothing new from support
+        assertEquals(
+            TicketNotice("Ticket closed: Cannot push to Gitea", "Rootiest Support closed ticket #1"),
+            ticketNotice(yours.copy(Ticket = yours.Ticket.copy(Status = "closed"))),
+        )
+    }
+
+    @Test
+    fun aNotificationLineLosesItsMarkdown() {
+        assertEquals("See the page now", firstLine("\n\n**See** [the page](https://x.y) `now`\nmore"))
+        assertEquals("item", firstLine("- item"))
+        assertEquals("", firstLine(""))
+    }
+
+    @Test
+    fun pushAddressesAreRegisteredAndRemoved() = runBlocking {
+        val desk = FakeDesk(204, "")
+        api(desk).registerPush("https://ntfy.rootiest.dev/upAbc?up=1")
+        assertEquals("POST", desk.seen!!.method)
+        assertEquals("https://desk.test/api/push", desk.seen!!.url.toString())
+        assertEquals("""{"Address":"https://ntfy.rootiest.dev/upAbc?up=1"}""", okio.Buffer().also { desk.seen!!.body!!.writeTo(it) }.readUtf8())
+        api(desk).unregisterPush("https://ntfy.rootiest.dev/upAbc?up=1")
+        assertEquals("DELETE", desk.seen!!.method)
+    }
+
+    @Test
     fun theDesksOwnWordsComeThrough() = runBlocking {
         try {
             api(FakeDesk(404, """{"Errors":["That ticket does not exist."]}""")).thread(9)
