@@ -29,6 +29,7 @@ data class StatusUiState(
     val loading: Boolean = false,
     val error: String? = null,
     val signedInAs: String? = null, // the RootiestID display name, or null when signed out (or the sign-in expired)
+    val viewFor: String? = null, // who view was fetched as (signedInAs then), so the list can start over when that changes
 )
 
 class StatusViewModel(app: Application) : AndroidViewModel(app) {
@@ -62,11 +63,12 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
     // A new refresh cancels the one in flight, so an answer fetched before a sign-in (or sign-out) never lands last.
     fun refresh() {
         fetching?.cancel()
-        _state.update { it.copy(loading = true, error = null, signedInAs = auth.signedInAs()) }
+        val who = auth.signedInAs()
+        _state.update { it.copy(loading = true, error = null, signedInAs = who) }
         fetching = viewModelScope.launch {
             try {
                 val view = api.fetch()
-                _state.update { it.copy(view = view, loading = false) }
+                _state.update { it.copy(view = view, viewFor = who, loading = false) }
             } catch (e: CancellationException) {
                 throw e // replaced by a newer refresh, which owns the state now
             } catch (e: Exception) {
