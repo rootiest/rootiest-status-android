@@ -7,6 +7,7 @@ import androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters
 import androidx.wear.protolayout.LayoutElementBuilders.LayoutElement
 import androidx.wear.protolayout.ResourceBuilders
 import androidx.wear.protolayout.TimelineBuilders
+import androidx.wear.protolayout.material3.CardDefaults
 import androidx.wear.protolayout.material3.Typography
 import androidx.wear.protolayout.material3.materialScope
 import androidx.wear.protolayout.material3.primaryLayout
@@ -59,6 +60,8 @@ internal fun layout(context: Context, device: DeviceParameters, summary: WatchSu
             mainSlot = {
                 titleCard(
                     onClick = open,
+                    // the dark card: the default is a light tint of the watch's theme colour, which the level colours do not read on
+                    colors = with(CardDefaults) { filledVariantCardColors() },
                     title = {
                         text(
                             LayoutString(summary?.headline ?: "Open Rootiest Status on the phone"),

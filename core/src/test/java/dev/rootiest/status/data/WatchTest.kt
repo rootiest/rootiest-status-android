@@ -2,6 +2,7 @@ package dev.rootiest.status.data
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WatchTest {
@@ -34,8 +35,18 @@ class WatchTest {
     }
 
     @Test
-    fun theSnapshotCrossesIntactAndJunkIsDropped() {
+    fun theSnapshotCrossesWithWhatTheWatchShowsAndJunkIsDropped() {
         assertEquals(view, WatchSnapshot.decode(WatchSnapshot.encode(view)))
         assertNull(WatchSnapshot.decode("not json"))
+    }
+
+    // A Data Layer item holds at most 100 KB; the live answer (status-sample.json) is about 49 KB signed out, and more than
+    // 100 KB signed in, almost all of it uptime bars and events the watch does not show.
+    @Test
+    fun aRealSnapshotFitsWellInADataItemAndShowsTheSame() {
+        val full = StatusApi({ null }).parse(javaClass.getResource("/status-sample.json")!!.readText())
+        val sent = WatchSnapshot.encode(full)
+        assertTrue("${sent.length} bytes", sent.length < 20_000)
+        assertEquals(full.watchSummary(), WatchSnapshot.decode(sent)!!.watchSummary())
     }
 }

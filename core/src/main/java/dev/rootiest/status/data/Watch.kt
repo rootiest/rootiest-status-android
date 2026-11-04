@@ -4,12 +4,20 @@ import kotlinx.serialization.json.Json
 
 // How the phone app hands each snapshot to the watch app: one Wearable Data Layer item at PATH holding the snapshot as JSON
 // under KEY. The phone replaces it after each good fetch; the watch saves it in its own StatusCache and redraws its tile.
+// A Data Layer item holds at most 100 KB and a signed-in snapshot is larger (mostly each service's 90-day uptime bar), so only
+// what the watch shows is sent: the level, headline, and each server's and service's name and state.
 object WatchSnapshot {
     const val PATH = "/status"
     const val KEY = "view"
     private val json = Json { ignoreUnknownKeys = true }
 
-    fun encode(view: StatusView): String = json.encodeToString(view)
+    fun encode(view: StatusView): String = json.encodeToString(view.forWatch())
+
+    private fun StatusView.forWatch() = copy(
+        Events = null,
+        Hosts = Hosts?.map { it.copy(Note = "", Vitals = "") },
+        Groups = Groups.map { g -> g.copy(Services = g.Services.map { it.copy(Bar = emptyList(), Detail = "", Backup = null, Uptime = "") }) },
+    )
 
     fun decode(text: String): StatusView? = runCatching { json.decodeFromString<StatusView>(text) }.getOrNull()
 }
