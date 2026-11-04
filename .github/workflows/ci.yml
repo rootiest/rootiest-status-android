@@ -25,9 +25,13 @@ jobs:
         with:
           name: screenshot-diffs
           path: app/build/outputs/roborazzi/
-      - name: Build debug APK
+      - name: Build debug APKs
         run: ./gradlew --no-daemon assembleDebug
       - uses: actions/upload-artifact@v4
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/*.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wear-debug
+          path: wear/build/outputs/apk/debug/*.apk

@@ -16,6 +16,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import dev.rootiest.status.Notifier
 import dev.rootiest.status.StatusTileService
+import dev.rootiest.status.Watch
 import dev.rootiest.status.data.AuthStore
 import dev.rootiest.status.data.SettingsStore
 import dev.rootiest.status.data.StatusApi
@@ -54,6 +55,7 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
             cache.saveStates(states)
             cache.savePending(damped.pending)
             cache.save(view)
+            Watch.send(applicationContext, view)
             due = damped.pending.nextDue(hold)
         }
         StatusWidget().updateAll(applicationContext)

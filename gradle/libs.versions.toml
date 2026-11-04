@@ -19,6 +19,11 @@ junit = "4.13.2"
 robolectric = "4.17"
 espresso = "3.7.0"
 roborazzi = "1.76.0"
+wear-tiles = "1.6.2"
+wear-protolayout = "1.4.2"
+wear-compose = "1.7.1"
+play-services-wearable = "20.0.1"
+concurrent-futures = "1.3.0"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "core-ktx" }
@@ -48,6 +53,15 @@ espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref =
 roborazzi = { module = "io.github.takahirom.roborazzi:roborazzi", version.ref = "roborazzi" }
 roborazzi-compose = { module = "io.github.takahirom.roborazzi:roborazzi-compose", version.ref = "roborazzi" }
 compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
+wear-tiles = { module = "androidx.wear.tiles:tiles", version.ref = "wear-tiles" }
+wear-tiles-tooling-preview = { module = "androidx.wear.tiles:tiles-tooling-preview", version.ref = "wear-tiles" }
+wear-protolayout = { module = "androidx.wear.protolayout:protolayout", version.ref = "wear-protolayout" }
+wear-protolayout-material3 = { module = "androidx.wear.protolayout:protolayout-material3", version.ref = "wear-protolayout" }
+wear-compose-material3 = { module = "androidx.wear.compose:compose-material3", version.ref = "wear-compose" }
+wear-compose-foundation = { module = "androidx.wear.compose:compose-foundation", version.ref = "wear-compose" }
+play-services-wearable = { module = "com.google.android.gms:play-services-wearable", version.ref = "play-services-wearable" }
+kotlinx-coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "coroutines" }
+concurrent-futures-ktx = { module = "androidx.concurrent:concurrent-futures-ktx", version.ref = "concurrent-futures" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

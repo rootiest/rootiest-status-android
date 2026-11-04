@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-feature android:name="android.hardware.type.watch" />
+
+    <application
+        android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
+        android:theme="@android:style/Theme.DeviceDefault">
+        <!-- it shows what the phone app sends, so it needs the phone app -->
+        <meta-data
+            android:name="com.google.android.wearable.standalone"
+            android:value="false" />
+
+        <activity
+            android:name=".StatusActivity"
+            android:exported="true"
+            android:taskAffinity="">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- the tile: bound only by the watch's tile host -->
+        <service
+            android:name=".StatusTile"
+            android:exported="true"
+            android:icon="@drawable/ic_stat_status"
+            android:label="@string/app_name"
+            android:description="@string/tile_description"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+            <meta-data
+                android:name="androidx.wear.tiles.PREVIEW"
+                android:resource="@drawable/ic_launcher_foreground" />
+        </service>
+
+        <!-- each snapshot from the phone app (Data Layer path /status) -->
+        <service
+            android:name=".SnapshotListener"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
+                <data
+                    android:scheme="wear"
+                    android:host="*"
+                    android:pathPrefix="/status" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>
