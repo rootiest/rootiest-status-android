@@ -60,6 +60,7 @@ dependencies {
     implementation(libs.wear.protolayout)
     implementation(libs.wear.protolayout.material3)
     implementation(libs.concurrent.futures.ktx)
+    implementation(libs.wear.complications.data.source.ktx)
     implementation(libs.play.services.wearable)
     implementation(libs.kotlinx.coroutines.play.services)
     testImplementation(libs.junit)

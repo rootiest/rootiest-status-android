@@ -38,6 +38,25 @@
                 android:resource="@drawable/ic_launcher_foreground" />
         </service>
 
+        <!-- the watch-face complication: bound only by the watch face -->
+        <service
+            android:name=".StatusComplication"
+            android:exported="true"
+            android:icon="@drawable/ic_stat_status"
+            android:label="@string/app_name"
+            android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+            <intent-filter>
+                <action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+            </intent-filter>
+            <meta-data
+                android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+                android:value="SHORT_TEXT,RANGED_VALUE,SMALL_IMAGE,MONOCHROMATIC_IMAGE" />
+            <!-- no polling: a new snapshot asks for an update -->
+            <meta-data
+                android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+                android:value="0" />
+        </service>
+
         <!-- each snapshot from the phone app (Data Layer path /status) -->
         <service
             android:name=".SnapshotListener"

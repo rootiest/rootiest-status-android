@@ -36,3 +36,18 @@ fun StatusView.watchSummary(maxRows: Int = 3): WatchSummary {
     val content = widgetContent(WidgetScope.All)
     return WatchSummary(content.level, content.headline, content.rows.take(maxRows).map { it.text }, (content.rows.size - maxRows).coerceAtLeast(0))
 }
+
+// What a watch-face complication shows: "OK" or how many are down beside the level's icon, and the services up out of all of them
+// for a ranged (gauge) slot.
+data class WatchComplication(val level: String, val text: String, val up: Int, val total: Int)
+
+fun StatusView.watchComplication(): WatchComplication {
+    val problems = problems().size
+    val services = Groups.flatMap { it.Services }
+    return WatchComplication(
+        level = Level,
+        text = if (problems == 0) "OK" else "$problems down",
+        up = services.count { !it.isProblem },
+        total = services.size,
+    )
+}

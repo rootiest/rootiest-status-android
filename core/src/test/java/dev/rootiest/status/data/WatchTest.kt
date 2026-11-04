@@ -29,6 +29,20 @@ class WatchTest {
     }
 
     @Test
+    fun theComplicationCountsWhatIsDownAndWhatIsUp() {
+        assertEquals(WatchComplication("bad", "4 down", up = 1, total = 5), view.watchComplication())
+        val ok = StatusView(Now = "x", Level = "ok", Headline = "All up", Groups = listOf(GroupView("Code", listOf(service("Gitea", "up"), service("Pages", "standby")))))
+        assertEquals(WatchComplication("ok", "OK", up = 2, total = 2), ok.watchComplication())
+    }
+
+    @Test
+    fun aDownServerCountsTooButIsNotAService() {
+        val v = view.copy(Hosts = listOf(HostView("Atlas", "unhealthy")))
+        assertEquals("5 down", v.watchComplication().text)
+        assertEquals(5, v.watchComplication().total)
+    }
+
+    @Test
     fun allUpHasNoRows() {
         val ok = StatusView(Now = "x", Level = "ok", Headline = "All systems operational")
         assertEquals(WatchSummary("ok", "All systems operational", emptyList(), 0), ok.watchSummary())
