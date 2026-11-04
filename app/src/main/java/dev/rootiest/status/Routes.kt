@@ -27,6 +27,15 @@ data object SupportTickets : NavKey
 @Serializable
 data class SupportTicket(val id: Long) : NavKey
 
+// Opening a ticket, filled in from a prefill (Settings > About > Report a problem) or blank.
+@Serializable
+data class NewSupportTicket(
+    val category: String = "",
+    val service: String = "",
+    val subject: String = "",
+    val body: String = "",
+) : NavKey
+
 // Settings > About > Open-source licenses.
 @Serializable
 data object Licenses : NavKey

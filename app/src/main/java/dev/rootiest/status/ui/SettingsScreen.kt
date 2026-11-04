@@ -61,7 +61,6 @@ import dev.rootiest.status.data.DateStyle
 import dev.rootiest.status.data.STRFTIME_FIELDS
 import java.time.Instant
 import dev.rootiest.status.data.StatusCache
-import dev.rootiest.status.data.supportTicketUrl
 import dev.rootiest.status.pushStatus
 import dev.rootiest.status.ui.theme.palette
 
@@ -100,6 +99,7 @@ fun SettingsScreen(
     onRefreshInterval: (RefreshInterval) -> Unit,
     onOpenLicenses: () -> Unit,
     onBack: () -> Unit,
+    onReportProblem: () -> Unit = {},
 ) {
     val context = LocalContext.current
     var system by remember { mutableStateOf(readSystemState(context)) }
@@ -144,7 +144,7 @@ fun SettingsScreen(
             item { SectionHeader("Times") }
             item { TimesCards(timeFormat, onTimeFormat) }
             item { SectionHeader("About") }
-            item { AboutCard(context, onOpenLicenses) }
+            item { AboutCard(context, onOpenLicenses, onReportProblem) }
         }
     }
 }
@@ -226,7 +226,7 @@ private fun BackgroundCheckCard(system: SystemState, context: Context, selected:
 }
 
 @Composable
-private fun AboutCard(context: Context, onOpenLicenses: () -> Unit) {
+private fun AboutCard(context: Context, onOpenLicenses: () -> Unit, onReportProblem: () -> Unit) {
     val open = { url: String -> context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) }
     SettingsCard {
         SettingRow("Version", "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
@@ -235,15 +235,7 @@ private fun AboutCard(context: Context, onOpenLicenses: () -> Unit) {
         Divider()
         SettingRow("Source code", "GPL-3.0-or-later, on ${SOURCE.removePrefix("https://").substringBefore('/')}") { open(SOURCE) }
         Divider()
-        SettingRow("Report a problem", "Opens a ticket on the support desk, with the app and phone filled in") {
-            open(
-                supportTicketUrl(
-                    app = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
-                    android = "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
-                    phone = "${Build.MANUFACTURER} ${Build.MODEL}",
-                ),
-            )
-        }
+        SettingRow("Report a problem", "Opens a new support ticket, with the app and phone filled in", onClick = onReportProblem)
         Divider()
         SettingRow("Open-source licenses", "The libraries the app is built with", onClick = onOpenLicenses)
     }

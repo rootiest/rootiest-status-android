@@ -28,8 +28,18 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -44,10 +54,8 @@ import dev.rootiest.status.data.statusLabel
 import dev.rootiest.status.ui.theme.palette
 import java.time.Instant
 
-// Support: the person's tickets on the support desk (rootiest-hub), read-only for now: replying and opening tickets happen on the web desk,
-// which these screens link to.
-
-const val SUPPORT_WEB = "https://support.rootiest.dev"
+// Support: the person's tickets on the support desk (rootiest-hub): the list, a ticket's thread with a reply box, and (NewTicketScreen.kt)
+// opening one. Everything goes through the desk's own checks; what it refuses is shown in its words.
 
 // open waits for support, answered waits for you, closed is done
 @Composable
@@ -64,7 +72,7 @@ fun SupportScreen(
     onSignIn: () -> Unit,
     onRefresh: () -> Unit,
     onOpen: (Long) -> Unit,
-    onWeb: (String) -> Unit,
+    onNew: () -> Unit,
     onBack: () -> Unit,
 ) {
     Scaffold(
@@ -74,7 +82,7 @@ fun SupportScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = "Back") }
                 },
-                actions = { if (state.signedIn) TextButton(onClick = { onWeb("$SUPPORT_WEB/new") }) { Text("New ticket") } },
+                actions = { if (state.signedIn) TextButton(onClick = onNew) { Text("New ticket") } },
             )
         },
     ) { padding ->
@@ -84,7 +92,7 @@ fun SupportScreen(
                 else -> PullToRefreshBox(isRefreshing = state.loading && state.tickets != null, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
                     val tickets = state.tickets
                     when {
-                        tickets != null -> TicketList(tickets, state.error, onOpen, onWeb)
+                        tickets != null -> TicketList(tickets, state.error, onOpen, onNew)
                         state.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
                         else -> ErrorList(state.error ?: "No data")
                     }
@@ -95,7 +103,7 @@ fun SupportScreen(
 }
 
 @Composable
-private fun SignInPrompt(error: String?, onSignIn: () -> Unit) {
+internal fun SignInPrompt(error: String?, onSignIn: () -> Unit) {
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (error != null) ErrorBanner(error)
         Text("Your support tickets", style = MaterialTheme.typography.titleMedium)
@@ -108,7 +116,7 @@ private fun SignInPrompt(error: String?, onSignIn: () -> Unit) {
 }
 
 @Composable
-private fun TicketList(tickets: List<Ticket>, error: String?, onOpen: (Long) -> Unit, onWeb: (String) -> Unit) {
+private fun TicketList(tickets: List<Ticket>, error: String?, onOpen: (Long) -> Unit, onNew: () -> Unit) {
     val now = remember { Instant.now() }
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
         if (error != null) item { ErrorBanner("Refresh failed: $error") }
@@ -117,7 +125,7 @@ private fun TicketList(tickets: List<Ticket>, error: String?, onOpen: (Long) -> 
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("No tickets yet.", style = MaterialTheme.typography.titleMedium)
                     Text("Questions, problems and requests go to the support desk; your tickets will show here.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    OutlinedButton(onClick = { onWeb("$SUPPORT_WEB/new") }) { Text("Open a ticket") }
+                    OutlinedButton(onClick = onNew) { Text("Open a ticket") }
                 }
             }
         }
@@ -152,6 +160,8 @@ fun TicketScreen(
     id: Long,
     onRefresh: () -> Unit,
     onLink: (String) -> Unit,
+    onReply: (String) -> Unit,
+    onClose: () -> Unit,
     onBack: () -> Unit,
 ) {
     val thread = state.thread?.takeIf { it.Ticket.ID == id }
@@ -162,8 +172,11 @@ fun TicketScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(painterResource(R.drawable.ic_arrow_back), contentDescription = "Back") }
                 },
+                // the one change the owner can make; a reply reopens it
+                actions = { if (thread != null && thread.Ticket.Status != "closed") TextButton(onClick = onClose, enabled = !state.sending) { Text("Close ticket") } },
             )
         },
+        bottomBar = { if (thread != null) ReplyBox(state, id, closed = thread.Ticket.Status == "closed", onReply) },
     ) { padding ->
         PullToRefreshBox(
             isRefreshing = state.threadLoading && thread != null,
@@ -177,11 +190,6 @@ fun TicketScreen(
                         if (state.threadError != null) item { ErrorBanner("Refresh failed: ${state.threadError}") }
                         item { TicketSummary(thread.Ticket, now) }
                         items(thread.Messages, key = { it.ID }) { MessageCard(it, now, onLink) }
-                        item {
-                            OutlinedButton(onClick = { onLink("$SUPPORT_WEB/t/$id") }, modifier = Modifier.padding(top = 4.dp)) {
-                                Text(if (thread.Ticket.Status == "closed") "Reopen on the web" else "Reply on the web")
-                            }
-                        }
                     }
                 }
                 state.threadLoading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
@@ -227,3 +235,34 @@ private fun MessageCard(m: TicketMessage, now: Instant, onLink: (String) -> Unit
         }
     }
 }
+
+// The reply box under a thread. Its text is kept until the desk takes the reply (state.sent goes up), so a failed send loses nothing.
+@Composable
+private fun ReplyBox(state: SupportUiState, id: Long, closed: Boolean, onReply: (String) -> Unit) {
+    var text by rememberSaveable(id) { mutableStateOf("") }
+    var seen by rememberSaveable(id) { mutableIntStateOf(state.sent) }
+    LaunchedEffect(state.sent) {
+        if (state.sent != seen) {
+            text = ""
+            seen = state.sent
+        }
+    }
+    Surface(color = palette.Mantle, modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.navigationBarsPadding().imePadding().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            state.sendErrors.forEach { ErrorBanner(it) }
+            Row(verticalAlignment = Alignment.Bottom) {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { if (it.length <= MAX_BODY) text = it },
+                    placeholder = { Text(if (closed) "Reply (reopens the ticket)" else "Reply") },
+                    maxLines = 6,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(8.dp))
+                Button(onClick = { onReply(text.trim()) }, enabled = text.isNotBlank() && !state.sending) { Text(if (state.sending) "Sending" else "Send") }
+            }
+        }
+    }
+}
+
+private const val MAX_BODY = 5000
