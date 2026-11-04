@@ -15,6 +15,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import dev.rootiest.status.Notifier
+import dev.rootiest.status.StatusTileService
 import dev.rootiest.status.data.AuthStore
 import dev.rootiest.status.data.SettingsStore
 import dev.rootiest.status.data.StatusApi
@@ -56,6 +57,7 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
             due = damped.pending.nextDue(hold)
         }
         StatusWidget().updateAll(applicationContext)
+        StatusTileService.update(applicationContext)
         // renewed on every run, so the host serving the page learns it soon after a failover (each host keeps its own list)
         pushAddress(applicationContext)?.let { address ->
             runCatching { api.registerPush(address) }.onFailure { Log.w("StatusPush", "${it.message} for $address") }

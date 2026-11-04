@@ -213,7 +213,27 @@ asked when the widget is added.
   Times setting chooses).
 - The background job (below) redraws every widget each time it runs (every 15 minutes by default). The widget's own
   `updatePeriodMillis` is 0, since the system's minimum is 30 minutes.
-- The app's own refresh does not redraw the widget yet.
+- The app's own refresh saves its answer there too and redraws every widget and the
+  Quick Settings tile.
+
+## Quick Settings tile
+
+The **Rootiest Status** tile (`StatusTileService.kt`) is added from the edit screen of
+the notification shade. It shows what an Everything widget shows: the overall headline
+under the name ("All systems operational", "2 services down"), with an icon per level
+(a tick when all is up, a warning triangle for milder problems, an error mark when
+something is down).
+
+- **Active** (lit) only when the level is `ok`; inactive when anything is wrong.
+  Unavailable until the app has a saved snapshot (its first good fetch).
+- It reads the saved snapshot (`last-status.json`) each time the shade opens, so it
+  never waits on the network. The background job and the app's own refresh also ask it
+  to redraw (`requestListeningState`) after saving a new one, so a push-triggered check
+  updates it while the shade is open.
+- Tap: opens the app. Long-press: opens the app's Settings (the activity answers
+  `QS_TILE_PREFERENCES`).
+- The content is `tileContent` in `data/TileContent.kt`, built from `widgetContent`, so
+  the tile and the widget always agree.
 
 ## Notifications and the background job
 
@@ -356,7 +376,7 @@ Material 3.
 | `ui/LicensesScreen.kt` | the open-source licenses, from the list the AboutLibraries plugin generates |
 | `ui/Components.kt` | pieces both screens use: error banner, section title and sticky section header, dot, uptime strip |
 | `data/Problems.kt` | what counts as a problem: what the widget lists, and the list arranged by the Service list setting |
-| `data/StatusCache.kt` | the last good snapshot, saved for the widget |
+| `data/StatusCache.kt` | the last good snapshot, saved for the widget and the tile |
 | `data/Settings.kt` | `Appearance`, `ServiceListMode`, `RefreshInterval` and `SettingsStore` (the saved settings: appearance, service list, interval, muted names) |
 | `data/Auth.kt` | proof and challenge, reading a token, `AuthStore` (a saved sign-in: `forStatus`, `forSupport`) |
 | `data/Tickets.kt` | the support desk's ticket models and `SupportApi` (list, thread, form, create, reply, close; `SignInNeeded`, `DeskRefused`) |
@@ -372,6 +392,8 @@ Material 3.
 | `data/Changes.kt` | what changed between two fetches, less the muted names |
 | `data/Damping.kt` | `NotifyAfter` and `damp`: outages held until they have lasted the Settings delay |
 | `data/WidgetContent.kt` | `WidgetScope` and `widgetContent`: a widget's headline and rows for everything, one group or the servers |
+| `data/TileContent.kt` | `tileContent`: the tile's subtitle and level, from the Everything widget's content |
+| `StatusTileService.kt` | the Quick Settings tile: reads the saved snapshot, opens the app or its Settings |
 | `widget/WidgetConfigActivity.kt` | the screen that chooses what one widget shows; `WidgetStore` keeps the choice per widget |
 | `Notifier.kt` | the two notification channels, permission and channel checks, the phone's settings pages, posting with a Mute button |
 | `MuteReceiver.kt` | a notification's Mute button: mutes the name and clears the notification |
