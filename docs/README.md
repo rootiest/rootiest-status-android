@@ -145,6 +145,9 @@ opens a ticket, as on the desk's web form.
   which `MainActivity` hands to `SupportViewModel`. If RootiestID remembers you it is a brief browser
   visit with no prompt (and a one-time consent screen). The token and proof are kept in the
   preferences file `support-auth` (`AuthStore.forSupport`); a sign-in lasts 30 days.
+- **No RootiestID yet.** Under the sign-in button, **Create a free RootiestID** opens
+  `https://auth.rootiest.dev/signup` in the browser, as on the desk's landing page; you come back
+  and sign in when done.
 - **Signing out** of the app clears both sign-ins. When the desk refuses the token (expired, or its
   `signout-all`), the app drops it and asks for a new sign-in.
 - **What it shows.** Your own tickets only, newest change first, with whose turn it is (**Waiting for
@@ -500,7 +503,7 @@ JVM with Robolectric and check what is on screen with Compose's test rule
 emulator. `StatusScreenTest` covers the status list: signing in shows the Servers section at
 the top (#32), Problems only with nothing down says so, a section's title sticks while its rows
 scroll, and a failed refresh keeps the list under its error banner. `SupportScreenTest`
-covers Support: the sign-in prompt, no tickets, the list with whose turn it is, a thread with its
+covers Support: the sign-in prompt and its link to create a RootiestID, no tickets, the list with whose turn it is, a thread with its
 Markdown drawn and staff replies from Rootiest Support, the reply box (its text kept until the
 desk takes the reply), closing, and the new-ticket form (Report a problem's prefill, the desk's
 refusals, a hidden service left out).

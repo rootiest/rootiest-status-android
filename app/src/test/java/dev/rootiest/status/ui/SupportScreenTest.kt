@@ -4,6 +4,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasScrollAction
@@ -56,6 +58,19 @@ class SupportScreenTest {
         list(SupportUiState(signedIn = false), onSignIn = { asked++ })
         compose.onNodeWithText("Sign in to the support desk").performClick()
         assertEquals(1, asked)
+    }
+
+    @Test
+    fun signedOutOffersToCreateARootiestId() {
+        val opened = mutableListOf<String>()
+        val uri = object : UriHandler { override fun openUri(uri: String) { opened += uri } }
+        show {
+            CompositionLocalProvider(LocalUriHandler provides uri) {
+                SupportScreen(SupportUiState(signedIn = false), onSignIn = {}, onRefresh = {}, onOpen = {}, onNew = {}, onBack = {})
+            }
+        }
+        compose.onNodeWithText("Create a free RootiestID").performClick()
+        assertEquals(listOf("https://auth.rootiest.dev/signup"), opened)
     }
 
     @Test
