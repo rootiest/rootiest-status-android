@@ -7,6 +7,8 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     // Settings > About > Open-source licenses: the dependencies and their licenses, collected at build time
     alias(libs.plugins.aboutlibraries)
+    // screenshot tests: recordRoborazziDebug saves the golden images, verifyRoborazziDebug compares against them
+    alias(libs.plugins.roborazzi)
 }
 
 // The version scripts/release.sh tags (v<appVersion>). versionCode follows from it: 1.2.3 is 10203.
@@ -97,6 +99,13 @@ dependencies {
     testImplementation(libs.compose.ui.test.junit4)
     // newer than the one ui-test brings, whose idling check calls an InputManager method Android 16 removed
     testImplementation(libs.espresso.core)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
     // the empty activity createComposeRule() starts
     debugImplementation(libs.compose.ui.test.manifest)
+}
+
+// The golden images live with the tests and are committed; diffs from a failed verify go to build/outputs/roborazzi.
+roborazzi {
+    outputDir.set(file("src/test/screenshots"))
 }
