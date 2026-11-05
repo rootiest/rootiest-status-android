@@ -176,7 +176,9 @@ opens a ticket, as on the desk's web form.
   for these links: it offers a choice, or opens the browser.
 - **The status page's own address** (`https://status.rootiest.dev/`) opens the app's status list,
   through the same App Links check.
-- **Signing out** of the app clears both sign-ins (a RootiestID one or an email one). When the desk refuses the token (expired, or its
+- **Signing out** of the app clears both sign-ins (a RootiestID one or an email one). **Sign out** at the
+  top of Support's list signs out of the desk alone, leaving the status page signed in; it is the only way
+  out of an email sign-in, which the account menu does not know about. Neither reopens the RootiestID sign-in by itself. When the desk refuses the token (expired, or its
   `signout-all`), the app drops it and asks for a new sign-in.
 - **What it shows.** Your own tickets only, newest change first, with whose turn it is (**Waiting for
   support**, **Answered**, **Closed**), the service (or the category) and the last change, in the
@@ -546,7 +548,7 @@ covers Support: the sign-in prompt and its link to create a RootiestID, no ticke
 Markdown drawn and staff replies from Rootiest Support, the reply box (its text kept until the
 desk takes the reply), closing, and the new-ticket form (Report a problem's prefill, the desk's
 refusals, a hidden service left out), and the email path: the prompt's **Contact us by email**, who is signed in, the guest form
-sending the address with the ticket, asking for a sign-in link, "check your inbox", and a guest's new tickets always emailing replies.
+sending the address with the ticket, asking for a sign-in link, "check your inbox", a guest's new tickets always emailing replies, and Support's own Sign out.
 
 To write one, give the screen a fixed state (`StatusScreen` takes a whole `StatusUiState`, so no
 view model or network is involved), wrap it in `RootiestTheme`, then find nodes by their text

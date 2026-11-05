@@ -238,4 +238,18 @@ class SupportScreenTest {
         compose.onNodeWithText("Send").performScrollTo().performClick()
         assertEquals(true, sent.single().NotifyEmail)
     }
+
+    // an email sign-in is not in the account menu (the status page knows nothing of it), so Support has its own Sign out
+    @Test
+    fun theListCanSignOutOfTheDesk() {
+        var out = 0
+        show {
+            SupportScreen(
+                SupportUiState(signedIn = true, name = "Pat", email = "pat@example.com", guest = true, tickets = tickets),
+                onSignIn = {}, onRefresh = {}, onOpen = {}, onNew = {}, onBack = {}, onSignOut = { out++ },
+            )
+        }
+        compose.onNodeWithText("Sign out").performClick()
+        assertEquals(1, out)
+    }
 }

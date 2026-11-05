@@ -276,7 +276,9 @@ class SupportViewModel(app: Application) : AndroidViewModel(app) {
 
     // Signing out of the app signs out of both: called with the status page's sign-out. The desk stops pushing to this phone first, with the
     // sign-in it still has; the sign-in is gone from the phone at once either way.
+    // Also from Support's own Sign out, which leaves the status page signed in. Either way the browser sign-in does not then open by itself.
     fun signOut() {
+        autoSignInTried = true
         val credentials = auth.credentials()
         val address = pushAddress(getApplication())
         auth.signOut()
