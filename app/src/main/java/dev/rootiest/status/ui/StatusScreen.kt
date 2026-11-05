@@ -28,20 +28,32 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -54,6 +66,7 @@ import dev.rootiest.status.data.StatusView
 import dev.rootiest.status.data.arranged
 import dev.rootiest.status.ui.theme.palette
 import dev.rootiest.status.ui.theme.toneOf
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -200,9 +213,56 @@ private fun HostRow(host: HostView) {
                 Text(host.State, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (host.Vitals.isNotEmpty()) Text(host.Vitals, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (host.Note.isNotEmpty()) Text(host.Note, style = MaterialTheme.typography.bodySmall)
+            HostNote(host)
         }
     }
+}
+
+// The server's note. Its location ("MO") is a tap target whose tooltip says where it is, as on the status page; a hub too old to
+// send the place gets the note as it is.
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HostNote(host: HostView) {
+    val style = MaterialTheme.typography.bodySmall
+    if (host.Location.isEmpty() || host.Place.isEmpty()) {
+        if (host.Note.isNotEmpty()) Text(host.Note, style = style)
+        return
+    }
+    val tip = rememberTooltipState(isPersistent = true) // stays until a tap elsewhere: a place takes a moment to read
+    val scope = rememberCoroutineScope()
+    val underline = MaterialTheme.colorScheme.onSurfaceVariant
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        TooltipBox(
+            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
+            tooltip = { PlainTooltip { Text(host.Place) } },
+            state = tip,
+        ) {
+            Text(
+                host.Location,
+                style = style,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .clickable(onClickLabel = "Show where it is") { scope.launch { tip.show() } }
+                    .padding(vertical = 4.dp)
+                    .dottedUnderline(underline)
+                    .semantics { contentDescription = host.Place },
+            )
+        }
+        val rest = host.noteRest
+        if (rest.isNotEmpty()) Text(" · $rest", style = style)
+    }
+}
+
+// A dotted line under the content, the page's mark for "tap or hover for more".
+private fun Modifier.dottedUnderline(color: Color) = drawBehind {
+    val y = size.height - 0.5.dp.toPx()
+    drawLine(
+        color,
+        Offset(0f, y),
+        Offset(size.width, y),
+        strokeWidth = 1.dp.toPx(),
+        pathEffect = PathEffect.dashPathEffect(floatArrayOf(1.5.dp.toPx(), 1.5.dp.toPx())),
+    )
 }
 
 @Composable

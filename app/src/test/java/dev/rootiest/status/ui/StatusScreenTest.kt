@@ -8,6 +8,7 @@ import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import dev.rootiest.status.StatusUiState
 import dev.rootiest.status.data.GroupView
@@ -89,5 +90,19 @@ class StatusScreenTest {
         show(StatusUiState(view = public, error = "timeout"))
         compose.onNodeWithText("Refresh failed: timeout").assertIsDisplayed()
         compose.onNodeWithText(public.Groups.first().Services.first().Name).assertIsDisplayed()
+    }
+
+    // A server's location is a code ("MO"); a tap on it shows where that is, as a hover or a tap does on the status page.
+    @Test
+    fun tappingAServersLocationShowsWhereItIs() {
+        val prometheus = HostView(
+            "Prometheus", "healthy", Note = "MO · hosts Gitea and Mattermost", Location = "MO", Place = "St. Louis, Missouri (Central US)",
+        )
+        show(StatusUiState(view = public.copy(Hosts = listOf(prometheus)), signedInAs = "Chris", viewFor = "Chris"))
+        compose.onNodeWithText("· hosts Gitea and Mattermost", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("St. Louis, Missouri (Central US)").assertDoesNotExist()
+
+        compose.onNodeWithText("MO").performClick()
+        compose.onNodeWithText("St. Louis, Missouri (Central US)").assertIsDisplayed()
     }
 }

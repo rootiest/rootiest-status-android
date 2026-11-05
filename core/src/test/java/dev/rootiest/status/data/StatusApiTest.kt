@@ -38,6 +38,22 @@ class StatusApiTest {
     }
 
     @Test
+    fun aServersLocationComesApartFromTheRestOfItsNote() {
+        // as rootiest-hub's HostView encodes them since #144
+        val view = api.parse(
+            """{"Now":"x","Level":"ok","Headline":"h","Hosts":[""" +
+                """{"Name":"Prometheus","State":"healthy","Note":"MO · hosts Gitea and Mattermost","Location":"MO","Place":"St. Louis, Missouri (Central US)"},""" +
+                """{"Name":"Hestia","State":"healthy","Note":"MA","Location":"MA","Place":"Massachusetts"},""" +
+                """{"Name":"r1","State":"healthy","Note":"serving traffic"}],"Groups":[]}""",
+        )
+        val (prometheus, hestia, r1) = view.Hosts!!
+        assertEquals("St. Louis, Missouri (Central US)", prometheus.Place)
+        assertEquals("hosts Gitea and Mattermost", prometheus.noteRest)
+        assertEquals("", hestia.noteRest)
+        assertEquals("serving traffic", r1.noteRest) // no location: the note as it is
+    }
+
+    @Test
     fun parsesTheBackupLine() {
         // as rootiest-hub's BackupView encodes it; the live answer has none while no report is published
         val view = api.parse(

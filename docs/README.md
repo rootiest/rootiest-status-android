@@ -15,7 +15,11 @@ The app shows the same snapshot as [status.rootiest.dev](https://status.rootiest
 - a headline card in the overall level's colour, centred and fixed above the list (green ok, yellow warn, red bad), with
   "Failover active" while traffic is served by the standby edge;
 - the Servers section (state, vitals, note per host), only when the API includes it:
-  after signing in, for staff and the groups the catalog lets see servers;
+  after signing in, for staff and the groups the catalog lets see servers. A server's
+  location code ("MO", the hub's `Location`) is underlined with dots, and a tap shows
+  where it is (`Place`: "St. Louis, Missouri (Central US)", or the state's name) in a
+  tooltip, as a hover or a tap does on the status page; a hub too old to send them
+  gets the note as it is;
 - every group of services: state dot (its health when it has health checks), uptime text and the per-day uptime strip, and
   for a service that publishes a backup report the hub's backup line ("Last backup 3 h
   ago (...)"), grey when unknown and yellow when the backup is older than the hub
