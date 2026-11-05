@@ -78,6 +78,7 @@ fun SupportScreen(
     onNew: () -> Unit,
     onBack: () -> Unit,
     onGuest: () -> Unit = {},
+    onSignOut: () -> Unit = {},
 ) {
     Scaffold(
         topBar = {
@@ -97,7 +98,7 @@ fun SupportScreen(
                 else -> PullToRefreshBox(isRefreshing = state.loading && state.tickets != null, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
                     val tickets = state.tickets
                     when {
-                        tickets != null -> TicketList(tickets, state.error, identity(state), onOpen, onNew)
+                        tickets != null -> TicketList(tickets, state.error, identity(state), onOpen, onNew, onSignOut)
                         state.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
                         else -> ErrorList(state.error ?: "No data")
                     }
@@ -160,12 +161,16 @@ private fun SignUpHint() {
 }
 
 @Composable
-private fun TicketList(tickets: List<Ticket>, error: String?, identity: String, onOpen: (Long) -> Unit, onNew: () -> Unit) {
+private fun TicketList(tickets: List<Ticket>, error: String?, identity: String, onOpen: (Long) -> Unit, onNew: () -> Unit, onSignOut: () -> Unit) {
     val now = remember { Instant.now() }
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
         if (error != null) item { ErrorBanner("Refresh failed: $error") }
-        if (identity.isNotEmpty()) item {
-            Text(identity, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // who is signed in, and signing out of the desk alone: an email sign-in has no account menu entry, since the status page knows nothing of it
+        item {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(identity, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                TextButton(onClick = onSignOut) { Text("Sign out") }
+            }
         }
         if (tickets.isEmpty()) {
             item {

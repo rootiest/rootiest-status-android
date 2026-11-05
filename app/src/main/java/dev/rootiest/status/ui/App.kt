@@ -157,6 +157,7 @@ fun RootiestApp(vm: StatusViewModel, support: SupportViewModel) {
                     onOpen = { backStack.add(SupportTicket(it)) },
                     onNew = { backStack.add(NewSupportTicket()) },
                     onBack = { backStack.removeLastOrNull() },
+                    onSignOut = support::signOut, // the desk's sign-in only; the status page's stays
                 )
             }
             entry<NewSupportTicket> { key ->
