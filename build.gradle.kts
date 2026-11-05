@@ -11,7 +11,7 @@ plugins {
 
 // The version scripts/release.sh tags (v<appVersion>), for the phone app and the watch app alike. versionCode follows from it:
 // 1.2.3 is 10203.
-extra["appVersion"] = "1.13.0"
+extra["appVersion"] = "1.14.0"
 
 // The release key's properties file (storeFile, storePassword, keyAlias, keyPassword), named by the Gradle property
 // rootiest.signing in ~/.gradle/gradle.properties. Without it (CI, another machine) release builds get the debug key,
