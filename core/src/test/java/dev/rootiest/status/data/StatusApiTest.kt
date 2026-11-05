@@ -26,6 +26,18 @@ class StatusApiTest {
     }
 
     @Test
+    fun shownIsTheHealthOrTheStateFromAnOlderHub() {
+        val view = api.parse(
+            """{"Now":"x","Level":"ok","Headline":"h","Groups":[{"Name":"G","Services":[""" +
+                """{"Name":"Notes","State":"up","Health":"healthy","Shown":"healthy"},""" +
+                """{"Name":"Git","State":"up"}]}]}""",
+        )
+        val (notes, git) = view.Groups[0].Services
+        assertEquals("healthy", notes.shownState)
+        assertEquals("up", git.shownState) // no Shown: the State
+    }
+
+    @Test
     fun parsesTheBackupLine() {
         // as rootiest-hub's BackupView encodes it; the live answer has none while no report is published
         val view = api.parse(

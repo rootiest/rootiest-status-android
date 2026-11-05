@@ -209,7 +209,7 @@ private fun HostRow(host: HostView) {
 private fun ServiceRow(service: ServiceView, onClick: () -> Unit) {
     Column(Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Dot(toneOf(service.State))
+            Dot(toneOf(service.shownState))
             Spacer(Modifier.width(8.dp))
             Text(service.Name, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.weight(1f))

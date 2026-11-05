@@ -49,12 +49,23 @@ class ScreenshotTest {
 
     private val public = StatusApi().parse(javaClass.getResource("/status-sample.json")!!.readText())
 
-    // as staff see it, with something wrong, so the red and yellow states are in the picture too
+    // as staff see it, with something wrong, so the red, peach and yellow states are in the picture too
     private val staff = public.copy(
         Level = "bad",
         Headline = "1 service down",
         Hosts = listOf(HostView("Atlas", "healthy", Vitals = "load 0.4 · mem 38%"), HostView("Heracles", "degraded", Note = "disk 91%")),
-        Groups = public.Groups.map { g -> g.copy(Services = g.Services.map { if (it.Name == "Gists") it.copy(State = "down", Uptime = "97.1%") else it }) },
+        Groups = public.Groups.map { g ->
+            g.copy(
+                Services = g.Services.map {
+                    when (it.Name) {
+                        "Gists" -> it.copy(State = "down", Shown = "down", Uptime = "97.1%")
+                        "Wakapi" -> it.copy(State = "unhealthy", Health = "unhealthy", Shown = "unhealthy")
+                        "Short links" -> it.copy(Health = "starting", Shown = "starting")
+                        else -> it
+                    }
+                },
+            )
+        },
     )
 
     // the clock in UTC with 24 hours, so times read the same on every machine

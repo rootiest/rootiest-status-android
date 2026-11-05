@@ -22,6 +22,8 @@ class Palette(
     val Blue: Color,
     val Green: Color,
     val Yellow: Color,
+    val Peach: Color,
+    val Sapphire: Color,
     val Red: Color,
 )
 
@@ -37,6 +39,8 @@ val Mocha = Palette(
     Blue = Color(0xFF89B4FA),
     Green = Color(0xFFA6E3A1),
     Yellow = Color(0xFFF9E2AF),
+    Peach = Color(0xFFFAB387),
+    Sapphire = Color(0xFF74C7EC),
     Red = Color(0xFFF38BA8),
 )
 
@@ -52,6 +56,8 @@ val Latte = Palette(
     Blue = Color(0xFF1E66F5),
     Green = Color(0xFF40A02B),
     Yellow = Color(0xFFDF8E1D),
+    Peach = Color(0xFFFE640B),
+    Sapphire = Color(0xFF209FB5),
     Red = Color(0xFFD20F39),
 )
 
@@ -62,13 +68,16 @@ private val LocalPalette = staticCompositionLocalOf { Mocha }
 val palette: Palette
     @Composable @ReadOnlyComposable get() = LocalPalette.current
 
-// A level or state from the API to its colour: ok/up/healthy green, warn/standby yellow, bad/down red.
+// A level or state from the API to its colour, as on the status page: ok/up/healthy green, warn/starting yellow,
+// unhealthy peach, standby sapphire, bad/down red.
 @Composable
 @ReadOnlyComposable
 fun toneOf(state: String): Color = when (state) {
     "ok", "up", "healthy" -> palette.Green
-    "warn", "standby", "degraded" -> palette.Yellow
-    "bad", "down", "unhealthy" -> palette.Red
+    "warn", "starting", "degraded" -> palette.Yellow
+    "unhealthy" -> palette.Peach
+    "standby" -> palette.Sapphire
+    "bad", "down" -> palette.Red
     else -> palette.Surface1
 }
 

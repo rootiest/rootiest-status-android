@@ -82,6 +82,8 @@ internal fun levelColor(level: String?): Int = when (level) {
     "ok" -> 0xFFA6E3A1.toInt()
     "warn" -> 0xFFF9E2AF.toInt()
     "bad" -> 0xFFF38BA8.toInt()
+    "unhealthy" -> 0xFFFAB387.toInt()
+    "standby" -> 0xFF74C7EC.toInt()
     else -> 0xFFA6ADC8.toInt()
 }
 
