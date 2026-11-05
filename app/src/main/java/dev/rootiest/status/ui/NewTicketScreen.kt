@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -33,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import dev.rootiest.status.R
 import dev.rootiest.status.SupportUiState
@@ -50,6 +52,7 @@ fun NewTicketScreen(
     onSignIn: () -> Unit,
     onSend: (NewTicket) -> Unit,
     onBack: () -> Unit,
+    onGuest: () -> Unit = {},
 ) {
     Scaffold(
         topBar = {
@@ -64,8 +67,8 @@ fun NewTicketScreen(
         Box(Modifier.fillMaxSize().padding(padding)) {
             val form = state.form
             when {
-                !state.signedIn -> SignInPrompt(state.error, onSignIn)
-                form != null -> TicketForm(state, form, prefill, onSend)
+                !state.signedIn -> SignInPrompt(state.error, onSignIn, onGuest)
+                form != null -> TicketForm(form, prefill, state.formErrors, state.sending, replyEmail = state.email.takeIf { state.guest }) { t, _, _ -> onSend(t) }
                 state.formErrors.isNotEmpty() -> ErrorList(state.formErrors.joinToString("\n"))
                 else -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
             }
@@ -73,8 +76,19 @@ fun NewTicketScreen(
     }
 }
 
+// The ticket form. With contact, it first asks for an email address and a name (the email path, GuestSupportScreen); with replyEmail (a
+// guest's sign-in) replies always go to that address, so there is no choice to make. A form with no services has no service chooser.
 @Composable
-private fun TicketForm(state: SupportUiState, form: dev.rootiest.status.data.TicketForm, prefill: NewTicket, onSend: (NewTicket) -> Unit) {
+internal fun TicketForm(
+    form: dev.rootiest.status.data.TicketForm,
+    prefill: NewTicket,
+    errors: List<String>,
+    sending: Boolean,
+    contact: Boolean = false,
+    replyEmail: String? = null,
+    scroll: Boolean = true, // false inside a screen that scrolls itself
+    onSend: (NewTicket, email: String, name: String) -> Unit,
+) {
     // a prefilled service the person may not see is left out, as the web form does
     val services = form.Services
     var category by rememberSaveable { mutableStateOf(prefill.Category.takeIf { c -> form.Categories.any { it.ID == c } } ?: "") }
@@ -83,18 +97,39 @@ private fun TicketForm(state: SupportUiState, form: dev.rootiest.status.data.Tic
     var subject by rememberSaveable { mutableStateOf(prefill.Subject.take(MAX_SUBJECT)) }
     var body by rememberSaveable { mutableStateOf(prefill.Body.take(form.MaxBody)) }
     var notifyEmail by rememberSaveable { mutableStateOf(prefill.NotifyEmail) }
+    var email by rememberSaveable { mutableStateOf("") }
+    var name by rememberSaveable { mutableStateOf("") }
 
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(16.dp),
+        (if (scroll) Modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding() else Modifier.fillMaxWidth()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        state.formErrors.forEach { ErrorBanner(it) }
+        errors.forEach { ErrorBanner(it) }
+        if (contact) {
+            OutlinedTextField(
+                value = email,
+                onValueChange = { if (it.length <= 254) email = it.trim() },
+                label = { Text("Your email address") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = name,
+                onValueChange = { if (it.length <= 80) name = it.replace('\n', ' ') },
+                label = { Text("Your name (optional)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
         Chooser("Category", form.Categories.map { it.ID to it.Label }, category, placeholder = "Choose a category") { category = it }
-        Chooser(
-            "Service",
-            listOf("" to "Not about a specific service") + services.map { it.ID to "${it.Name} (${it.Group})" },
-            service,
-        ) { service = it }
+        if (services.isNotEmpty()) {
+            Chooser(
+                "Service",
+                listOf("" to "Not about a specific service") + services.map { it.ID to "${it.Name} (${it.Group})" },
+                service,
+            ) { service = it }
+        }
         Chooser("Importance", form.Importances.map { it.ID to it.Label }, importance) { importance = it }
         OutlinedTextField(
             value = subject,
@@ -111,15 +146,27 @@ private fun TicketForm(state: SupportUiState, form: dev.rootiest.status.data.Tic
             minLines = 6,
             modifier = Modifier.fillMaxWidth(),
         )
-        Row(Modifier.fillMaxWidth().clickable { notifyEmail = !notifyEmail }, verticalAlignment = Alignment.CenterVertically) {
-            Checkbox(checked = notifyEmail, onCheckedChange = { notifyEmail = it })
-            Text("Email me when support replies")
+        when {
+            contact -> Text(
+                "We email you a link to confirm the address: your ticket is sent when you open it. Replies come by email.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            replyEmail != null -> Text(
+                "Replies are emailed to $replyEmail.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            else -> Row(Modifier.fillMaxWidth().clickable { notifyEmail = !notifyEmail }, verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = notifyEmail, onCheckedChange = { notifyEmail = it })
+                Text("Email me when support replies")
+            }
         }
         Button(
-            onClick = { onSend(NewTicket(category, service, importance, subject.trim(), body.trim(), notifyEmail)) },
-            enabled = !state.sending,
+            onClick = { onSend(NewTicket(category, service, importance, subject.trim(), body.trim(), notifyEmail || replyEmail != null), email, name.trim()) },
+            enabled = !sending,
             modifier = Modifier.fillMaxWidth(),
-        ) { Text(if (state.sending) "Sending" else "Send") }
+        ) { Text(if (sending) "Sending" else if (contact) "Email me the link" else "Send") }
     }
 }
 

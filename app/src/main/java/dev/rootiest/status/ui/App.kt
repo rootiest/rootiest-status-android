@@ -19,6 +19,7 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.ui.NavDisplay
+import dev.rootiest.status.GuestSupport
 import dev.rootiest.status.Home
 import dev.rootiest.status.Licenses
 import dev.rootiest.status.Notifier
@@ -56,13 +57,22 @@ fun RootiestApp(vm: StatusViewModel, support: SupportViewModel) {
     LaunchedEffect(supportState.openRequest) {
         val id = supportState.openRequest ?: return@LaunchedEffect
         support.openHandled()
+        backStack.removeAll { it == GuestSupport } // an emailed link brought them here: the email form is done
         openTicket(backStack, id)
     }
     // the launcher icon's Support shortcut
     LaunchedEffect(supportState.listRequest) {
         if (!supportState.listRequest) return@LaunchedEffect
         support.listHandled()
+        backStack.removeAll { it == GuestSupport }
         openSupport(backStack)
+    }
+    // a link to the desk's guest form was opened: the app's own, over Support's list
+    LaunchedEffect(supportState.guestFormRequest) {
+        if (!supportState.guestFormRequest) return@LaunchedEffect
+        support.guestFormHandled()
+        openSupport(backStack)
+        backStack.add(GuestSupport)
     }
     // the Quick Settings tile was long-pressed
     val settingsRequest by vm.settingsRequest.collectAsStateWithLifecycle()
@@ -142,6 +152,7 @@ fun RootiestApp(vm: StatusViewModel, support: SupportViewModel) {
                 SupportScreen(
                     supportState,
                     onSignIn = { browse(support.signInUrl()) },
+                    onGuest = { backStack.add(GuestSupport) },
                     onRefresh = support::refresh,
                     onOpen = { backStack.add(SupportTicket(it)) },
                     onNew = { backStack.add(NewSupportTicket()) },
@@ -166,7 +177,18 @@ fun RootiestApp(vm: StatusViewModel, support: SupportViewModel) {
                     supportState,
                     prefill = NewTicket(Category = key.category, Service = key.service, Subject = key.subject, Body = key.body),
                     onSignIn = { browse(support.signInUrl()) },
+                    onGuest = { backStack.add(GuestSupport) },
                     onSend = support::create,
+                    onBack = { backStack.removeLastOrNull() },
+                )
+            }
+            entry<GuestSupport> {
+                LaunchedEffect(Unit) { support.loadGuestForm() }
+                GuestSupportScreen(
+                    supportState,
+                    onSend = support::requestGuestTicket,
+                    onSignInLink = support::requestGuestSignIn,
+                    onAgain = support::guestSentShown,
                     onBack = { backStack.removeLastOrNull() },
                 )
             }

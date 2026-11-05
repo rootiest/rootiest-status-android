@@ -28,6 +28,30 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="dev.rootiest.status" />
             </intent-filter>
+            <!-- Android App Links: links to these pages open in the app when it is installed. Android checks each host's
+                 /.well-known/assetlinks.json (rootiest-hub internal/applinks) for this app's release certificate first.
+                 The support desk's email path: its form (/guest), a link to confirm a ticket or sign in (/guest/confirm?t=),
+                 and the link in a reply email (/guest/open?t=). Nothing else there: staff open tickets (/t/...) on the web desk,
+                 and RootiestID returns to /callback in the browser. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="support.rootiest.dev" />
+                <data android:path="/guest" />
+                <data android:path="/guest/confirm" />
+                <data android:path="/guest/open" />
+            </intent-filter>
+            <!-- the status page itself: opens the app's status list -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" />
+                <data android:host="status.rootiest.dev" />
+                <data android:path="/" />
+            </intent-filter>
             <!-- the launcher icon's long-press shortcuts (Support) -->
             <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
             <!-- a long-press on the Quick Settings tile: opens Settings -->

@@ -74,6 +74,47 @@ data class NewTicket(
     val NotifyEmail: Boolean = true,
 )
 
+// The email path, for people without a RootiestID (rootiest-hub guest.go, guest_api.go): the guest form sends this, and nothing reaches the
+// queue until the link the desk emails is used. A guest's ticket is about no service, and replies always go by email too.
+@Serializable
+data class GuestTicket(
+    val Email: String = "",
+    val Name: String = "",
+    val Category: String = "",
+    val Importance: String = "normal",
+    val Subject: String = "",
+    val Body: String = "",
+)
+
+@Serializable
+private data class EmailBody(val Email: String)
+
+@Serializable
+private data class LinkBody(val Token: String, val Challenge: String)
+
+// What the desk answers for a used link: a sign-in for the email address, and the ticket to show (0: the list).
+@Serializable
+data class GuestSignIn(val Token: String, val Ticket: Long = 0)
+
+// A link from one of the desk's emails, which Android opens in the app (App Links, in the manifest): "confirm" for a new ticket or a
+// sign-in link (/guest/confirm?t=), "open" for the link in a reply email (/guest/open?t=), or the guest form itself (/guest).
+sealed interface DeskLink {
+    data class Confirm(val token: String) : DeskLink
+    data class Open(val token: String) : DeskLink
+    data object GuestForm : DeskLink
+}
+
+// The desk link in an https address, or null for any other address (or one with no token).
+fun deskLink(scheme: String?, host: String?, path: String?, token: String?): DeskLink? {
+    if (scheme != "https" || host != java.net.URI(AuthStore.SUPPORT_URL).host) return null
+    return when (path?.trimEnd('/')) {
+        "/guest" -> DeskLink.GuestForm
+        "/guest/confirm" -> token?.takeIf { it.isNotBlank() }?.let(DeskLink::Confirm)
+        "/guest/open" -> token?.takeIf { it.isNotBlank() }?.let(DeskLink::Open)
+        else -> null
+    }
+}
+
 // The desk's limits, the same as its web form's.
 const val MAX_SUBJECT = 150
 
@@ -151,25 +192,45 @@ class SupportApi(
 
     suspend fun unregisterPush(address: String) = send("/api/push", json.encodeToString(PushBody(address)), "DELETE") {}
 
-    private suspend fun <T> get(path: String, parse: (String) -> T): T = send(path, null, "GET", parse)
+    fun parseGuestSignIn(body: String): GuestSignIn = json.decodeFromString(body)
 
-    private suspend fun <T> post(path: String, body: String, parse: (String) -> T): T = send(path, body, "POST", parse)
+    // The email path: these need no sign-in. A 404 means the desk has it switched off (no mail set up).
+    suspend fun guestForm(): TicketForm = send("/api/guest", null, "GET", signedIn = false) { json.decodeFromString(it) }
 
-    private suspend fun <T> send(path: String, body: String?, method: String, parse: (String) -> T): T = withContext(Dispatchers.IO) {
-        val c = credentials() ?: throw SignInNeeded()
+    // Asks the desk to email the link that sends this ticket. The answer is the same whether or not an email went out.
+    suspend fun requestGuestTicket(ticket: GuestTicket) = send("/api/guest", json.encodeToString(ticket), "POST", signedIn = false) {}
+
+    // Asks for a sign-in link for an address that has sent tickets; the same answer whether it has any.
+    suspend fun requestGuestSignIn(email: String) = send("/api/guest/signin", json.encodeToString(EmailBody(email)), "POST", signedIn = false) {}
+
+    // Uses a link from an email (DeskLink), with the challenge of a new proof: the desk answers with a sign-in bound to it.
+    suspend fun useLink(link: DeskLink, challenge: String): GuestSignIn {
+        val (path, token) = when (link) {
+            is DeskLink.Confirm -> "/api/guest/confirm" to link.token
+            is DeskLink.Open -> "/api/guest/open" to link.token
+            DeskLink.GuestForm -> throw IllegalArgumentException("the guest form is not a link to use")
+        }
+        return send(path, json.encodeToString(LinkBody(token, challenge)), "POST", signedIn = false) { json.decodeFromString(it) }
+    }
+
+    private suspend fun <T> get(path: String, parse: (String) -> T): T = send(path, null, "GET", parse = parse)
+
+    private suspend fun <T> post(path: String, body: String, parse: (String) -> T): T = send(path, body, "POST", parse = parse)
+
+    private suspend fun <T> send(path: String, body: String?, method: String, signedIn: Boolean = true, parse: (String) -> T): T = withContext(Dispatchers.IO) {
+        val c = if (signedIn) credentials() ?: throw SignInNeeded() else null
         val request = Request.Builder().url(baseUrl + path)
-            .header("Authorization", "Bearer ${c.token}")
-            .header("X-Rootiest-Proof", c.proof)
+            .apply { if (c != null) header("Authorization", "Bearer ${c.token}").header("X-Rootiest-Proof", c.proof) }
             .apply { if (body != null) method(method, body.toRequestBody("application/json".toMediaType())) }
             .build()
-        client.newCall(request).execute().use { response -> parse(body(response)) }
+        client.newCall(request).execute().use { response -> parse(body(response, signedIn)) }
     }
 
     // The body of a successful answer; otherwise the desk's error, as SignInNeeded or DeskRefused.
-    private fun body(response: Response): String {
+    private fun body(response: Response, signedIn: Boolean = true): String {
         val text = response.body.string()
         if (response.isSuccessful) return text
-        if (response.code == 401) throw SignInNeeded()
+        if (response.code == 401 && signedIn) throw SignInNeeded()
         val messages = runCatching { json.decodeFromString<ApiErrors>(text).Errors }.getOrDefault(emptyList())
         throw DeskRefused(response.code, messages)
     }

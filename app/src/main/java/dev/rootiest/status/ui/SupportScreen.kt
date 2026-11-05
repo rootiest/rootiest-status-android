@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -75,6 +77,7 @@ fun SupportScreen(
     onOpen: (Long) -> Unit,
     onNew: () -> Unit,
     onBack: () -> Unit,
+    onGuest: () -> Unit = {},
 ) {
     Scaffold(
         topBar = {
@@ -89,11 +92,12 @@ fun SupportScreen(
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
-                !state.signedIn -> SignInPrompt(state.error, onSignIn)
+                state.usingLink -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
+                !state.signedIn -> SignInPrompt(state.error, onSignIn, onGuest)
                 else -> PullToRefreshBox(isRefreshing = state.loading && state.tickets != null, onRefresh = onRefresh, modifier = Modifier.fillMaxSize()) {
                     val tickets = state.tickets
                     when {
-                        tickets != null -> TicketList(tickets, state.error, onOpen, onNew)
+                        tickets != null -> TicketList(tickets, state.error, identity(state), onOpen, onNew)
                         state.loading -> Box(Modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
                         else -> ErrorList(state.error ?: "No data")
                     }
@@ -104,8 +108,8 @@ fun SupportScreen(
 }
 
 @Composable
-internal fun SignInPrompt(error: String?, onSignIn: () -> Unit) {
-    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+internal fun SignInPrompt(error: String?, onSignIn: () -> Unit, onGuest: () -> Unit) {
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         if (error != null) ErrorBanner(error)
         Text("Your support tickets", style = MaterialTheme.typography.titleMedium)
         Text(
@@ -114,7 +118,28 @@ internal fun SignInPrompt(error: String?, onSignIn: () -> Unit) {
         )
         Button(onClick = onSignIn) { Text("Sign in to the support desk") }
         SignUpHint()
+        GuestHint(onGuest)
     }
+}
+
+// For someone who cannot sign in at all (no RootiestID, a lost passkey): the desk's email path.
+@Composable
+private fun GuestHint(onGuest: () -> Unit) {
+    Column {
+        Text(
+            "Can't sign in at all? Write to us from your email address instead. We email you a link to confirm it, and replies come by email.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        TextButton(onClick = onGuest, contentPadding = PaddingValues(0.dp)) { Text("Contact us by email") }
+    }
+}
+
+// Who the desk's sign-in names, for the top of the list: a RootiestID, or an email address confirmed by a link. Empty when unknown.
+internal fun identity(state: SupportUiState): String = when {
+    state.guest -> "Signed in with your email address, ${state.email}. Replies are emailed to you too."
+    state.name.isNotEmpty() -> "Signed in with RootiestID as ${state.name}"
+    else -> ""
 }
 
 // The RootiestID page for creating an account, as the desk's own landing page links it.
@@ -135,10 +160,13 @@ private fun SignUpHint() {
 }
 
 @Composable
-private fun TicketList(tickets: List<Ticket>, error: String?, onOpen: (Long) -> Unit, onNew: () -> Unit) {
+private fun TicketList(tickets: List<Ticket>, error: String?, identity: String, onOpen: (Long) -> Unit, onNew: () -> Unit) {
     val now = remember { Instant.now() }
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
         if (error != null) item { ErrorBanner("Refresh failed: $error") }
+        if (identity.isNotEmpty()) item {
+            Text(identity, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         if (tickets.isEmpty()) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {

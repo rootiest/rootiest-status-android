@@ -122,6 +122,28 @@ class ScreenshotTest {
         )
     }
 
+    @Test fun supportSignedOut() = shoot("support-signed-out") {
+        SupportScreen(dev.rootiest.status.SupportUiState(signedIn = false), onSignIn = {}, onRefresh = {}, onOpen = {}, onNew = {}, onBack = {})
+    }
+
+    @Test fun supportGuestTickets() = shoot("support-guest-tickets") {
+        val tickets = supportApi.parseList(javaClass.getResource("/support-tickets.json")!!.readText()).Tickets
+        SupportScreen(
+            dev.rootiest.status.SupportUiState(signedIn = true, name = "Pat", email = "pat@example.com", guest = true, tickets = tickets),
+            onSignIn = {}, onRefresh = {}, onOpen = {}, onNew = {}, onBack = {},
+        )
+    }
+
+    @Test fun supportGuestForm() = shoot("support-guest-form") {
+        val form = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+            .decodeFromString<dev.rootiest.status.data.TicketForm>(javaClass.getResource("/support-guest-form.json")!!.readText())
+        GuestSupportScreen(dev.rootiest.status.SupportUiState(guestForm = form), onSend = {}, onSignInLink = {}, onAgain = {}, onBack = {})
+    }
+
+    @Test fun supportGuestSent() = shoot("support-guest-sent") {
+        GuestSupportScreen(dev.rootiest.status.SupportUiState(guestSent = "pat@example.com"), onSend = {}, onSignInLink = {}, onAgain = {}, onBack = {})
+    }
+
     // The widget, drawn by Glance into the RemoteViews a launcher would show, from a cached snapshot (no network).
     private fun widget(name: String, scope: WidgetScope, size: DpSize) {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()

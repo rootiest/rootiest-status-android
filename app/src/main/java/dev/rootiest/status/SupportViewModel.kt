@@ -5,8 +5,12 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.rootiest.status.data.AuthStore
+import dev.rootiest.status.data.DeskLink
 import dev.rootiest.status.data.DeskRefused
+import dev.rootiest.status.data.GuestTicket
 import dev.rootiest.status.data.NewTicket
+import dev.rootiest.status.data.challengeOf
+import dev.rootiest.status.data.newProof
 import dev.rootiest.status.data.TicketForm
 import dev.rootiest.status.data.SignInNeeded
 import dev.rootiest.status.data.SupportApi
@@ -22,6 +26,9 @@ import kotlinx.coroutines.launch
 
 data class SupportUiState(
     val signedIn: Boolean = false, // to the support desk: its own sign-in, separate from the status page's
+    val name: String = "", // who is signed in to the desk
+    val email: String = "",
+    val guest: Boolean = false, // signed in by a link mailed to email, not with a RootiestID
     val tickets: List<Ticket>? = null, // the last good list, kept on screen while refreshing or after an error
     val loading: Boolean = false,
     val error: String? = null,
@@ -36,6 +43,13 @@ data class SupportUiState(
     val created: Long? = null, // the ticket just opened, for the screen to go to once
     val openRequest: Long? = null, // a ticket whose notification was tapped, for the navigation to open once
     val listRequest: Boolean = false, // the Support shortcut was tapped: open the ticket list once
+    // the email path, for people without a RootiestID
+    val guestForm: TicketForm? = null, // its choices; null until loaded
+    val guestErrors: List<String> = emptyList(),
+    val guestSending: Boolean = false,
+    val guestSent: String? = null, // the address the desk was asked to email a link to
+    val guestFormRequest: Boolean = false, // a link to the desk's guest form was opened: show the app's once
+    val usingLink: Boolean = false, // a link from an email is being used
 )
 
 // The Support screens: the person's tickets on the support desk and one ticket's thread. The desk has its own sign-in (rootiest-hub
@@ -43,7 +57,7 @@ data class SupportUiState(
 class SupportViewModel(app: Application) : AndroidViewModel(app) {
     private val auth = AuthStore.forSupport(app)
     private val api = SupportApi(auth::credentials)
-    private val _state = MutableStateFlow(SupportUiState(signedIn = auth.credentials() != null))
+    private val _state = MutableStateFlow(signedInState())
     val state: StateFlow<SupportUiState> = _state.asStateFlow()
 
     // Whether this run of the app already sent the person to sign in on its own, so a cancelled sign-in is not reopened every time
@@ -171,10 +185,88 @@ class SupportViewModel(app: Application) : AndroidViewModel(app) {
             _state.update { it.copy(error = "Sign-in did not finish. Try again.") }
             return
         }
-        _state.update { it.copy(signedIn = true, error = null) }
+        signedIn()
+    }
+
+    // A new sign-in was kept: start over as that person (a RootiestID or an email address), keeping any open requests for the navigation.
+    private fun signedIn() {
+        _state.update { signedInState().copy(openRequest = it.openRequest, listRequest = it.listRequest) }
         refresh()
         registerPush()
     }
+
+    private fun signedInState(): SupportUiState {
+        val who = auth.whoAmI() ?: return SupportUiState(signedIn = false)
+        return SupportUiState(signedIn = true, name = who.name, email = who.email, guest = who.guest)
+    }
+
+    // The email path's form: its choices, once.
+    fun loadGuestForm() {
+        if (_state.value.guestForm != null) return
+        viewModelScope.launch {
+            try {
+                val form = api.guestForm()
+                _state.update { it.copy(guestForm = form, guestErrors = emptyList()) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(guestErrors = messages(e)) }
+            }
+        }
+    }
+
+    // Asks the desk to email the link that sends this ticket; the screen then says to check the inbox.
+    fun requestGuestTicket(ticket: GuestTicket) = guestSend(ticket.Email) { api.requestGuestTicket(ticket) }
+
+    // Asks for a sign-in link for an address that has sent tickets before.
+    fun requestGuestSignIn(email: String) = guestSend(email) { api.requestGuestSignIn(email) }
+
+    private fun guestSend(email: String, call: suspend () -> Unit) {
+        if (_state.value.guestSending) return
+        _state.update { it.copy(guestSending = true, guestErrors = emptyList()) }
+        viewModelScope.launch {
+            try {
+                call()
+                _state.update { it.copy(guestSending = false, guestSent = email.trim()) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(guestSending = false, guestErrors = messages(e)) }
+            }
+        }
+    }
+
+    // Back to the form from "check your inbox", to send another.
+    fun guestSentShown() = _state.update { it.copy(guestSent = null, guestErrors = emptyList()) }
+
+    // A link from one of the desk's emails was opened in the app (MainActivity): use it with a new proof, which signs in as that address,
+    // then show the ticket it named or the list. A failure is shown on the list, which then does not open the RootiestID sign-in by itself.
+    fun useLink(link: DeskLink) {
+        if (link == DeskLink.GuestForm) {
+            _state.update { it.copy(guestFormRequest = true) }
+            return
+        }
+        if (_state.value.usingLink) return
+        autoSignInTried = true
+        _state.update { it.copy(usingLink = true, error = null) }
+        viewModelScope.launch {
+            try {
+                val proof = newProof()
+                val answer = api.useLink(link, challengeOf(proof))
+                if (!auth.adopt(answer.Token, proof)) throw IllegalStateException("The desk's answer did not match. Open the link again.")
+                _state.update { it.copy(usingLink = false, guestSent = null, openRequest = answer.Ticket.takeIf { id -> id > 0 }, listRequest = answer.Ticket <= 0) }
+                signedIn()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(usingLink = false, error = messages(e).joinToString(" "), listRequest = true) }
+            }
+        }
+    }
+
+    fun guestFormHandled() = _state.update { it.copy(guestFormRequest = false) }
+
+    private fun messages(e: Exception): List<String> = (e as? DeskRefused)?.messages?.ifEmpty { null } ?: listOf(e.message ?: e.javaClass.simpleName)
 
     // Gives the desk this phone's push address, so it can say when support replies. The background check renews it (RefreshWorker).
     private fun registerPush() {
