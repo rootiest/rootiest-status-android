@@ -35,13 +35,13 @@ fun StatusView.widgetContent(scope: WidgetScope): WidgetContent = when (scope) {
         Level,
         Headline,
         Hosts.orEmpty().filter { it.isProblem }.map { WidgetRow(label(it.Name, it.State, it.Planned), it.State) } +
-            Groups.flatMap { it.Services }.filter { it.isProblem }.map { WidgetRow(label(it.Name, it.State, it.Planned), it.State) },
+            Groups.flatMap { it.Services }.filter { it.isProblem }.map { WidgetRow(label(it.Name, it.State, it.Planned), it.shownState) },
     )
     WidgetScope.Servers -> Hosts?.let { hosts ->
         section("Servers", hosts.map { it.isProblem to WidgetRow(rowText(it.Name, it.State, it.Planned, it.isProblem), it.State) })
     } ?: WidgetContent("none", "Sign in to see the servers", emptyList()) // only signed-in viewers may see them
     is WidgetScope.Group -> Groups.find { it.Name == scope.name }?.let { group ->
-        section(group.Name, group.Services.map { it.isProblem to WidgetRow(rowText(it.Name, it.State, it.Planned, it.isProblem), it.State) })
+        section(group.Name, group.Services.map { it.isProblem to WidgetRow(rowText(it.Name, it.State, it.Planned, it.isProblem), it.shownState) })
     } ?: missing(scope.name)
 }
 

@@ -37,13 +37,18 @@ data class ServiceView(
     val Name: String,
     val Host: String = "",
     val Direct: Boolean = false, // probed by TCP connect, not through the edge: Host is a name, not a link
-    val State: String, // up, down, standby
+    val State: String, // up, down, standby, unhealthy (answers, but a health check fails)
     val Uptime: String = "",
     val Bar: List<BarCell> = emptyList(),
     val Detail: String = "",
     val Planned: Boolean = false,
     val Backup: BackupLine? = null, // only for services that publish a backup report
-)
+    val Health: String = "", // its containers' health checks: healthy, unhealthy, starting, or "" (none known)
+    val Shown: String = "", // what the page's pill and dot say: State, or healthy/starting for one that answers; "" from older hubs
+) {
+    // What to show for the service: the hub's Shown, or its State from a hub too old to send one.
+    val shownState: String get() = Shown.ifEmpty { State }
+}
 
 // The line about a service's last backup, as the page shows it under the service ("Last backup 3 h ago (...)").
 // At (ISO 8601) and Detail ("Atlas → Hestia, 2.2 MiB") are its parts, sent by newer hubs so the time can follow Settings.

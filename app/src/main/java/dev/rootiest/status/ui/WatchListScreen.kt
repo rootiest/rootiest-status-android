@@ -68,7 +68,7 @@ fun WatchListScreen(view: StatusView?, muted: Set<String>, onMute: (String, Bool
             }
             view.Groups.forEach { group ->
                 item { SectionHeader(group.Name) }
-                item { WatchCard(group.Services.map { it.Name to it.State }, muted, onMute) }
+                item { WatchCard(group.Services.map { it.Name to it.shownState }, muted, onMute) }
             }
         }
     }

@@ -128,9 +128,9 @@ private fun Summary(service: ServiceView) {
     Card(colors = CardDefaults.cardColors(containerColor = palette.Mantle)) {
         Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Dot(toneOf(service.State))
+                Dot(toneOf(service.shownState))
                 Spacer(Modifier.width(8.dp))
-                Text(service.State, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(service.shownState, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 if (service.Planned) Text("  (planned)", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text(service.Uptime, color = MaterialTheme.colorScheme.onSurfaceVariant)

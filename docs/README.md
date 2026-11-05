@@ -16,7 +16,7 @@ The app shows the same snapshot as [status.rootiest.dev](https://status.rootiest
   "Failover active" while traffic is served by the standby edge;
 - the Servers section (state, vitals, note per host), only when the API includes it:
   after signing in, for staff and the groups the catalog lets see servers;
-- every group of services: state dot, uptime text and the per-day uptime strip, and
+- every group of services: state dot (its health when it has health checks), uptime text and the per-day uptime strip, and
   for a service that publishes a backup report the hub's backup line ("Last backup 3 h
   ago (...)"), grey when unknown and yellow when the backup is older than the hub
   allows (`Backup`, rootiest-hub's `BackupView`; also on the detail screen). Its time
@@ -426,9 +426,16 @@ States and their colours (`ui/theme/Theme.kt`, `toneOf`):
 | Colour | Levels and states |
 |---|---|
 | Green | `ok`, `up`, `healthy` |
-| Yellow | `warn`, `standby`, `degraded` |
-| Red | `bad`, `down`, `unhealthy` |
+| Yellow | `warn`, `starting`, `degraded` |
+| Peach | `unhealthy` |
+| Sapphire | `standby` |
+| Red | `bad`, `down` |
 | Grey | anything else; `none` (no data) in the uptime strip |
+
+They match the status page's. A service's dot, and the state on its detail screen, use
+the hub's `Shown` (`healthy`, `starting`, `up`, `unhealthy`, `down`, `standby`): its
+`State`, except that one that answers and has health checks says what they say. A hub
+too old to send `Shown` falls back to `State` (`ServiceView.shownState`).
 
 ## Architecture
 

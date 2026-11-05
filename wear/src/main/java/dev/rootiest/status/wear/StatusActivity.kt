@@ -68,7 +68,7 @@ private fun StatusList(view: StatusView?) {
             }
             shown.Groups.forEach { g ->
                 item { Section(g.Name) }
-                g.Services.forEach { s -> item { StatusRow(s.Name, s.State, s.isProblem) } }
+                g.Services.forEach { s -> item { StatusRow(s.Name, s.shownState, s.isProblem) } }
             }
         }
     }
@@ -95,11 +95,13 @@ private fun StatusRow(name: String, state: String, problem: Boolean) {
     )
 }
 
-// A server's or service's state to the level whose colour it takes, as the phone's toneOf: up and healthy green, standby and
-// degraded yellow, down and unhealthy red.
+// A server's or service's state to the level whose colour it takes, as the phone's toneOf: up and healthy green, starting and
+// degraded yellow, unhealthy peach, standby sapphire, down red.
 internal fun levelOf(state: String): String = when (state) {
     "ok", "up", "healthy" -> "ok"
-    "warn", "standby", "degraded" -> "warn"
-    "bad", "down", "unhealthy" -> "bad"
+    "warn", "starting", "degraded" -> "warn"
+    "unhealthy" -> "unhealthy"
+    "standby" -> "standby"
+    "bad", "down" -> "bad"
     else -> "none"
 }
