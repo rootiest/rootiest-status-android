@@ -53,7 +53,10 @@ class ScreenshotTest {
     private val staff = public.copy(
         Level = "bad",
         Headline = "1 service down",
-        Hosts = listOf(HostView("Atlas", "healthy", Vitals = "load 0.4 · mem 38%"), HostView("Heracles", "degraded", Note = "disk 91%")),
+        Hosts = listOf(
+            HostView("Atlas", "healthy", Note = "VA", Vitals = "load 0.4 · mem 38%", Location = "VA", Place = "Ashburn, Virginia (Eastern US)"),
+            HostView("Heracles", "degraded", Note = "NY · disk 91%", Location = "NY", Place = "Buffalo, New York (Eastern US)"),
+        ),
         Groups = public.Groups.map { g ->
             g.copy(
                 Services = g.Services.map {

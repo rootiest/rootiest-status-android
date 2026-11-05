@@ -21,10 +21,16 @@ data class StatusView(
 data class HostView(
     val Name: String,
     val State: String,
-    val Note: String = "",
+    val Note: String = "", // its location first, then the rest: "MO · hosts Gitea and Mattermost"
     val Vitals: String = "",
     val Planned: Boolean = false,
-)
+    val Location: String = "", // where it is, as a code ("MO"); "" from older hubs
+    val Place: String = "", // the location in full ("St. Louis, Missouri (Central US)", or the state's name); "" from older hubs
+) {
+    // Note without the location at its start, for the line that shows the location as a tap target.
+    val noteRest: String
+        get() = if (Location.isNotEmpty() && Note.startsWith(Location)) Note.removePrefix(Location).removePrefix(" · ") else Note
+}
 
 @Serializable
 data class GroupView(
