@@ -16,6 +16,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.rootiest.status.data.Appearance
+import dev.rootiest.status.data.deskLink
 import dev.rootiest.status.ui.RootiestApp
 import dev.rootiest.status.ui.theme.RootiestTheme
 import dev.rootiest.status.widget.RefreshWorker
@@ -91,6 +92,13 @@ class MainActivity : ComponentActivity() {
             support.requestOpen(it)
         }
         val uri = intent.data ?: return
+        // a link to the support desk's email path, which Android opened here (App Links in the manifest): once, not again after a rotation.
+        // A link to the status page just opens the app.
+        deskLink(uri.scheme, uri.host, uri.path, uri.getQueryParameter("t"))?.let {
+            intent.data = null
+            support.useLink(it)
+            return
+        }
         if (uri.scheme != "dev.rootiest.status") return
         when (uri.path) {
             "/signed-in" -> uri.getQueryParameter("token")?.let(vm::completeSignIn)

@@ -149,7 +149,34 @@ opens a ticket, as on the desk's web form.
 - **No RootiestID yet.** Under the sign-in button, **Create a free RootiestID** opens
   `https://auth.rootiest.dev/signup` in the browser, as on the desk's landing page; you come back
   and sign in when done.
-- **Signing out** of the app clears both sign-ins. When the desk refuses the token (expired, or its
+- **Without a RootiestID at all** (`ui/GuestSupportScreen.kt`): **Contact us by email** opens the
+  desk's email path (rootiest-hub `guest.go`, `guest_api.go`). The form asks for an email address
+  and an optional name, then the desk's two guest categories (Account & Sign-in, General Questions,
+  from `GET /api/guest`), importance, subject and message; **Email me the link** sends it to
+  `POST /api/guest`. Nothing reaches the queue yet: the screen says to check the inbox. Below the
+  form, **Written to us before?** asks for a sign-in link instead (`POST /api/guest/signin`). The
+  desk answers the same whether or not it sent an email (an address past its hourly limit, or one
+  with no tickets, gets none); a 404 means the desk has the email path switched off.
+- **The links in the desk's emails open in the app** (Android App Links): the manifest claims
+  `https://support.rootiest.dev/guest`, `/guest/confirm` and `/guest/open`, and Android checks the
+  site's `/.well-known/assetlinks.json` (rootiest-hub `internal/applinks`, the release
+  certificate) before it sends them here. `MainActivity` reads the link (`deskLink` in
+  `data/Tickets.kt`) and `SupportViewModel.useLink` trades its token, with the challenge of a new
+  proof, at `POST /api/guest/confirm` (a ticket or sign-in link: used once) or
+  `POST /api/guest/open` (the link in a reply email: works for 7 days). The answer is a desk token
+  for the address, the same kind as a RootiestID one, which replaces whatever sign-in was kept
+  (`AuthStore.adopt`), and the ticket to open (a new ticket, the replied one, or the list). From then
+  on the list, threads, replies, new tickets and reply notifications work as with a RootiestID;
+  a guest's new tickets keep to the guest categories with no service, and always email the replies.
+  The list says who is signed in: a RootiestID's name, or the email address. A used-up or expired
+  link shows the desk's words on Support. Other desk pages (`/t/...`, sign-in, staff) stay in the
+  browser, and so does the email that moves guest tickets to a RootiestID (`/guest/move`), which
+  needs the browser's RootiestID session. Without the app (or opened on a computer) the same links
+  work on the web desk. Debug builds are signed with another key, so Android does not verify them
+  for these links: it offers a choice, or opens the browser.
+- **The status page's own address** (`https://status.rootiest.dev/`) opens the app's status list,
+  through the same App Links check.
+- **Signing out** of the app clears both sign-ins (a RootiestID one or an email one). When the desk refuses the token (expired, or its
   `signout-all`), the app drops it and asks for a new sign-in.
 - **What it shows.** Your own tickets only, newest change first, with whose turn it is (**Waiting for
   support**, **Answered**, **Closed**), the service (or the category) and the last change, in the
@@ -420,7 +447,7 @@ Two modules, package `dev.rootiest.status`, Kotlin with Jetpack Compose and Mate
 | `data/StatusApi.kt` | OkHttp GET plus kotlinx.serialization parse, on `Dispatchers.IO` |
 | `data/Lookups.kt` | plain functions over a snapshot: find a service, its events, a day's summary text |
 | `StatusViewModel.kt` | holds `StatusUiState` (last view, loading, error), the appearance, service list, times and interval settings and the muted names as `StateFlow`s; fetches on start and on `refresh()` |
-| `Routes.kt` | Navigation 3 keys: `Home`, `ServiceDetail(group, name)`, `Settings`, `WatchList`, `Licenses`, `SupportTickets`, `SupportTicket(id)`, `NewSupportTicket(prefill)` |
+| `Routes.kt` | Navigation 3 keys: `Home`, `ServiceDetail(group, name)`, `Settings`, `WatchList`, `Licenses`, `SupportTickets`, `SupportTicket(id)`, `NewSupportTicket(prefill)`, `GuestSupport` |
 | `ui/App.kt` | the app root: `StatusViewModel` and `SupportViewModel` above the navigation, the back stack and `NavDisplay` |
 | `ui/StatusScreen.kt` | the list: top bar, pull-to-refresh, headline, servers, groups, tappable services |
 | `ui/ServiceScreen.kt` | a service's detail: summary, recent changes, daily uptime |
@@ -432,9 +459,10 @@ Two modules, package `dev.rootiest.status`, Kotlin with Jetpack Compose and Mate
 | `data/StatusCache.kt` | the last good snapshot, saved for the widget and the tile |
 | `data/Settings.kt` | `Appearance`, `ServiceListMode`, `RefreshInterval` and `SettingsStore` (the saved settings: appearance, service list, interval, muted names) |
 | `data/Auth.kt` | proof and challenge, reading a token, `AuthStore` (a saved sign-in: `forStatus`, `forSupport`) |
-| `data/Tickets.kt` | the support desk's ticket models and `SupportApi` (list, thread, form, create, reply, close; `SignInNeeded`, `DeskRefused`) |
+| `data/Tickets.kt` | the support desk's ticket models and `SupportApi` (list, thread, form, create, reply, close; the email path; `SignInNeeded`, `DeskRefused`), and `deskLink` (an emailed link the app opens) |
 | `SupportViewModel.kt` | `SupportUiState`: the desk's sign-in, the ticket list, the open thread, sending replies, closing and opening tickets |
 | `ui/SupportScreen.kt` | Support: the ticket list (or the sign-in prompt) and a ticket's thread with its reply box |
+| `ui/GuestSupportScreen.kt` | Contact us by email: the guest form, asking for a sign-in link, and "check your inbox" |
 | `ui/NewTicketScreen.kt` | opening a ticket: the desk's form, with its choices for this person |
 | `SupportReplyWorker.kt` | the desk pushed `ticket <id>`: fetch it and post the Support replies notification |
 | `ui/Markdown.kt` | a message's Markdown as styled text (commonmark-java) |
@@ -497,7 +525,7 @@ comparison): JVM tests, no device needed, including the screen and screenshot te
 The `data/` tests live in `core/src/test`, with the JSON fixtures in
 `core/src/test/resources` (the app's screen tests read the same files). `StatusApiTest` parses `status-sample.json`, a saved signed-out
 answer from the live API, and checks that unknown fields are ignored and the backup line parses and follows the time setting. `ProblemsTest`
-covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `DampingTest` the outage delay, `TimesTest` the time formats and strftime fields, `WidgetContentTest` what each widget choice shows, `SupportTest` what Report a problem fills in, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token, `TicketsTest` the support desk's answers (`support-tickets.json`, `support-thread.json`, `support-form.json` and the refusal `support-422.json`, written by rootiest-hub's own API handlers), how the client sends the sign-in and each request's JSON, and how it reads refusals, `MarkdownTest` how messages are drawn and which links open. `LookupsTest` runs
+covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `DampingTest` the outage delay, `TimesTest` the time formats and strftime fields, `WidgetContentTest` what each widget choice shows, `SupportTest` what Report a problem fills in, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token, `GuestTest` the email path (which links the app takes, each request's JSON, and the desk's real answers in `support-guest-*.json`: its guest form, a refusal, a used link with its token, and a used-up link), `TicketsTest` the support desk's answers (`support-tickets.json`, `support-thread.json`, `support-form.json` and the refusal `support-422.json`, written by rootiest-hub's own API handlers), how the client sends the sign-in and each request's JSON, and how it reads refusals, `MarkdownTest` how messages are drawn and which links open. `LookupsTest` runs
 the `data/Lookups.kt` functions against the same fixture (it relies on the fixture's
 Notes outage on 2026-10-27, so keep an answer with a service event when refreshing it). Refresh the
 fixture when the API changes:
@@ -517,7 +545,8 @@ scroll, and a failed refresh keeps the list under its error banner. `SupportScre
 covers Support: the sign-in prompt and its link to create a RootiestID, no tickets, the list with whose turn it is, a thread with its
 Markdown drawn and staff replies from Rootiest Support, the reply box (its text kept until the
 desk takes the reply), closing, and the new-ticket form (Report a problem's prefill, the desk's
-refusals, a hidden service left out).
+refusals, a hidden service left out), and the email path: the prompt's **Contact us by email**, who is signed in, the guest form
+sending the address with the ticket, asking for a sign-in link, "check your inbox", and a guest's new tickets always emailing replies.
 
 To write one, give the screen a fixed state (`StatusScreen` takes a whole `StatusUiState`, so no
 view model or network is involved), wrap it in `RootiestTheme`, then find nodes by their text
@@ -528,7 +557,7 @@ Check that a new test fails when the behaviour it guards is broken.
 ### Screenshot tests
 
 `ScreenshotTest` draws the status list (signed out and signed in as staff with a server and a
-service in trouble, dark and light), the Notes detail screen, Settings, Support (the ticket list, a thread, and the new-ticket form as Report a problem fills it), and the widget (each
+service in trouble, dark and light), the Notes detail screen, Settings, Support (the ticket list, a thread, the new-ticket form as Report a problem fills it, the sign-in prompt, and the email path: its form, "check your inbox", and a guest's list), and the widget (each
 choice: everything, the servers, one group, and the small layout) and compares them with the
 golden images in `app/src/test/screenshots/`, using [Roborazzi](https://github.com/takahirom/roborazzi).
 `./tests/run-tests.sh` runs `verifyRoborazziDebug`, which is `testDebugUnitTest` with the

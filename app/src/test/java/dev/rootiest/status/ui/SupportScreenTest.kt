@@ -19,6 +19,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import dev.rootiest.status.SupportUiState
 import dev.rootiest.status.data.ClockHours
+import dev.rootiest.status.data.GuestTicket
 import dev.rootiest.status.data.NewTicket
 import dev.rootiest.status.data.SupportApi
 import dev.rootiest.status.data.TicketForm
@@ -43,6 +44,7 @@ class SupportScreenTest {
     private val tickets = api.parseList(resource("support-tickets.json")).Tickets
     private val thread = api.parseThread(resource("support-thread.json"))
     private val form = Json { ignoreUnknownKeys = true }.decodeFromString<TicketForm>(resource("support-form.json"))
+    private val guestForm = Json { ignoreUnknownKeys = true }.decodeFromString<TicketForm>(resource("support-guest-form.json"))
     private val times = TimeFormat(utc = true, hours = ClockHours.H24)
 
     private fun show(content: @androidx.compose.runtime.Composable () -> Unit) = compose.setContent {
@@ -174,5 +176,66 @@ class SupportScreenTest {
         compose.onNodeWithText("Not about a specific service").assertIsDisplayed()
         compose.onNodeWithText("Send").performScrollTo().performClick()
         assertEquals("", sent.single().Service)
+    }
+
+    @Test
+    fun signedOutOffersTheEmailPath() {
+        var asked = 0
+        show { SupportScreen(SupportUiState(signedIn = false), onSignIn = {}, onRefresh = {}, onOpen = {}, onNew = {}, onBack = {}, onGuest = { asked++ }) }
+        compose.onNodeWithText("Contact us by email").performScrollTo().performClick()
+        assertEquals(1, asked)
+    }
+
+    @Test
+    fun theListSaysWhoIsSignedIn() {
+        list(SupportUiState(signedIn = true, name = "Pat", email = "pat@example.com", guest = true, tickets = tickets))
+        compose.onNodeWithText("Signed in with your email address, pat@example.com", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun theListNamesARootiestId() {
+        list(SupportUiState(signedIn = true, name = "Chris", email = "chris@example.com", tickets = tickets))
+        compose.onNodeWithText("Signed in with RootiestID as Chris").assertIsDisplayed()
+    }
+
+    private fun guest(state: SupportUiState, onSend: (GuestTicket) -> Unit = {}, onSignInLink: (String) -> Unit = {}) =
+        show { GuestSupportScreen(state, onSend = onSend, onSignInLink = onSignInLink, onAgain = {}, onBack = {}) }
+
+    @Test
+    fun theEmailFormSendsTheAddressWithTheTicket() {
+        val sent = mutableListOf<GuestTicket>()
+        guest(SupportUiState(guestForm = guestForm), onSend = { sent += it })
+        compose.onNodeWithText("Service").assertDoesNotExist() // a guest's ticket is about no service
+        compose.onAllNodes(hasSetTextAction())[0].performTextInput("pat@example.com")
+        compose.onAllNodes(hasSetTextAction())[1].performTextInput("Pat")
+        compose.onNodeWithText("Email me the link").performScrollTo().performClick()
+        assertEquals(GuestTicket(Email = "pat@example.com", Name = "Pat"), sent.single())
+    }
+
+    @Test
+    fun anAddressThatWroteBeforeCanAskForASignInLink() {
+        val asked = mutableListOf<String>()
+        guest(SupportUiState(guestForm = guestForm), onSignInLink = { asked += it })
+        compose.onNodeWithText("Email me a sign-in link").performScrollTo().assertIsNotEnabled()
+        compose.onAllNodes(hasSetTextAction()).let { it[it.fetchSemanticsNodes().size - 1] }.performScrollTo().performTextInput("pat@example.com")
+        compose.onNodeWithText("Email me a sign-in link").performScrollTo().performClick()
+        assertEquals(listOf("pat@example.com"), asked)
+    }
+
+    @Test
+    fun afterTheRequestItSaysToCheckTheInbox() {
+        guest(SupportUiState(guestForm = guestForm, guestSent = "pat@example.com"))
+        compose.onNodeWithText("Check your inbox").assertIsDisplayed()
+        compose.onNodeWithText("pat@example.com", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun aGuestsNewTicketAlwaysEmailsTheReplies() {
+        val sent = mutableListOf<NewTicket>()
+        newTicket(SupportUiState(signedIn = true, guest = true, email = "pat@example.com", form = guestForm), onSend = { sent += it })
+        compose.onNodeWithText("Email me when support replies").assertDoesNotExist()
+        compose.onNodeWithText("Replies are emailed to pat@example.com.").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Send").performScrollTo().performClick()
+        assertEquals(true, sent.single().NotifyEmail)
     }
 }

@@ -22,21 +22,22 @@ fun challengeOf(proof: String): String =
     base64Url.encodeToString(MessageDigest.getInstance("SHA-256").digest(proof.toByteArray()))
 
 // What the app reads from a token: who it names and when it runs out. The hub signs the token, so the app only reads
-// it; tampering with it just makes the hub ignore it.
-data class TokenInfo(val name: String, val expiresAt: Long, val challenge: String)
+// it; tampering with it just makes the hub ignore it. On the support desk, guest is a sign-in from a link mailed to email
+// (no RootiestID); the status page's tokens carry neither.
+data class TokenInfo(val name: String, val expiresAt: Long, val challenge: String, val email: String = "", val guest: Boolean = false)
 
 @Serializable
 private data class Envelope(val e: Long, val v: Visitor)
 
 @Serializable
-private data class Visitor(val Name: String = "", val Challenge: String = "")
+private data class Visitor(val Name: String = "", val Challenge: String = "", val Email: String = "", val Guest: Boolean = false)
 
 private val json = Json { ignoreUnknownKeys = true }
 
 fun tokenInfo(token: String): TokenInfo? = runCatching {
     val body = String(Base64.getUrlDecoder().decode(token.substringBefore('.')))
     val env = json.decodeFromString<Envelope>(body)
-    TokenInfo(env.v.Name, env.e, env.v.Challenge)
+    TokenInfo(env.v.Name, env.e, env.v.Challenge, env.v.Email, env.v.Guest)
 }.getOrNull()
 
 // Whether a token answers the sign-in started with this proof. Any app can open dev.rootiest.status:/signed-in, so a
@@ -75,6 +76,14 @@ class AuthStore(context: Context, prefsName: String = "auth", private val baseUr
         return true
     }
 
+    // Keeps a token the desk gave for a link from an email (rootiest-hub's /api/guest/confirm and /api/guest/open), asked for with this
+    // proof's challenge. It replaces whatever sign-in was kept, as opening the link in a browser would.
+    fun adopt(token: String, proof: String): Boolean {
+        if (!tokenMatches(token, proof)) return false
+        prefs.edit { putString("token", token).putString("proof", proof).remove("pending") }
+        return true
+    }
+
     // The sign-in to send, or null when signed out or expired.
     fun credentials(nowSeconds: Long = System.currentTimeMillis() / 1000): Credentials? {
         val token = prefs.getString("token", null) ?: return null
@@ -83,7 +92,10 @@ class AuthStore(context: Context, prefsName: String = "auth", private val baseUr
         return if (info.expiresAt > nowSeconds) Credentials(token, proof) else null
     }
 
-    fun signedInAs(): String? = credentials()?.let { tokenInfo(it.token)?.name }
+    fun signedInAs(): String? = whoAmI()?.name
+
+    // Who the kept sign-in names, or null when signed out or expired.
+    fun whoAmI(): TokenInfo? = credentials()?.let { tokenInfo(it.token) }
 
     fun signOut() {
         prefs.edit { clear() }

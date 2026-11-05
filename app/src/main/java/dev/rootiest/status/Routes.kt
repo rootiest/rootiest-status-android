@@ -36,6 +36,10 @@ data class NewSupportTicket(
     val body: String = "",
 ) : NavKey
 
+// The email path, for people without a RootiestID: the guest form, and asking for a sign-in link.
+@Serializable
+data object GuestSupport : NavKey
+
 // Settings > About > Open-source licenses.
 @Serializable
 data object Licenses : NavKey
