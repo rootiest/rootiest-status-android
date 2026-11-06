@@ -2,6 +2,8 @@
 # release.sh [--dry-run]: build the signed release APK and publish it as the Gitea release v<appVersion>.
 # Run on the machine that holds the release key (docs/README.md, "Releases"), from a clean main that matches origin/main,
 # after bumping appVersion in build.gradle.kts through a PR. --dry-run builds and checks everything but publishes nothing.
+
+case "${1:-}" in -h | --help) awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"; exit 0 ;; esac
 set -euo pipefail
 cd "$(dirname "$0")/.."
 REPO=rootiest/rootiest-status-android
@@ -10,7 +12,11 @@ CERT=3615bb5f6509811fa5bb828303b572642c363e405af93d477523279ad0ec93a4
 die() { echo "release: $*" >&2; exit 1; }
 
 dry=0
-[ "${1:-}" = --dry-run ] && dry=1
+case "$*" in
+  --dry-run) dry=1 ;;
+  "") ;;
+  *) die "unknown argument '$*' (--dry-run or --help)" ;;
+esac
 
 ver=$(sed -n 's/^extra\["appVersion"\] = "\(.*\)"$/\1/p' build.gradle.kts)
 [[ $ver =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "no appVersion in build.gradle.kts"
