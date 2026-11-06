@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">Rootiest Status</string>
+    <!-- the name under the launcher icon: the Rootiest apps share a launcher folder, so the icon tells them apart -->
+    <string name="launcher_name">Status</string>
     <string name="tile_description">The overall status and what is down</string>
     <color name="mocha_base">#1E1E2E</color>
     <color name="mocha_green">#A6E3A1</color>

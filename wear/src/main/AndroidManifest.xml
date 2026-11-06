@@ -15,6 +15,7 @@
         <activity
             android:name=".StatusActivity"
             android:exported="true"
+            android:label="@string/launcher_name"
             android:taskAffinity="">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

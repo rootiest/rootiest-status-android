@@ -506,6 +506,11 @@ shows the same snapshot as the list, and refreshing either refreshes both. A ser
 identified by group and name; if it leaves the catalog while its screen is open, the
 screen says so instead of crashing.
 
+The launcher shows the app as **Status** (`launcher_name`, on the phone's and the watch's launcher
+activity): the Rootiest apps are meant to share a launcher folder, where the icon tells them apart and
+"Rootiest Status" would be cut short. Everywhere else (app info, the Quick Settings tile, the widget
+picker, the watch's tile and complication) it is still **Rootiest Status** (`app_name`).
+
 The launcher icon is the Rootiest Status icon from rootiest-icons (`rootiest-status`: the
 infra-cyan swirl with the heartbeat emblem) on Mocha base, with a monochrome version for themed
 icons; the status-bar icon (`ic_stat_status`, also the tile's and complication's fallback) is the
