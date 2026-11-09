@@ -24,6 +24,8 @@ import dev.rootiest.status.data.StatusCache
 import dev.rootiest.status.data.began
 import dev.rootiest.status.data.changesSince
 import dev.rootiest.status.data.damp
+import dev.rootiest.status.data.messageRefs
+import dev.rootiest.status.data.newNotices
 import dev.rootiest.status.data.nextDue
 import dev.rootiest.status.data.stateMap
 import dev.rootiest.status.data.unmuted
@@ -52,6 +54,8 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
             val states = view.stateMap()
             val damped = damp(view.changesSince(cache.loadStates()), states, cache.loadPending(), view::began, Instant.now(), hold)
             Notifier.notify(applicationContext, damped.notify.unmuted(settings.muted))
+            Notifier.messages(applicationContext, view.newNotices(cache.loadSeenMessages(), Instant.now()))
+            cache.saveSeenMessages(view.messageRefs())
             cache.saveStates(states)
             cache.savePending(damped.pending)
             cache.save(view)

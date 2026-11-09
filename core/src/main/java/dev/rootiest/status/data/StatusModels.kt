@@ -80,9 +80,13 @@ data class BarCell(
 @Serializable
 data class Event(
     val At: String,
-    val Kind: String, // edge, service, host
-    val Subject: String, // the service's or server's name; "Edge" for an edge move
+    val Kind: String, // edge, service, host, message
+    val Subject: String, // the service's or server's name; "Edge" for an edge move; a message's severity, as it reads ("Warning")
     val From: String = "",
     val To: String = "",
-    val Detail: String = "",
+    val Detail: String = "", // a message's text
+    val Ref: String = "", // a message's id, the same on every host
+    val Severity: String = "", // a message's: info, notice, warn, critical
+    val Audience: List<String> = emptyList(), // who a message is for; sent only to staff
+    val Notify: Boolean = false, // a message posted to be notified
 )
