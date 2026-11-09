@@ -39,6 +39,14 @@ class MessagesTest {
         assertEquals(emptyList<Event>(), v.newNotices(v.messageRefs(), now))
     }
 
+    @Test fun aMessageNoLongerSentIsGone() {
+        assertEquals(setOf("withdrawn"), view(message("kept")).goneMessages(setOf("kept", "withdrawn")))
+    }
+
+    @Test fun nothingIsGoneOnTheFirstRun() {
+        assertEquals(emptySet<String>(), view(message("a")).goneMessages(null))
+    }
+
     @Test fun oldNewsIsNotNotified() {
         val old = message("a", at = "2026-11-07T11:00:00Z", notify = true)
         assertEquals(emptyList<Event>(), view(old).newNotices(emptySet(), now))

@@ -23,6 +23,9 @@ fun StatusView.recentMessages(): List<Event> {
 // What the background job remembers having seen, so each message is notified once.
 fun StatusView.messageRefs(): Set<String> = messages().map { it.Ref }.toSet()
 
+// The messages the last run saw that are no longer here: withdrawn, or too old for the hub to send, so a notification still open for one should go.
+fun StatusView.goneMessages(seen: Set<String>?): Set<String> = seen.orEmpty() - messageRefs()
+
 // The messages to post a notification for: posted to be notified, not seen by the last run, and recent, so that a phone back after a long time away
 // or an account that has just signed in is not told about old news. Nothing on the first run (no [seen] yet).
 fun StatusView.newNotices(seen: Set<String>?, now: Instant): List<Event> {

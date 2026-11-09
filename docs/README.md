@@ -350,7 +350,8 @@ to arrive; ntfy remains the fast path.
   were posted to be notified (`hermes status post --notify yes`, `Notify` in the snapshot), once
   each, and only within a day of being posted, so a phone back after a long time away or an
   account that has just signed in is not told about old news. Nothing is posted on the first run.
-  What was seen is kept in `seen-messages.json`.
+  What was seen is kept in `seen-messages.json`. When a message is withdrawn the hub wakes the app,
+  which drops it from the list and takes down its notification if it is still open.
 - Notifications go to one of four channels (`Notifier.kt`), so the phone's own settings
   can treat them apart: "Messages" (default importance), "Outages" (high importance: sound and a heads-up banner), for
   "Gitea is down / was up" and any other move away from green, "Recoveries" (low:
