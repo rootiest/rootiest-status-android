@@ -143,6 +143,9 @@ private fun StatusList(full: StatusView, viewer: String?, listMode: ServiceListM
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp)) { Headline(view) }
         LazyColumn(state = listState, contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp), modifier = Modifier.fillMaxSize()) {
+            // The list keeps its place on the item at its top, so anything that appears above that item would land out of sight. With this one always first, a list at the
+            // top stays at the top and shows what arrived, and one scrolled further down is left where it is. It needs a height: the list skips an empty first item.
+            item(key = "top") { Spacer(Modifier.height(1.dp)) }
             if (error != null) item { Box(Modifier.padding(top = 12.dp)) { ErrorBanner("Refresh failed: $error") } }
             // problems only, with none: say so rather than show an empty list
             if (view.Groups.isEmpty() && view.Hosts.isNullOrEmpty() && full.Groups.isNotEmpty()) item {

@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import dev.rootiest.status.StatusUiState
+import dev.rootiest.status.data.Event
 import dev.rootiest.status.data.GroupView
 import dev.rootiest.status.data.HostView
 import dev.rootiest.status.data.ServiceListMode
@@ -42,6 +43,42 @@ class StatusScreenTest {
                 StatusScreen(state, listMode, onRefresh = {}, onOpenService = { _, _ -> }, onSignIn = {}, onSignOut = {}, onOpenSettings = {})
             }
         }
+    }
+
+    private fun showing(start: StatusUiState): (StatusUiState) -> Unit {
+        var state by mutableStateOf(start)
+        compose.setContent {
+            RootiestTheme(dark = true) {
+                StatusScreen(state, ServiceListMode.All, onRefresh = {}, onOpenService = { _, _ -> }, onSignIn = {}, onSignOut = {}, onOpenSettings = {})
+            }
+        }
+        return { state = it }
+    }
+
+    private val withMessage = public.copy(
+        Events = listOf(Event(At = public.Now, Kind = "message", Subject = "Info", Detail = "A message just posted", Ref = "m1", Severity = "info")),
+    )
+
+    // The list kept its place on the first section it showed, so a message arriving above it was out of sight until scrolled back to.
+    @Test
+    fun aNewMessageShowsAtTheTopOfTheList() {
+        val set = showing(StatusUiState(view = public))
+        compose.onNodeWithText(public.Groups.first().Name).assertIsDisplayed()
+        set(StatusUiState(view = withMessage))
+        compose.waitForIdle()
+        compose.onNodeWithText("A message just posted").assertIsDisplayed()
+    }
+
+    // Someone reading further down keeps their place.
+    @Test
+    fun aNewMessageLeavesAScrolledListWhereItIs() {
+        val set = showing(StatusUiState(view = public))
+        val last = public.Groups.last().Services.last().Name
+        compose.onNode(hasScrollAction()).performScrollToNode(hasText(last))
+        compose.onNodeWithText(last).assertIsDisplayed()
+        set(StatusUiState(view = withMessage))
+        compose.waitForIdle()
+        compose.onNodeWithText(last).assertIsDisplayed()
     }
 
     // #32: the list kept its place on the first group it showed, so the Servers section that signing in adds above
