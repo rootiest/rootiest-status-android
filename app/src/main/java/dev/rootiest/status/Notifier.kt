@@ -68,8 +68,16 @@ object Notifier {
     fun messages(context: Context, messages: List<Event>) {
         if (messages.isEmpty() || !canNotify(context)) return
         createChannels(context)
-        for (message in messages) post(context, "message:${message.Ref}".hashCode(), Channel.Messages, message.Subject, message.Detail, expand = true)
+        for (message in messages) post(context, idForMessage(message.Ref), Channel.Messages, message.Subject, message.Detail, expand = true)
     }
+
+    // Takes down the notifications of messages that are gone (goneMessages); one already dismissed is no matter.
+    fun dismissMessages(context: Context, refs: Set<String>) {
+        val manager = NotificationManagerCompat.from(context)
+        for (ref in refs) manager.cancel(idForMessage(ref))
+    }
+
+    private fun idForMessage(ref: String) = "message:$ref".hashCode()
 
     // one id per name, so a recovery replaces the "down" notification (ids are per app, not per channel)
     fun idFor(name: String) = name.hashCode()
