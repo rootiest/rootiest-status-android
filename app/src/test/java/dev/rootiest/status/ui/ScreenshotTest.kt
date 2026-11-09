@@ -108,6 +108,7 @@ class ScreenshotTest {
         list(
             StatusUiState(
                 view = public.copy(
+                    Groups = public.Groups.take(1), // short enough that the older message at the end is in the picture
                     Events = listOf(
                         Event(At = public.Now, Kind = "message", Subject = "Critical", Detail = "Photos is down, we are on it", Ref = "a1", Severity = "critical", Audience = listOf("public")),
                         Event(At = public.Now, Kind = "message", Subject = "Info", Detail = "Maintenance tonight at 22:00, expect a few minutes of downtime on the shared services", Ref = "a2", Severity = "info"),

@@ -152,9 +152,11 @@ private fun StatusList(full: StatusView, viewer: String?, listMode: ServiceListM
                     modifier = Modifier.padding(top = 16.dp),
                 )
             }
-            full.recentMessages().takeIf { it.isNotEmpty() }?.let { messages ->
-                stickyHeader(key = "messages") { SectionHeader("Messages") }
-                items(messages, key = { "message:" + it.Ref }) { Box(Modifier.padding(bottom = 8.dp)) { MessageRow(it) } }
+            // the newest message above the status, the older ones after it
+            val messages = full.recentMessages()
+            messages.firstOrNull()?.let { latest ->
+                stickyHeader(key = "latest-message") { SectionHeader("Latest message") }
+                item(key = "message:" + latest.Ref) { MessageRow(latest) }
             }
             view.Hosts?.takeIf { it.isNotEmpty() }?.let { hosts ->
                 stickyHeader(key = "servers") { SectionHeader("Servers") }
@@ -179,6 +181,10 @@ private fun StatusList(full: StatusView, viewer: String?, listMode: ServiceListM
                             .padding(start = 4.dp, end = 4.dp, top = if (first) 4.dp else 0.dp, bottom = if (last) 4.dp else 0.dp),
                     ) { ServiceRow(service) { onOpenService(group.Name, service.Name) } }
                 }
+            }
+            messages.drop(1).takeIf { it.isNotEmpty() }?.let { earlier ->
+                stickyHeader(key = "earlier-messages") { SectionHeader("Earlier messages") }
+                items(earlier, key = { "message:" + it.Ref }) { Box(Modifier.padding(bottom = 8.dp)) { MessageRow(it) } }
             }
         }
     }

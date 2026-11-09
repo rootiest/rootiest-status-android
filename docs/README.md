@@ -27,12 +27,12 @@ The app shows the same snapshot as [status.rootiest.dev](https://status.rootiest
   follows Settings > Times, built from the hub's `At` and `Detail`; a hub that sends
   only `Text` is shown as it is.
 
-**Messages**, above Servers when there are any, are what someone posted on the status
-page's Recent events list: the newest five of the last week that this viewer may read, with
-their severity and time, and for staff who each is for. Withdrawing one removes it at the next
-refresh.
+**Messages** are what someone posted on the status page's Recent events list: the newest five
+of the last week that this viewer may read, with their severity and time, and for staff who
+each is for. The newest is above Servers, under **Latest message**, and the others are at the
+end of the list, under **Earlier messages**. Withdrawing one removes it at the next refresh.
 
-Section titles (Messages, Servers, then each group) stick below the headline while their rows
+Section titles (Latest message, Servers, each group, then Earlier messages) stick below the headline while their rows
 scroll, until the next section's title pushes them off. The headline is fixed above
 the list rather than a sticky header itself, because every sticky header in a Compose
 list sticks to the same top edge and the next one would push it away too.
