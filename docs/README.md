@@ -30,7 +30,7 @@ The app shows the same snapshot as [status.rootiest.dev](https://status.rootiest
 **Messages** are what someone posted on the status page's Recent events list: the newest five
 of the last week that this viewer may read, with their severity and time, and for staff who
 each is for. The newest is above Servers, under **Latest message**, and the others are at the
-end of the list, under **Earlier messages**. Withdrawing one removes it at the next refresh.
+end of the list, under **Earlier messages**. Withdrawing one removes it at the next refresh. A list at its top stays there and shows a new message at once; one scrolled further down keeps its place.
 
 Section titles (Latest message, Servers, each group, then Earlier messages) stick below the headline while their rows
 scroll, until the next section's title pushes them off. The headline is fixed above
@@ -50,7 +50,8 @@ notifications (crossed out while muted). Below it:
   UTC days, as rootiest-hub counts them, so tomorrow's date can appear in the evening. Days before
   the history began (`Class` `none`) are left out.
 
-Pull down to refresh on either screen. After a failed refresh the last good snapshot
+The list updates itself whenever the background job fetches (a push, or its schedule), so what a
+push reports is on screen as its notification goes out. Pull down to refresh on either screen. After a failed refresh the last good snapshot
 stays on screen with an error banner above it. Back (button or gesture) returns to the
 list.
 

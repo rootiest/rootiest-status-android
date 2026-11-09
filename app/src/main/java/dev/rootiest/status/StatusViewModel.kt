@@ -57,6 +57,10 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         refresh()
+        // a push or a scheduled run has fetched: show it, with no second fetch and no spinner
+        viewModelScope.launch {
+            StatusUpdates.latest.collect { update -> _state.update { it.withBackground(update, auth.signedInAs()) } }
+        }
     }
 
     private var fetching: Job? = null
