@@ -16,6 +16,7 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import dev.rootiest.status.Notifier
 import dev.rootiest.status.StatusTileService
+import dev.rootiest.status.StatusUpdates
 import dev.rootiest.status.Watch
 import dev.rootiest.status.data.AuthStore
 import dev.rootiest.status.data.SettingsStore
@@ -44,11 +45,14 @@ class RefreshWorker(context: Context, params: WorkerParameters) : CoroutineWorke
     // one run at a time: two runs comparing against the same saved states would notify a change twice
     override suspend fun doWork(): Result = running.withLock {
         val cache = StatusCache(applicationContext)
-        val api = StatusApi(AuthStore(applicationContext)::credentials)
+        val auth = AuthStore(applicationContext)
+        val viewer = auth.signedInAs() // before the fetch, so an answer is never credited to a sign-in made after it
+        val api = StatusApi(auth::credentials)
         // a failed fetch skips this run; the next one compares against the last states seen, and a waiting outage is
         // checked again in a minute rather than at the next interval
         var due: Instant? = cache.loadPending().takeIf { it.isNotEmpty() }?.let { Instant.now().plusSeconds(60) }
         runCatching { api.fetch() }.getOrNull()?.let { view ->
+            StatusUpdates.publish(view, viewer) // on the open list as the notifications go out
             val settings = SettingsStore(applicationContext)
             val hold = Duration.ofMinutes(settings.notifyAfter.minutes)
             val states = view.stateMap()

@@ -50,7 +50,8 @@ notifications (crossed out while muted). Below it:
   UTC days, as rootiest-hub counts them, so tomorrow's date can appear in the evening. Days before
   the history began (`Class` `none`) are left out.
 
-Pull down to refresh on either screen. After a failed refresh the last good snapshot
+The list updates itself whenever the background job fetches (a push, or its schedule), so what a
+push reports is on screen as its notification goes out. Pull down to refresh on either screen. After a failed refresh the last good snapshot
 stays on screen with an error banner above it. Back (button or gesture) returns to the
 list.
 
