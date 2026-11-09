@@ -12,6 +12,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import dev.rootiest.status.data.Change
+import dev.rootiest.status.data.Event
 import dev.rootiest.status.data.TicketNotice
 
 // Two channels, so Android's own settings can treat them apart: outages loud, recoveries quiet, by default.
@@ -19,6 +20,7 @@ enum class Channel(val id: String, val title: String, val description: String, v
     Outages("outages", "Outages", "A service or server went down or degraded", NotificationManagerCompat.IMPORTANCE_HIGH),
     Recoveries("recoveries", "Recoveries", "A service or server came back", NotificationManagerCompat.IMPORTANCE_LOW),
     SupportReplies("support-replies", "Support replies", "Support replied to or closed one of your tickets", NotificationManagerCompat.IMPORTANCE_DEFAULT),
+    Messages("messages", "Messages", "A message was posted on the status page", NotificationManagerCompat.IMPORTANCE_DEFAULT),
 }
 
 object Notifier {
@@ -62,6 +64,13 @@ object Notifier {
         }
     }
 
+    // Messages posted to be notified (newNotices). The text can be several lines, so the notification expands to show it all.
+    fun messages(context: Context, messages: List<Event>) {
+        if (messages.isEmpty() || !canNotify(context)) return
+        createChannels(context)
+        for (message in messages) post(context, "message:${message.Ref}".hashCode(), Channel.Messages, message.Subject, message.Detail, expand = true)
+    }
+
     // one id per name, so a recovery replaces the "down" notification (ids are per app, not per channel)
     fun idFor(name: String) = name.hashCode()
 
@@ -88,7 +97,7 @@ object Notifier {
     fun idForTicket(id: Long) = "ticket:$id".hashCode()
 
     // With a muteName, the notification has a Mute button for it (MuteReceiver).
-    private fun post(context: Context, id: Int, channel: Channel, title: String, text: String, muteName: String? = null, open: PendingIntent? = null) {
+    private fun post(context: Context, id: Int, channel: Channel, title: String, text: String, muteName: String? = null, open: PendingIntent? = null, expand: Boolean = false) {
         val open = open ?: PendingIntent.getActivity(
             context, 0, Intent(context, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE,
         )
@@ -99,6 +108,7 @@ object Notifier {
             .setContentIntent(open)
             .setAutoCancel(true)
             .apply {
+                if (expand) setStyle(NotificationCompat.BigTextStyle().bigText(text))
                 if (muteName != null) {
                     val mute = PendingIntent.getBroadcast(
                         context,

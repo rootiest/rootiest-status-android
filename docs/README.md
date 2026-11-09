@@ -27,7 +27,12 @@ The app shows the same snapshot as [status.rootiest.dev](https://status.rootiest
   follows Settings > Times, built from the hub's `At` and `Detail`; a hub that sends
   only `Text` is shown as it is.
 
-Section titles (Servers, then each group) stick below the headline while their rows
+**Messages**, above Servers when there are any, are what someone posted on the status
+page's Recent events list: the newest five of the last week that this viewer may read, with
+their severity and time, and for staff who each is for. Withdrawing one removes it at the next
+refresh.
+
+Section titles (Messages, Servers, then each group) stick below the headline while their rows
 scroll, until the next section's title pushes them off. The headline is fixed above
 the list rather than a sticky header itself, because every sticky header in a Compose
 list sticks to the same top edge and the next one would push it away too.
@@ -340,8 +345,13 @@ to arrive; ntfy remains the fast path.
   waiting keeps waiting from its start. While one waits, a one-off run is scheduled for
   when it is due (5 seconds after, or a minute after a failed fetch), so it arrives on
   time whatever the interval, push only included.
-- Notifications go to one of three channels (`Notifier.kt`), so the phone's own settings
-  can treat them apart: "Outages" (high importance: sound and a heads-up banner), for
+- **Messages** posted on the status page (`data/Messages.kt`) get a notification when they
+  were posted to be notified (`hermes status post --notify yes`, `Notify` in the snapshot), once
+  each, and only within a day of being posted, so a phone back after a long time away or an
+  account that has just signed in is not told about old news. Nothing is posted on the first run.
+  What was seen is kept in `seen-messages.json`.
+- Notifications go to one of four channels (`Notifier.kt`), so the phone's own settings
+  can treat them apart: "Messages" (default importance), "Outages" (high importance: sound and a heads-up banner), for
   "Gitea is down / was up" and any other move away from green, "Recoveries" (low:
   silent, in the shade only), for "Gitea is back up / was down", and "Support replies"
   (default importance; see [Support tickets](#support-tickets)). Each name has one

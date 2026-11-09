@@ -59,13 +59,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import dev.rootiest.status.R
 import dev.rootiest.status.StatusUiState
+import dev.rootiest.status.data.Event
 import dev.rootiest.status.data.HostView
+import dev.rootiest.status.data.recentMessages
 import dev.rootiest.status.data.ServiceView
 import dev.rootiest.status.data.ServiceListMode
 import dev.rootiest.status.data.StatusView
 import dev.rootiest.status.data.arranged
 import dev.rootiest.status.ui.theme.palette
 import dev.rootiest.status.ui.theme.toneOf
+import java.time.Instant
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -149,6 +152,10 @@ private fun StatusList(full: StatusView, viewer: String?, listMode: ServiceListM
                     modifier = Modifier.padding(top = 16.dp),
                 )
             }
+            full.recentMessages().takeIf { it.isNotEmpty() }?.let { messages ->
+                stickyHeader(key = "messages") { SectionHeader("Messages") }
+                items(messages, key = { "message:" + it.Ref }) { Box(Modifier.padding(bottom = 8.dp)) { MessageRow(it) } }
+            }
             view.Hosts?.takeIf { it.isNotEmpty() }?.let { hosts ->
                 stickyHeader(key = "servers") { SectionHeader("Servers") }
                 items(hosts, key = { "host:" + it.Name }) { Box(Modifier.padding(bottom = 8.dp)) { HostRow(it) } }
@@ -173,6 +180,30 @@ private fun StatusList(full: StatusView, viewer: String?, listMode: ServiceListM
                     ) { ServiceRow(service) { onOpenService(group.Name, service.Name) } }
                 }
             }
+        }
+    }
+}
+
+// A message someone wrote: its severity, when, the text, and for staff who it is for.
+@Composable
+private fun MessageRow(message: Event) {
+    val color = when (message.Severity) {
+        "critical" -> palette.Red
+        "warn" -> palette.Yellow
+        "notice" -> palette.Blue
+        else -> palette.Overlay0
+    }
+    Column(Modifier.fillMaxWidth().background(palette.Mantle, RoundedCornerShape(12.dp)).padding(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Dot(color)
+            Spacer(Modifier.width(8.dp))
+            Text(message.Subject, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.weight(1f))
+            Text(LocalTimeFormat.current.format(message.At, Instant.now()), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Text(message.Detail, modifier = Modifier.padding(top = 4.dp))
+        if (message.Audience.isNotEmpty()) {
+            Text("For " + message.Audience.joinToString(", "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
         }
     }
 }

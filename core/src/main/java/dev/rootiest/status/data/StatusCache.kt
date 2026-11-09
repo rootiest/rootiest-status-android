@@ -12,6 +12,7 @@ class StatusCache(dir: File) {
     private val file = File(dir, "last-status.json")
     private val statesFile = File(dir, "last-states.json")
     private val pendingFile = File(dir, "pending-outages.json")
+    private val messagesFile = File(dir, "seen-messages.json")
     private val json = Json { ignoreUnknownKeys = true }
 
     fun save(view: StatusView) {
@@ -41,6 +42,15 @@ class StatusCache(dir: File) {
 
     fun loadPending(): Map<String, Pending> =
         runCatching { json.decodeFromString<Map<String, Pending>>(pendingFile.readText()) }.getOrDefault(emptyMap())
+
+    // The messages the background job has seen (see newNotices).
+    fun saveSeenMessages(refs: Set<String>) {
+        messagesFile.replaceWith(json.encodeToString(refs))
+    }
+
+    // Null before the job's first run with messages, when nothing should be notified.
+    fun loadSeenMessages(): Set<String>? =
+        runCatching { json.decodeFromString<Set<String>>(messagesFile.readText()) }.getOrNull()
 }
 
 // Writes a temporary file beside this one and renames it over it, so a reader never sees half a file, even when the app

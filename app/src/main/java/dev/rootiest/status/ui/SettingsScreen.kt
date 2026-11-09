@@ -167,6 +167,10 @@ private fun NotificationsCard(system: SystemState, context: Context, mutedCount:
             context.startActivity(Notifier.settingsIntent(context, Channel.Recoveries))
         }
         Divider()
+        SettingRow("Messages", channelSummary(system, Channel.Messages, "One posted to be notified")) {
+            context.startActivity(Notifier.settingsIntent(context, Channel.Messages))
+        }
+        Divider()
         SettingRow("Support replies", channelSummary(system, Channel.SupportReplies, "Support replied to or closed one of your tickets")) {
             context.startActivity(Notifier.settingsIntent(context, Channel.SupportReplies))
         }

@@ -15,6 +15,7 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import dev.rootiest.status.StatusUiState
 import dev.rootiest.status.data.Appearance
 import dev.rootiest.status.data.ClockHours
+import dev.rootiest.status.data.Event
 import dev.rootiest.status.data.HostView
 import dev.rootiest.status.data.NotifyAfter
 import dev.rootiest.status.data.RefreshInterval
@@ -101,6 +102,20 @@ class ScreenshotTest {
     @Test fun listStaffDark() = shoot("list-staff-dark") { list(StatusUiState(view = staff, signedInAs = "Chris", viewFor = "Chris")) }
 
     @Test fun listStaffLight() = shoot("list-staff-light", dark = false) { list(StatusUiState(view = staff, signedInAs = "Chris", viewFor = "Chris")) }
+
+    // well before the test runs, so the time reads as a date and the picture does not change from one day to the next
+    @Test fun listMessages() = shoot("list-messages") {
+        list(
+            StatusUiState(
+                view = public.copy(
+                    Events = listOf(
+                        Event(At = public.Now, Kind = "message", Subject = "Critical", Detail = "Photos is down, we are on it", Ref = "a1", Severity = "critical", Audience = listOf("public")),
+                        Event(At = public.Now, Kind = "message", Subject = "Info", Detail = "Maintenance tonight at 22:00, expect a few minutes of downtime on the shared services", Ref = "a2", Severity = "info"),
+                    ),
+                ),
+            ),
+        )
+    }
 
     @Test fun serviceDetail() = shoot("service-notes") {
         ServiceScreen(StatusUiState(view = public), "Personal", "Notes", muted = false, onMute = {}, onRefresh = {}, onBack = {})
