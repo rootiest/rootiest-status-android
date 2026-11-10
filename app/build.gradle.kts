@@ -86,6 +86,8 @@ dependencies {
     implementation(libs.androidx.browser)
     implementation(libs.unifiedpush.connector)
     implementation(libs.okhttp)
+    implementation(libs.coil.compose) // the signed-in person's profile picture
+    implementation(libs.coil.network.okhttp)
     // each snapshot goes to the watch app over the Wearable Data Layer (Watch.kt)
     implementation(libs.play.services.wearable)
     implementation(libs.kotlinx.coroutines.play.services)

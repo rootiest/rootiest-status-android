@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
@@ -19,6 +20,8 @@ import dev.rootiest.status.data.ServiceView
 import dev.rootiest.status.data.StatusApi
 import dev.rootiest.status.data.StatusView
 import dev.rootiest.status.ui.theme.RootiestTheme
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -141,5 +144,29 @@ class StatusScreenTest {
 
         compose.onNodeWithText("MO").performClick()
         compose.onNodeWithText("St. Louis, Missouri (Central US)").assertIsDisplayed()
+    }
+
+    // Signed in, the menu opens under the person's avatar and starts with their name, which opens their RootiestID account.
+    @Test
+    fun theSignedInNameOpensTheirAccount() {
+        var opened = false
+        compose.setContent {
+            RootiestTheme(dark = true) {
+                StatusScreen(
+                    StatusUiState(view = public, signedInAs = "Chris"), ServiceListMode.All, onRefresh = {}, onOpenService = { _, _ -> },
+                    onSignIn = {}, onSignOut = {}, onOpenSettings = {}, onOpenAccount = { opened = true },
+                )
+            }
+        }
+        compose.onNodeWithContentDescription("Account and settings, signed in as Chris").performClick()
+        compose.onNodeWithText("RootiestID account").performClick()
+        assertTrue(opened)
+    }
+
+    @Test
+    fun anAvatarWithNoPictureShowsTheInitial() {
+        assertEquals("C", initialOf("chris"))
+        assertEquals("É", initialOf(" élan"))
+        assertEquals("?", initialOf(""))
     }
 }

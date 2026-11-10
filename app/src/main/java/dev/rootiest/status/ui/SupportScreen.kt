@@ -51,6 +51,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.rootiest.status.R
 import dev.rootiest.status.SupportUiState
+import dev.rootiest.status.data.ROOTIESTID_URL
 import dev.rootiest.status.data.Ticket
 import dev.rootiest.status.data.TicketMessage
 import dev.rootiest.status.data.statusLabel
@@ -144,7 +145,7 @@ internal fun identity(state: SupportUiState): String = when {
 }
 
 // The RootiestID page for creating an account, as the desk's own landing page links it.
-internal const val SIGN_UP_URL = "https://auth.rootiest.dev/signup"
+internal const val SIGN_UP_URL = "$ROOTIESTID_URL/signup"
 
 // For someone without a RootiestID yet: where to make one, then come back and sign in.
 @Composable

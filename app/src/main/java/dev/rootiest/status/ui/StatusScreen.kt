@@ -30,7 +30,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
@@ -70,6 +69,13 @@ import dev.rootiest.status.ui.theme.palette
 import dev.rootiest.status.ui.theme.toneOf
 import java.time.Instant
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,12 +88,13 @@ fun StatusScreen(
     onSignOut: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenSupport: () -> Unit = {},
+    onOpenAccount: () -> Unit = {},
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Rootiest Status") },
-                actions = { AccountMenu(state.signedInAs, onSignIn, onSignOut, onOpenSettings, onOpenSupport) },
+                actions = { AccountMenu(state.signedInAs, state.picture, onSignIn, onSignOut, onOpenSettings, onOpenSupport, onOpenAccount) },
             )
         },
     ) { padding ->
@@ -106,20 +113,40 @@ fun StatusScreen(
     }
 }
 
-// The account and settings menu: under the name when signed in, under an account icon when not.
+// The account and settings menu: under the signed-in person's picture, or under an account icon when nobody is. Signed
+// in, it starts with their name, which opens their account on RootiestID.
 @Composable
-private fun AccountMenu(name: String?, onSignIn: () -> Unit, onSignOut: () -> Unit, onOpenSettings: () -> Unit, onOpenSupport: () -> Unit) {
+private fun AccountMenu(
+    name: String?,
+    picture: String?,
+    onSignIn: () -> Unit,
+    onSignOut: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onOpenSupport: () -> Unit,
+    onOpenAccount: () -> Unit,
+) {
     var open by remember { mutableStateOf(false) }
     Box {
-        if (name != null) {
-            TextButton(onClick = { open = true }) {
-                Text(name, color = MaterialTheme.colorScheme.onSurface)
-                Icon(painterResource(R.drawable.ic_arrow_drop_down), contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        IconButton(onClick = { open = true }) {
+            if (name != null) {
+                Avatar(name, picture, Modifier.semantics { contentDescription = "Account and settings, signed in as $name" })
+            } else {
+                Icon(painterResource(R.drawable.ic_account_circle), contentDescription = "Account and settings")
             }
-        } else {
-            IconButton(onClick = { open = true }) { Icon(painterResource(R.drawable.ic_account_circle), contentDescription = "Account and settings") }
         }
         DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            if (name != null) {
+                DropdownMenuItem(
+                    text = {
+                        Column {
+                            Text(name, fontWeight = FontWeight.SemiBold)
+                            Text("RootiestID account", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    },
+                    onClick = { open = false; onOpenAccount() },
+                )
+                HorizontalDivider()
+            }
             DropdownMenuItem(text = { Text("Settings") }, onClick = { open = false; onOpenSettings() })
             DropdownMenuItem(text = { Text("Support") }, onClick = { open = false; onOpenSupport() })
             HorizontalDivider()
@@ -131,6 +158,30 @@ private fun AccountMenu(name: String?, onSignIn: () -> Unit, onSignOut: () -> Un
         }
     }
 }
+
+// The person's RootiestID picture in a circle, as on the status page; their initial until it loads, or when they have none or
+// it cannot load. Kept in memory only, not on disk: a picture changed on RootiestID keeps its address, so a copy on disk
+// would never be replaced. Each start of the app fetches it again.
+@Composable
+private fun Avatar(name: String, picture: String?, modifier: Modifier = Modifier) {
+    var loaded by remember(picture) { mutableStateOf(false) }
+    Box(modifier.size(32.dp).clip(CircleShape).background(palette.Surface1), contentAlignment = Alignment.Center) {
+        if (!loaded) Text(initialOf(name), color = palette.Text, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge)
+        if (picture != null) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalPlatformContext.current).data(picture).diskCachePolicy(CachePolicy.DISABLED).build(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                onSuccess = { loaded = true },
+                modifier = Modifier.matchParentSize(),
+            )
+        }
+    }
+}
+
+// The first letter of a name, upper-cased, as the status page's avatar; "?" for no name.
+internal fun initialOf(name: String): String =
+    name.trim().takeIf { it.isNotEmpty() }?.let { String(Character.toChars(it.codePointAt(0))).uppercase() } ?: "?"
 
 // The headline sits above the list and never scrolls; inside the list each section's title sticks until the next
 // section's title pushes it off. (Sticky headers all stick to the list's top edge, so the headline cannot be one.)

@@ -23,22 +23,37 @@ fun challengeOf(proof: String): String =
 
 // What the app reads from a token: who it names and when it runs out. The hub signs the token, so the app only reads
 // it; tampering with it just makes the hub ignore it. On the support desk, guest is a sign-in from a link mailed to email
-// (no RootiestID); the status page's tokens carry neither.
-data class TokenInfo(val name: String, val expiresAt: Long, val challenge: String, val email: String = "", val guest: Boolean = false)
+// (no RootiestID); the status page's tokens carry neither. picture is the person's profile picture on RootiestID, from
+// the status page's tokens, or "" when they have none.
+data class TokenInfo(
+    val name: String,
+    val expiresAt: Long,
+    val challenge: String,
+    val email: String = "",
+    val guest: Boolean = false,
+    val picture: String = "",
+)
+
+// RootiestID, where people sign in: their account page and profile pictures are there.
+const val ROOTIESTID_URL = "https://auth.rootiest.dev"
+const val ROOTIESTID_ACCOUNT_URL = "$ROOTIESTID_URL/settings/account"
 
 @Serializable
 private data class Envelope(val e: Long, val v: Visitor)
 
 @Serializable
-private data class Visitor(val Name: String = "", val Challenge: String = "", val Email: String = "", val Guest: Boolean = false)
+private data class Visitor(val Name: String = "", val Challenge: String = "", val Email: String = "", val Guest: Boolean = false, val Picture: String = "")
 
 private val json = Json { ignoreUnknownKeys = true }
 
 fun tokenInfo(token: String): TokenInfo? = runCatching {
     val body = String(Base64.getUrlDecoder().decode(token.substringBefore('.')))
     val env = json.decodeFromString<Envelope>(body)
-    TokenInfo(env.v.Name, env.e, env.v.Challenge, env.v.Email, env.v.Guest)
+    TokenInfo(env.v.Name, env.e, env.v.Challenge, env.v.Email, env.v.Guest, rootiestIdPicture(env.v.Picture))
 }.getOrNull()
+
+// A picture address only if it is on RootiestID itself, as the hub's own check: the app loads nothing from anywhere else.
+private fun rootiestIdPicture(address: String): String = if (address.startsWith("$ROOTIESTID_URL/")) address else ""
 
 // Whether a token answers the sign-in started with this proof. Any app can open dev.rootiest.status:/signed-in, so a
 // token for some other sign-in must not replace this one.
@@ -93,6 +108,9 @@ class AuthStore(context: Context, prefsName: String = "auth", private val baseUr
     }
 
     fun signedInAs(): String? = whoAmI()?.name
+
+    // The signed-in person's profile picture, or null when they have none or are signed out.
+    fun picture(): String? = whoAmI()?.picture?.ifEmpty { null }
 
     // Who the kept sign-in names, or null when signed out or expired.
     fun whoAmI(): TokenInfo? = credentials()?.let { tokenInfo(it.token) }

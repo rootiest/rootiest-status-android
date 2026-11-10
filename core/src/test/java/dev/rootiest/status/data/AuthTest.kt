@@ -23,8 +23,8 @@ class AuthTest {
     }
 
     // A token shaped like the hub's session.Seal: base64url({"e":exp,"v":{...}}) + "." + signature.
-    private fun token(challenge: String): String {
-        val body = """{"e":1800000000,"v":{"At":1,"Name":"Rootiest","Admin":true,"Challenge":"$challenge"}}"""
+    private fun token(challenge: String, picture: String = ""): String {
+        val body = """{"e":1800000000,"v":{"At":1,"Name":"Rootiest","Admin":true,"Picture":"$picture","Challenge":"$challenge"}}"""
         return Base64.getUrlEncoder().withoutPadding().encodeToString(body.toByteArray()) + ".sig"
     }
 
@@ -32,6 +32,14 @@ class AuthTest {
     fun readsNameExpiryAndChallengeFromAToken() {
         assertEquals(TokenInfo("Rootiest", 1800000000, "x"), tokenInfo(token("x")))
         assertNull(tokenInfo("not a token"))
+    }
+
+    @Test
+    fun keepsAProfilePictureOnlyFromRootiestId() {
+        val own = "https://auth.rootiest.dev/api/users/1/profile-picture.png"
+        assertEquals(own, tokenInfo(token("x", own))?.picture)
+        assertEquals("", tokenInfo(token("x", "https://elsewhere.example/me.png"))?.picture)
+        assertEquals("", tokenInfo(token("x", "https://auth.rootiest.dev.example/me.png"))?.picture)
     }
 
     @Test
