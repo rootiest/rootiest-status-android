@@ -30,13 +30,14 @@ data class StatusUiState(
     val loading: Boolean = false,
     val error: String? = null,
     val signedInAs: String? = null, // the RootiestID display name, or null when signed out (or the sign-in expired)
+    val picture: String? = null, // their RootiestID profile picture, or null when they have none or are signed out
     val viewFor: String? = null, // who view was fetched as (signedInAs then), so the list can start over when that changes
 )
 
 class StatusViewModel(app: Application) : AndroidViewModel(app) {
     private val auth = AuthStore(app)
     private val api = StatusApi(auth::credentials)
-    private val _state = MutableStateFlow(StatusUiState(signedInAs = auth.signedInAs()))
+    private val _state = MutableStateFlow(StatusUiState(signedInAs = auth.signedInAs(), picture = auth.picture()))
     val state: StateFlow<StatusUiState> = _state.asStateFlow()
 
     private val settings = SettingsStore(app)
@@ -69,7 +70,7 @@ class StatusViewModel(app: Application) : AndroidViewModel(app) {
     fun refresh() {
         fetching?.cancel()
         val who = auth.signedInAs()
-        _state.update { it.copy(loading = true, error = null, signedInAs = who) }
+        _state.update { it.copy(loading = true, error = null, signedInAs = who, picture = auth.picture()) }
         fetching = viewModelScope.launch {
             try {
                 val view = api.fetch()

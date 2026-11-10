@@ -30,6 +30,7 @@ import dev.rootiest.status.BuildConfig
 import dev.rootiest.status.NewSupportTicket
 import dev.rootiest.status.SupportTicket
 import dev.rootiest.status.data.NewTicket
+import dev.rootiest.status.data.ROOTIESTID_ACCOUNT_URL
 import dev.rootiest.status.data.reportProblemTicket
 import dev.rootiest.status.SupportTickets
 import dev.rootiest.status.SupportViewModel
@@ -99,6 +100,7 @@ fun RootiestApp(vm: StatusViewModel, support: SupportViewModel) {
                     onSignOut = { vm.signOut(); support.signOut() }, // both sign-ins: the status page's and the support desk's
                     onOpenSettings = { backStack.add(Settings) },
                     onOpenSupport = { backStack.add(SupportTickets) },
+                    onOpenAccount = { CustomTabsIntent.Builder().build().launchUrl(context, ROOTIESTID_ACCOUNT_URL.toUri()) },
                 )
             }
             entry<ServiceDetail> { key ->

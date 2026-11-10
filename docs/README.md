@@ -73,9 +73,14 @@ the app shows the public view. The flow is rootiest-hub's app sign-in:
    with every request: the app, the widget and the background job. The hub counts the
    token only with that proof, so a token caught on its way back is useless.
 
-The top bar shows the RootiestID display name; tapping it opens the account menu, with
-**Settings**, **Support** and **Sign out**, which deletes the token (and the support desk's, below).
-The app reads the name and expiry from the token (signed by the hub, only read here). A
+The top bar shows the RootiestID profile picture (the initial of the display name until it
+loads, or when there is none); tapping it opens the account menu, which starts with the display
+name: tapping that opens the RootiestID account page (`https://auth.rootiest.dev/settings/account`)
+in a Custom Tab. Then come **Settings**, **Support** and **Sign out**, which deletes the token (and
+the support desk's, below). The app reads the name, the picture's address and the expiry from the
+token (signed by the hub, only read here); the picture is kept only when it is on
+`auth.rootiest.dev`, as the hub's own check, and loaded with Coil, in memory only, so a picture
+changed on RootiestID (same address) shows from the next start of the app. A
 sign-in lasts 14 days, the hub's `STATUS_SESSION_TTL`; once it expires, or after the
 hub's `signout-all`, the app shows the public view again and the menu offers **Sign in**
 (after `signout-all` the name stays until the token's own expiry, but the view is
@@ -84,7 +89,8 @@ is not reported as a change.
 
 ## Account menu and settings
 
-The top bar's right side opens the account menu: under the display name when signed in,
+The top bar's right side opens the account menu: under the profile picture when signed in
+(the menu then starts with the display name, which opens the RootiestID account page),
 under an account icon when signed out. Either way it has **Settings**, **Support** (see
 [Support tickets](#support-tickets)), then **Sign out** or **Sign in**, so settings are reachable without an account.
 
@@ -482,7 +488,7 @@ Two modules, package `dev.rootiest.status`, Kotlin with Jetpack Compose and Mate
 | `StatusViewModel.kt` | holds `StatusUiState` (last view, loading, error), the appearance, service list, times and interval settings and the muted names as `StateFlow`s; fetches on start and on `refresh()` |
 | `Routes.kt` | Navigation 3 keys: `Home`, `ServiceDetail(group, name)`, `Settings`, `WatchList`, `Licenses`, `SupportTickets`, `SupportTicket(id)`, `NewSupportTicket(prefill)`, `GuestSupport` |
 | `ui/App.kt` | the app root: `StatusViewModel` and `SupportViewModel` above the navigation, the back stack and `NavDisplay` |
-| `ui/StatusScreen.kt` | the list: top bar, pull-to-refresh, headline, servers, groups, tappable services |
+| `ui/StatusScreen.kt` | the list: top bar with the account menu and avatar, pull-to-refresh, headline, servers, groups, tappable services |
 | `ui/ServiceScreen.kt` | a service's detail: summary, recent changes, daily uptime |
 | `ui/SettingsScreen.kt` | settings: notifications, push status, the background check, appearance, service list, times, about |
 | `ui/WatchListScreen.kt` | the services and servers to notify about, one switch each |
