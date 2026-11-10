@@ -7,7 +7,6 @@ plugins {
 
 // the version and the release key, shared with the phone app (the root build.gradle.kts)
 val appVersion = rootProject.extra["appVersion"] as String
-val (major, minor, patch) = appVersion.split(".").map(String::toInt)
 val releaseKey = rootProject.extra["releaseKey"] as java.util.Properties?
 
 android {
@@ -19,7 +18,7 @@ android {
         applicationId = "dev.rootiest.status"
         minSdk = 30
         targetSdk = 37
-        versionCode = major * 10000 + minor * 100 + patch
+        versionCode = rootProject.extra["watchVersionCode"] as Int
         versionName = appVersion
     }
 
