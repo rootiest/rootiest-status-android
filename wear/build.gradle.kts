@@ -20,7 +20,7 @@ android {
         minSdk = 30
         targetSdk = 37
         versionCode = rootProject.extra["watchVersionCode"] as Int
-        versionName = appVersion
+        versionName = "$appVersion-watch"
     }
 
     signingConfigs {
