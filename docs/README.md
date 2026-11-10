@@ -551,6 +551,8 @@ and notifications do. The phone and watch share the same drawables, written from
   follows from it: major, two digits of minor, two of patch, then one for the device, so
   `1.2.3` is 102030 on the phone and 102031 on the watch. Google Play needs the two to
   differ and gives a device the highest code it can run, so the watch's is the higher.
+  The watch's `versionName` is `<appVersion>-watch`. The phone's stays plain, as Obtainium
+  compares it with the release tag.
 - `./gradlew install*` installs for the phone's main user only (`--user 0`), not into a
   work profile or Private space; `adb install` without it installs into every profile.
 - Release builds are minified with R8 and shrink unused resources, and are signed with
