@@ -539,8 +539,10 @@ and notifications do. The phone and watch share the same drawables, written from
   licenses for Settings > About.
 - `compileSdk`/`targetSdk` 37, `minSdk` 29 (Android 10).
 - Application id `dev.rootiest.status`, for the watch app too. The version is
-  `appVersion` in the root `build.gradle.kts`, shared by both apps; `versionCode`
-  follows from it (`1.2.3` is 10203).
+  `appVersion` in the root `build.gradle.kts`, shared by both apps. Each `versionCode`
+  follows from it: major, two digits of minor, two of patch, then one for the device, so
+  `1.2.3` is 102030 on the phone and 102031 on the watch. Google Play needs the two to
+  differ and gives a device the highest code it can run, so the watch's is the higher.
 - `./gradlew install*` installs for the phone's main user only (`--user 0`), not into a
   work profile or Private space; `adb install` without it installs into every profile.
 - Release builds are minified with R8 and shrink unused resources, and are signed with
@@ -640,6 +642,13 @@ and CI holds no secrets.
   `rootiest-status-<version>.apk` (the phone) and `wear-rootiest-status-<version>.apk`
   (the watch) attached and the pull requests merged since the last
   release as notes. `scripts/release.sh --dry-run` does all of it but publishing.
+- **Google Play**: `scripts/release.sh` also leaves `rootiest-status-<version>.aab` and
+  `wear-rootiest-status-<version>.aab` in `build/play/`, after the same check of the
+  certificate, to upload by hand in Play Console. Both apps share one Play entry, as they
+  share a package name. When Play App Signing is set up for the app, choose to upload the
+  existing release key: a key Google generates would be a different certificate, so a Play
+  update could not replace an installed Obtainium build, or the reverse, and the App Links
+  in `assetlinks.json` would stop verifying.
 - **Installing and updates**: Obtainium, with its Forgejo source (Gitea serves the same
   releases API) and the repository URL `https://git.rootiest.dev/rootiest/rootiest-status-android`.
   No token is needed: the repository is public. Obtainium then offers each new release.

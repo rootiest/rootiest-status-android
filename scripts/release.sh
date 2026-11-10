@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# release.sh [--dry-run]: build the signed release APK and publish it as the Gitea release v<appVersion>.
+# release.sh [--dry-run]: build the signed release APKs and publish them as the Gitea release v<appVersion>, and leave the app bundles
+# for Google Play in build/play/.
 # Run on the machine that holds the release key (docs/README.md, "Releases"), from a clean main that matches origin/main,
 # after bumping appVersion in build.gradle.kts through a PR. --dry-run builds and checks everything but publishes nothing.
 
@@ -29,9 +30,11 @@ git fetch -q origin
 [ -z "$(git ls-remote --tags origin "refs/tags/$tag")" ] || die "$tag exists already: bump appVersion"
 
 ./tests/run-tests.sh
-./gradlew --no-daemon -q assembleRelease
+./gradlew --no-daemon -q assembleRelease bundleRelease
 apk=app/build/outputs/apk/release/app-release.apk
 wear=wear/build/outputs/apk/release/wear-release.apk
+aab=app/build/outputs/bundle/release/app-release.aab
+wear_aab=wear/build/outputs/bundle/release/wear-release.aab
 
 # the SDK Gradle built with: local.properties' sdk.dir first, as Gradle reads it, then ANDROID_HOME
 sdk=$(sed -n 's/^sdk.dir=//p' local.properties 2>/dev/null || true)
@@ -43,11 +46,22 @@ for f in "$apk" "$wear"; do
   got=$("$apksigner" verify --print-certs "$f" 2>/dev/null | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')
   [ "$got" = "$CERT" ] || die "$f is not signed with the release key (got ${got:-nothing}); is rootiest.signing set in ~/.gradle/gradle.properties?"
 done
+# apksigner reads only APKs; a bundle is signed as a JAR, which keytool reads
+for f in "$aab" "$wear_aab"; do
+  got=$(keytool -printcert -jarfile "$f" 2>/dev/null | sed -n 's/^[[:space:]]*SHA256: //p' | head -1 | tr -d : | tr '[:upper:]' '[:lower:]')
+  [ "$got" = "$CERT" ] || die "$f is not signed with the release key (got ${got:-nothing}); is rootiest.signing set in ~/.gradle/gradle.properties?"
+done
 
 out=$(mktemp -d)
 cp "$apk" "$out/rootiest-status-$ver.apk"
 # the watch app: its name does not start like the phone's, so an APK filter of ^rootiest-status-[0-9] keeps them apart
 cp "$wear" "$out/wear-rootiest-status-$ver.apk"
+# the bundles for Google Play: uploaded by hand in Play Console, so they stay out of the Gitea release
+play=build/play
+rm -rf "$play"
+mkdir -p "$play"
+cp "$aab" "$play/rootiest-status-$ver.aab"
+cp "$wear_aab" "$play/wear-rootiest-status-$ver.aab"
 # notes: the pull requests merged since the last release (all of them for the first)
 last=$(git describe --tags --abbrev=0 2>/dev/null || true)
 git log --merges --format=%s ${last:+"$last..HEAD"} |
