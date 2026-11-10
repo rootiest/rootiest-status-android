@@ -23,6 +23,11 @@
             </intent-filter>
         </activity>
 
+        <!-- one service: opened from the list -->
+        <activity
+            android:name=".ServiceActivity"
+            android:exported="false" />
+
         <!-- the tile: bound only by the watch's tile host -->
         <service
             android:name=".StatusTile"

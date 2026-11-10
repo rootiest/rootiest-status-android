@@ -3,6 +3,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.roborazzi)
 }
 
 // the version and the release key, shared with the phone app (the root build.gradle.kts)
@@ -45,6 +46,12 @@ android {
     buildFeatures {
         compose = true
     }
+
+    // the screen tests run on the JVM under Robolectric, as the phone app's do
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+        unitTests.all { it.jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED", "--add-opens=java.base/java.io=ALL-UNNAMED") }
+    }
 }
 
 dependencies {
@@ -63,4 +70,16 @@ dependencies {
     implementation(libs.play.services.wearable)
     implementation(libs.kotlinx.coroutines.play.services)
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(platform(libs.compose.bom))
+    testImplementation(libs.compose.ui.test.junit4)
+    testImplementation(libs.espresso.core)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    debugImplementation(libs.compose.ui.test.manifest)
+}
+
+// The golden images live with the tests and are committed; diffs from a failed verify go to build/outputs/roborazzi.
+roborazzi {
+    outputDir.set(file("src/test/screenshots"))
 }
