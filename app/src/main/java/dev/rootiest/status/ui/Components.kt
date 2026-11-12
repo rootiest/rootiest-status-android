@@ -39,7 +39,8 @@ internal fun ErrorBanner(text: String) {
 
 @Composable
 internal fun SectionTitle(text: String) {
-    Text(text, style = MaterialTheme.typography.titleMedium, color = palette.Mauve)
+    // Muted, as the status page's headings: an accent here would sit right above the green of services that are up.
+    Text(text, style = MaterialTheme.typography.titleMedium, color = palette.Subtext0)
 }
 
 // A list section's title as a sticky header: opaque, so the rows scroll under it, and pushed off by the next one.

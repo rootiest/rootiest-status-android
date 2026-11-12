@@ -279,7 +279,7 @@ private fun MessageCard(m: TicketMessage, now: Instant, onLink: (String) -> Unit
     Card(colors = CardDefaults.cardColors(containerColor = if (staff) palette.Surface0 else palette.Mantle), modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(m.Author, fontWeight = FontWeight.SemiBold, color = if (staff) palette.Mauve else MaterialTheme.colorScheme.onSurface)
+                Text(m.Author, fontWeight = FontWeight.SemiBold, color = if (staff) palette.Blue else MaterialTheme.colorScheme.onSurface)
                 Spacer(Modifier.weight(1f))
                 Text(LocalTimeFormat.current.format(m.Created, now), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

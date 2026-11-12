@@ -467,6 +467,21 @@ the hub's `Shown` (`healthy`, `starting`, `up`, `unhealthy`, `down`, `standby`):
 `State`, except that one that answers and has health checks says what they say. A hub
 too old to send `Shown` falls back to `State` (`ServiceView.shownState`).
 
+The app's accent follows the Rootiest palette every Rootiest service shares (rootiest-icons
+`themes/palette.toml`), as on the support desk.
+
+| Mode | Accent |
+|---|---|
+| Mocha | Green, with crust text on green fills |
+| Latte | Flamingo fills with Mocha crust text on them, and `#9b5454` for accent-colored text (flamingo on Base is too faint) |
+
+Material's `primary` is that accent text: text buttons, the selected choice and the support screens' buttons.
+
+Because green also means up, the accent stays off the status lists:
+
+- Section titles are muted, as the status page's headings are.
+- Staff names in support threads are blue, as on the desk.
+
 ## Architecture
 
 Two modules, package `dev.rootiest.status`, Kotlin with Jetpack Compose and Material 3:
