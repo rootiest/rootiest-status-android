@@ -301,7 +301,8 @@ private fun HostRow(host: HostView) {
                 Spacer(Modifier.width(8.dp))
                 Text(host.Name, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.weight(1f))
-                Text(host.State, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                // in its dot's color, as the status page colors it
+                Text(host.State, color = toneOf(host.State))
             }
             if (host.Vitals.isNotEmpty()) Text(host.Vitals, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             HostNote(host)
