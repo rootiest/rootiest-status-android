@@ -676,11 +676,26 @@ and CI holds no secrets.
   release as notes. `scripts/release.sh --dry-run` does all of it but publishing.
 - **Google Play**: `scripts/release.sh` also leaves `rootiest-status-<version>.aab` and
   `wear-rootiest-status-<version>.aab` in `build/play/`, after the same check of the
-  certificate, to upload by hand in Play Console. Both apps share one Play entry, as they
-  share a package name. When Play App Signing is set up for the app, choose to upload the
-  existing release key: a key Google generates would be a different certificate, so a Play
-  update could not replace an installed Obtainium build, or the reverse, and the App Links
-  in `assetlinks.json` would stop verifying.
+  certificate. Both apps share one Play entry, as they share a package name: the phone's
+  bundle goes to the `internal` track and the watch's to `wear:internal`. Play signs with the
+  release key itself (Play App Signing set to the existing key): a key Google generates would
+  be a different certificate, so a Play update could not replace an installed Obtainium build,
+  or the reverse, and the App Links in `assetlinks.json` would stop verifying.
+  - After the Gitea release, `release.sh` releases both bundles to internal testing with
+    `scripts/play-upload.py`, in one Play edit, with the pull requests as release notes (without
+    their type, number or the version bump, and cut to Play's 500 characters). `--dry-run` signs
+    in and lists the tracks instead (`play-upload.py --check`). If the upload fails, the Gitea
+    release is already out, and `release.sh` prints the command to retry it.
+  - It signs in as the service account `rootiest-apps-publish@rootiest-apps.iam.gserviceaccount.com`
+    (Google Cloud project `rootiest-apps`, Google Play Android Developer API enabled), which
+    Play Console's Users and permissions lets release both Rootiest apps. Its key is a JSON
+    service account key at `~/.local/share/android/play-publisher.json` (mode 600, or `$PLAY_KEY`),
+    on the same machine as the release key and backed up with it. Its private key was made on that
+    machine and only the certificate uploaded to Google Cloud (Keys, Upload existing key), valid
+    until 2036. Without the file, `release.sh` leaves the bundles for Play Console, by hand.
+  - `play-upload.py` needs only Python's standard library and `openssl`, which signs the
+    sign-in. If Play refuses to send the edit for review because the app has other unfinished
+    changes, it commits without sending and says so: check Publishing overview.
 - **Installing and updates**: Obtainium, with its Forgejo source (Gitea serves the same
   releases API) and the repository URL `https://git.rootiest.dev/rootiest/rootiest-status-android`.
   No token is needed: the repository is public. Obtainium then offers each new release.

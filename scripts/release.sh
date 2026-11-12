@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# release.sh [--dry-run]: build the signed release APKs and publish them as the Gitea release v<appVersion>, and leave the app bundles
-# for Google Play in build/play/.
+# release.sh [--dry-run]: build the signed release APKs and publish them as the Gitea release v<appVersion>, then release the app
+# bundles on Google Play's internal testing tracks (phone and Wear OS) when this machine has the Play key; without it they wait in
+# build/play/ for Play Console.
 # Run on the machine that holds the release key (docs/README.md, "Releases"), from a clean main that matches origin/main,
 # after bumping appVersion in build.gradle.kts through a PR. --dry-run builds and checks everything but publishes nothing.
 
@@ -56,7 +57,7 @@ out=$(mktemp -d)
 cp "$apk" "$out/rootiest-status-$ver.apk"
 # the watch app: its name does not start like the phone's, so an APK filter of ^rootiest-status-[0-9] keeps them apart
 cp "$wear" "$out/wear-rootiest-status-$ver.apk"
-# the bundles for Google Play: uploaded by hand in Play Console, so they stay out of the Gitea release
+# the bundles for Google Play: released on Play below, or uploaded by hand in Play Console; they stay out of the Gitea release
 play=build/play
 rm -rf "$play"
 mkdir -p "$play"
@@ -67,12 +68,30 @@ last=$(git describe --tags --abbrev=0 2>/dev/null || true)
 git log --merges --format=%s ${last:+"$last..HEAD"} |
   sed -n "s/^Merge pull request '\(.*\)' (#\([0-9]*\)).*/- \1 (#\2)/p" > "$out/notes.md"
 
+# Play's release notes: the same pull requests, without the commit type, the PR number or the version bump
+sed -E -e '/^- chore: version /d' -e 's/^- [a-z]+(\([^)]*\))?!?: /- /' -e 's/ \(#[0-9]+\)$//' "$out/notes.md" |
+  awk '{ $2 = toupper(substr($2, 1, 1)) substr($2, 2); print }' > "$out/play-notes.txt"
+# the service account key for the Play publishing API (docs/README.md, "Google Play")
+play_key=${PLAY_KEY:-$HOME/.local/share/android/play-publisher.json}
+
 echo "release: $tag, $(wc -l < "$out/notes.md") pull requests, $(du -h "$out/rootiest-status-$ver.apk" | cut -f1) APK and $(du -h "$out/wear-rootiest-status-$ver.apk" | cut -f1) watch APK signed with the release key"
 if [ $dry = 1 ]; then
   cat "$out/notes.md"
+  if [ -f "$play_key" ]; then
+    echo "release: Play release notes:"
+    cat "$out/play-notes.txt"
+    scripts/play-upload.py --package dev.rootiest.status --key "$play_key" --check
+  fi
   echo "release: dry run, nothing published ($out)"
   exit 0
 fi
 tea releases create --repo "$REPO" --tag "$tag" --target "$(git rev-parse HEAD)" --title "$tag" \
   --note-file "$out/notes.md" --asset "$out/rootiest-status-$ver.apk" --asset "$out/wear-rootiest-status-$ver.apk"
 echo "release: published https://git.rootiest.dev/$REPO/releases/tag/$tag"
+play_upload=(scripts/play-upload.py --package dev.rootiest.status --key "$play_key" --notes "$out/play-notes.txt"
+  "$play/rootiest-status-$ver.aab" "$play/wear-rootiest-status-$ver.aab=wear:internal")
+if [ -f "$play_key" ]; then
+  "${play_upload[@]}" || die "the Gitea release is out, but not the Play one; retry with: ${play_upload[*]}"
+else
+  echo "release: no Play key at $play_key: upload the bundles in $play/ in Play Console"
+fi
