@@ -137,7 +137,8 @@ Service list, Times and About:
   `time-pattern`, `time-hours` and `time-utc` in `settings`, and provided to every
   screen as `LocalTimeFormat`, the backup line's time included.
 - **About**: the version (name and code), then links that open in the browser (the
-  status page, the source code), and **Report a problem**, which opens the app's new-ticket form
+  status page, the source code, and the app's privacy policy at `rootiest.com/privacy/app`, the
+  same page the Google Play listing links), and **Report a problem**, which opens the app's new-ticket form
   (see [Support tickets](#support-tickets)) filled in by `reportProblemTicket` in `data/Support.kt`:
   category Problem, about the Android app (a support topic on the desk, not a service the status page checks), and the app version, Android version and phone, for the
   person to review and send. Last,

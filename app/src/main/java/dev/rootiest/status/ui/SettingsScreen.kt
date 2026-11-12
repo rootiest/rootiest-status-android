@@ -243,6 +243,8 @@ private fun AboutCard(context: Context, onOpenLicenses: () -> Unit, onReportProb
         Divider()
         SettingRow("Source code", "GPL-3.0-or-later, on ${SOURCE.removePrefix("https://").substringBefore('/')}") { open(SOURCE) }
         Divider()
+        SettingRow("Privacy policy", PRIVACY.removePrefix("https://")) { open(PRIVACY) }
+        Divider()
         SettingRow("Report a problem", "Opens a new support ticket, with the app and phone filled in", onClick = onReportProblem)
         Divider()
         SettingRow("Open-source licenses", "The libraries the app is built with", onClick = onOpenLicenses)
@@ -251,6 +253,7 @@ private fun AboutCard(context: Context, onOpenLicenses: () -> Unit, onReportProb
 
 private const val STATUS_PAGE = "https://status.rootiest.dev"
 private const val SOURCE = "https://git.rootiest.dev/rootiest/rootiest-status-android"
+private const val PRIVACY = "https://rootiest.com/privacy/app"
 
 // A time on the phone, as the Times setting shows it, or null for none.
 @Composable
