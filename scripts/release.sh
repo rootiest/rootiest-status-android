@@ -28,6 +28,9 @@ tag=v$ver
 git fetch -q origin
 [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || die "main does not match origin/main"
 [ -z "$(git status --porcelain)" ] || die "the working tree is not clean"
+# gt, the Gitea CLI, publishes the release; GITEA_TOKEN alone does not say which Gitea it is for
+command -v gt >/dev/null || die "gt (the Gitea CLI, package gitea-cli) is not installed"
+export GITEA_INSTANCE_URL=${GITEA_INSTANCE_URL:-https://git.rootiest.dev}
 [ -z "$(git ls-remote --tags origin "refs/tags/$tag")" ] || die "$tag exists already: bump appVersion"
 
 ./tests/run-tests.sh
@@ -71,8 +74,9 @@ git log --merges --format=%s ${last:+"$last..HEAD"} |
 # names that the lowercase pull request titles spell in lowercase, spelled properly in Play's notes (a word inside a
 # hyphenated name, such as rootiest-hub, stays as it is)
 play_names=('rootiest notes:Rootiest Notes' 'rootiest status:Rootiest Status' rootiestid:RootiestID rootiest:Rootiest
-  'pocket id:Pocket ID' 'moe memos:Moe Memos' catppuccin:Catppuccin mocha:Mocha latte:Latte 'google play:Google Play'
-  'wear os:Wear OS' android:Android gitea:Gitea obtainium:Obtainium unifiedpush:UnifiedPush readme:README)
+  'pocket id:Pocket ID' 'moe memos:Moe Memos' catppuccin:Catppuccin tabler:Tabler mocha:Mocha latte:Latte
+  'google play:Google Play' 'wear os:Wear OS' android:Android gitea:Gitea obtainium:Obtainium unifiedpush:UnifiedPush
+  readme:README)
 play_names_sed=()
 for name in "${play_names[@]}"; do
   play_names_sed+=(-e "s/(^|[^[:alnum:]-])${name%%:*}(\$|[^[:alnum:]-])/\\1${name#*:}\\2/g")
@@ -96,8 +100,8 @@ if [ $dry = 1 ]; then
   echo "release: dry run, nothing published ($out)"
   exit 0
 fi
-tea releases create --repo "$REPO" --tag "$tag" --target "$(git rev-parse HEAD)" --title "$tag" \
-  --note-file "$out/notes.md" --asset "$out/rootiest-status-$ver.apk" --asset "$out/wear-rootiest-status-$ver.apk"
+gt release create "$tag" --repo "$REPO" --target "$(git rev-parse HEAD)" --title "$tag" --no-input \
+  --notes-file "$out/notes.md" --asset "$out/rootiest-status-$ver.apk" --asset "$out/wear-rootiest-status-$ver.apk"
 echo "release: published https://git.rootiest.dev/$REPO/releases/tag/$tag"
 play_upload=(scripts/play-upload.py --package dev.rootiest.status --key "$play_key" --notes "$out/play-notes.txt"
   "$play/rootiest-status-$ver.aab" "$play/wear-rootiest-status-$ver.aab=wear:internal")
