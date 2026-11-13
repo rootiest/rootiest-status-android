@@ -1,0 +1,19 @@
+{
+  "uniqueId": "io.tabler:tabler-icons",
+  "artifactVersion": "3.51.0",
+  "name": "Tabler Icons",
+  "description": "The outline icons in Settings.",
+  "website": "https://tabler.io/icons",
+  "developers": [
+    {
+      "name": "Paweł Kuna",
+      "organisationUrl": "https://tabler.io"
+    }
+  ],
+  "scm": {
+    "url": "https://github.com/tabler/tabler-icons"
+  },
+  "licenses": [
+    "tabler-icons-MIT"
+  ]
+}

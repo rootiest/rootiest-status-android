@@ -138,14 +138,15 @@ Service list, Times and About:
   screen as `LocalTimeFormat`, the backup line's time included.
 - **About**: the version (name and code), then links that open in the browser (the
   status page, the source code, and the app's privacy policy at `rootiest.com/privacy/app`, the
-  same page the Google Play listing links), and **Report a problem**, which opens the app's new-ticket form
+  same page the Google Play listing links), and **Report an issue**, which opens the app's new-ticket form
   (see [Support tickets](#support-tickets)) filled in by `reportProblemTicket` in `data/Support.kt`:
   category Problem, about the Android app (a support topic on the desk, not a service the status page checks), and the app version, Android version and phone, for the
   person to review and send. Last,
   **Open-source licenses** (`ui/LicensesScreen.kt`) lists the libraries the app is
   built with and their licenses, tap one for its text. The AboutLibraries Gradle plugin
   writes that list at build time from the release dependencies, as
-  `res/raw/aboutlibraries.json`, so it is never out of date.
+  `res/raw/aboutlibraries.json`, so it is never out of date. What is not a dependency is
+  added from `app/aboutlibraries/`: the Tabler Icons (MIT), with their license.
 
 ## Support tickets
 
@@ -380,7 +381,9 @@ to arrive; ntfy remains the fast path.
   Refusing only turns notifications off.
 
 **Settings.** The settings screen (`ui/SettingsScreen.kt`) reads the phone's state each
-time it shows, so it is current after a trip to the phone's settings:
+time it shows, so it is current after a trip to the phone's settings. Each row that is not a
+choice has an icon from [Tabler Icons](https://tabler.io/icons), the outline set other Rootiest
+projects use, as `res/drawable/ic_tabler_*.xml` (yellow on a row that warns):
 
 - Notifications: when they are off (permission refused, or the app switched off), one
   row opens the app's notification page in the phone's settings, where Android 13+ also
@@ -589,7 +592,7 @@ comparison): JVM tests, no device needed, including the screen and screenshot te
 The `data/` tests live in `core/src/test`, with the JSON fixtures in
 `core/src/test/resources` (the app's screen tests read the same files). `StatusApiTest` parses `status-sample.json`, a saved signed-out
 answer from the live API, and checks that unknown fields are ignored and the backup line parses and follows the time setting. `ProblemsTest`
-covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `DampingTest` the outage delay, `TimesTest` the time formats and strftime fields, `WidgetContentTest` what each widget choice shows, `SupportTest` what Report a problem fills in, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token, `GuestTest` the email path (which links the app takes, each request's JSON, and the desk's real answers in `support-guest-*.json`: its guest form, a refusal, a used link with its token, and a used-up link), `TicketsTest` the support desk's answers (`support-tickets.json`, `support-thread.json`, `support-form.json` and the refusal `support-422.json`, written by rootiest-hub's own API handlers), how the client sends the sign-in and each request's JSON, and how it reads refusals, `MarkdownTest` how messages are drawn and which links open. `LookupsTest` runs
+covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `DampingTest` the outage delay, `TimesTest` the time formats and strftime fields, `WidgetContentTest` what each widget choice shows, `SupportTest` what Report an issue fills in, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token, `GuestTest` the email path (which links the app takes, each request's JSON, and the desk's real answers in `support-guest-*.json`: its guest form, a refusal, a used link with its token, and a used-up link), `TicketsTest` the support desk's answers (`support-tickets.json`, `support-thread.json`, `support-form.json` and the refusal `support-422.json`, written by rootiest-hub's own API handlers), how the client sends the sign-in and each request's JSON, and how it reads refusals, `MarkdownTest` how messages are drawn and which links open. `LookupsTest` runs
 the `data/Lookups.kt` functions against the same fixture (it relies on the fixture's
 Notes outage on 2026-10-27, so keep an answer with a service event when refreshing it). Refresh the
 fixture when the API changes:
@@ -608,7 +611,7 @@ the top (#32), Problems only with nothing down says so, a section's title sticks
 scroll, and a failed refresh keeps the list under its error banner. `SupportScreenTest`
 covers Support: the sign-in prompt and its link to create a RootiestID, no tickets, the list with whose turn it is, a thread with its
 Markdown drawn and staff replies from Rootiest Support, the reply box (its text kept until the
-desk takes the reply), closing, and the new-ticket form (Report a problem's prefill, the desk's
+desk takes the reply), closing, and the new-ticket form (Report an issue's prefill, the desk's
 refusals, a hidden service left out), and the email path: the prompt's **Contact us by email**, who is signed in, the guest form
 sending the address with the ticket, asking for a sign-in link, "check your inbox", a guest's new tickets always emailing replies, and Support's own Sign out.
 
@@ -621,7 +624,7 @@ Check that a new test fails when the behaviour it guards is broken.
 ### Screenshot tests
 
 `ScreenshotTest` draws the status list (signed out and signed in as staff with a server and a
-service in trouble, dark and light), the Notes detail screen, Settings, Support (the ticket list, a thread, the new-ticket form as Report a problem fills it, the sign-in prompt, and the email path: its form, "check your inbox", and a guest's list), and the widget (each
+service in trouble, dark and light), the Notes detail screen, Settings, Support (the ticket list, a thread, the new-ticket form as Report an issue fills it, the sign-in prompt, and the email path: its form, "check your inbox", and a guest's list), and the widget (each
 choice: everything, the servers, one group, and the small layout) and compares them with the
 golden images in `app/src/test/screenshots/`, using [Roborazzi](https://github.com/takahirom/roborazzi).
 `./tests/run-tests.sh` runs `verifyRoborazziDebug`, which is `testDebugUnitTest` with the

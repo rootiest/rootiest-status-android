@@ -3,6 +3,7 @@ package dev.rootiest.status.ui
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
@@ -154,30 +156,30 @@ private fun NotificationsCard(system: SystemState, context: Context, mutedCount:
     SettingsCard {
         if (!system.canNotify) {
             // Android 13+ grants the permission from this page too, so it works even after "Don't allow" twice
-            SettingRow("Notifications are off", "Tap to turn them on in the phone's settings", warn = true) {
+            SettingRow("Notifications are off", "Tap to turn them on in the phone's settings", R.drawable.ic_tabler_bell_off, warn = true) {
                 context.startActivity(Notifier.settingsIntent(context))
             }
             return@SettingsCard
         }
-        SettingRow("Outages", channelSummary(system, Channel.Outages, "A service or server went down")) {
+        SettingRow("Outages", channelSummary(system, Channel.Outages, "A service or server went down"), R.drawable.ic_tabler_alert_triangle) {
             context.startActivity(Notifier.settingsIntent(context, Channel.Outages))
         }
         Divider()
-        SettingRow("Recoveries", channelSummary(system, Channel.Recoveries, "It came back up")) {
+        SettingRow("Recoveries", channelSummary(system, Channel.Recoveries, "It came back up"), R.drawable.ic_tabler_circle_check) {
             context.startActivity(Notifier.settingsIntent(context, Channel.Recoveries))
         }
         Divider()
-        SettingRow("Messages", channelSummary(system, Channel.Messages, "One posted to be notified")) {
+        SettingRow("Messages", channelSummary(system, Channel.Messages, "One posted to be notified"), R.drawable.ic_tabler_speakerphone) {
             context.startActivity(Notifier.settingsIntent(context, Channel.Messages))
         }
         Divider()
-        SettingRow("Support replies", channelSummary(system, Channel.SupportReplies, "Support replied to or closed one of your tickets")) {
+        SettingRow("Support replies", channelSummary(system, Channel.SupportReplies, "Support replied to or closed one of your tickets"), R.drawable.ic_tabler_messages) {
             context.startActivity(Notifier.settingsIntent(context, Channel.SupportReplies))
         }
         Divider()
-        SettingRow("Services to notify about", if (mutedCount == 0) "All" else "All but $mutedCount muted", onClick = onOpenWatchList)
+        SettingRow("Services to notify about", if (mutedCount == 0) "All" else "All but $mutedCount muted", R.drawable.ic_tabler_list_check, onClick = onOpenWatchList)
         Divider()
-        SettingRow("Send a test notification", "Shows how an outage alert looks and sounds") { Notifier.test(context) }
+        SettingRow("Send a test notification", "Shows how an outage alert looks and sounds", R.drawable.ic_tabler_bell_ringing) { Notifier.test(context) }
     }
 }
 
@@ -195,7 +197,7 @@ private fun PushCard(system: SystemState) {
             is PushStatus.On ->
                 Triple("On, through ${push.distributor}", "Last push ${moment(push.lastPushAt) ?: "not yet received"}", false)
         }
-        SettingRow(title, summary, warn = warn)
+        SettingRow(title, summary, R.drawable.ic_tabler_bolt, warn = warn)
     }
 }
 
@@ -217,7 +219,7 @@ private fun BackgroundCheckCard(system: SystemState, context: Context, selected:
     )
     ChoiceCard(choices, selected, onSelect) {
         Divider()
-        SettingRow("Last check", moment(system.lastCheck) ?: "Not run yet")
+        SettingRow("Last check", moment(system.lastCheck) ?: "Not run yet", R.drawable.ic_tabler_history)
         Divider()
         val (title, summary) = when (system.battery) {
             BatteryState.Restricted ->
@@ -227,7 +229,12 @@ private fun BackgroundCheckCard(system: SystemState, context: Context, selected:
             BatteryState.Unrestricted ->
                 "Battery: unrestricted" to "Checks run on time. Tap to change it in the app's info"
         }
-        SettingRow(title, summary, warn = system.battery == BatteryState.Restricted) {
+        val icon = when (system.battery) {
+            BatteryState.Restricted -> R.drawable.ic_tabler_battery_exclamation
+            BatteryState.Optimized -> R.drawable.ic_tabler_battery_eco
+            BatteryState.Unrestricted -> R.drawable.ic_tabler_battery_4
+        }
+        SettingRow(title, summary, icon, warn = system.battery == BatteryState.Restricted) {
             context.startActivity(batteryIntent(context, system.battery))
         }
     }
@@ -237,17 +244,17 @@ private fun BackgroundCheckCard(system: SystemState, context: Context, selected:
 private fun AboutCard(context: Context, onOpenLicenses: () -> Unit, onReportProblem: () -> Unit) {
     val open = { url: String -> context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) }
     SettingsCard {
-        SettingRow("Version", "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
+        SettingRow("Version", "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", R.drawable.ic_tabler_info_circle)
         Divider()
-        SettingRow("Status page", STATUS_PAGE.removePrefix("https://")) { open(STATUS_PAGE) }
+        SettingRow("Status page", STATUS_PAGE.removePrefix("https://"), R.drawable.ic_tabler_activity_heartbeat) { open(STATUS_PAGE) }
         Divider()
-        SettingRow("Source code", "GPL-3.0-or-later, on ${SOURCE.removePrefix("https://").substringBefore('/')}") { open(SOURCE) }
+        SettingRow("Source code", "GPL-3.0-or-later, on ${SOURCE.removePrefix("https://").substringBefore('/')}", R.drawable.ic_tabler_code) { open(SOURCE) }
         Divider()
-        SettingRow("Privacy policy", PRIVACY.removePrefix("https://")) { open(PRIVACY) }
+        SettingRow("Privacy policy", PRIVACY.removePrefix("https://"), R.drawable.ic_tabler_shield_lock) { open(PRIVACY) }
         Divider()
-        SettingRow("Report a problem", "Opens a new support ticket, with the app and phone filled in", onClick = onReportProblem)
+        SettingRow("Report an issue", "Opens a new support ticket, with the app and phone filled in", R.drawable.ic_tabler_bug, onClick = onReportProblem)
         Divider()
-        SettingRow("Open-source licenses", "The libraries the app is built with", onClick = onOpenLicenses)
+        SettingRow("Open-source licenses", "The libraries and icons the app is built with", R.drawable.ic_tabler_license, onClick = onOpenLicenses)
     }
 }
 
@@ -359,17 +366,23 @@ private fun Divider() {
     HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = palette.Surface0)
 }
 
-// A title over a smaller summary; tappable when it has an onClick.
+// A title over a smaller summary, after an icon (Tabler Icons outlines, as in other Rootiest projects); tappable when it
+// has an onClick.
 @Composable
-private fun SettingRow(title: String, summary: String, warn: Boolean = false, onClick: (() -> Unit)? = null) {
-    Column(
+private fun SettingRow(title: String, summary: String, @DrawableRes icon: Int, warn: Boolean = false, onClick: (() -> Unit)? = null) {
+    Row(
         Modifier.fillMaxWidth()
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
             .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(title, color = if (warn) palette.Yellow else palette.Text)
-        Spacer(Modifier.height(2.dp))
-        Text(summary, style = MaterialTheme.typography.bodySmall, color = palette.Subtext0)
+        Icon(painterResource(icon), contentDescription = null, Modifier.size(24.dp), tint = if (warn) palette.Yellow else palette.Subtext0)
+        Spacer(Modifier.width(16.dp))
+        Column {
+            Text(title, color = if (warn) palette.Yellow else palette.Text)
+            Spacer(Modifier.height(2.dp))
+            Text(summary, style = MaterialTheme.typography.bodySmall, color = palette.Subtext0)
+        }
     }
 }
 

@@ -42,7 +42,7 @@ import dev.rootiest.status.data.MAX_SUBJECT
 import dev.rootiest.status.data.NewTicket
 
 // Opening a ticket: the web desk's form, with its choices from the desk (GET /api/form) so the services are only the ones this person may
-// see. A prefill (Settings > About > Report a problem) only fills it in; the person still reads it and presses Send. The desk checks it
+// see. A prefill (Settings > About > Report an issue) only fills it in; the person still reads it and presses Send. The desk checks it
 // again and its refusals are shown above the form.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
