@@ -68,9 +68,20 @@ last=$(git describe --tags --abbrev=0 2>/dev/null || true)
 git log --merges --format=%s ${last:+"$last..HEAD"} |
   sed -n "s/^Merge pull request '\(.*\)' (#\([0-9]*\)).*/- \1 (#\2)/p" > "$out/notes.md"
 
-# Play's release notes: the same pull requests, without the commit type, the PR number or the version bump
-sed -E -e '/^- chore: version /d' -e 's/^- [a-z]+(\([^)]*\))?!?: /- /' -e 's/ \(#[0-9]+\)$//' "$out/notes.md" |
-  awk '{ $2 = toupper(substr($2, 1, 1)) substr($2, 2); print }' > "$out/play-notes.txt"
+# names that the lowercase pull request titles spell in lowercase, spelled properly in Play's notes (a word inside a
+# hyphenated name, such as rootiest-hub, stays as it is)
+play_names=('rootiest notes:Rootiest Notes' 'rootiest status:Rootiest Status' rootiestid:RootiestID rootiest:Rootiest
+  'pocket id:Pocket ID' 'moe memos:Moe Memos' catppuccin:Catppuccin mocha:Mocha latte:Latte 'google play:Google Play'
+  'wear os:Wear OS' android:Android gitea:Gitea obtainium:Obtainium unifiedpush:UnifiedPush readme:README)
+play_names_sed=()
+for name in "${play_names[@]}"; do
+  play_names_sed+=(-e "s/(^|[^[:alnum:]-])${name%%:*}(\$|[^[:alnum:]-])/\\1${name#*:}\\2/g")
+done
+# Play's release notes: only the pull requests people notice in the app (feat, fix and perf, but not those scoped to
+# build, ci, deps or release, which change the tooling), without the commit type or the PR number
+grep -E '^- (feat|fix|perf)(\([^)]*\))?!?: ' "$out/notes.md" | grep -Ev '^- [a-z]+\((build|ci|deps|release)\)' |
+  sed -E -e 's/^- [a-z]+(\([^)]*\))?!?: /- /' -e 's/ \(#[0-9]+\)$//' | sed -E "${play_names_sed[@]}" |
+  awk '{ $2 = toupper(substr($2, 1, 1)) substr($2, 2); print }' > "$out/play-notes.txt" || true
 # the service account key for the Play publishing API (docs/README.md, "Google Play")
 play_key=${PLAY_KEY:-$HOME/.local/share/android/play-publisher.json}
 
@@ -79,7 +90,7 @@ if [ $dry = 1 ]; then
   cat "$out/notes.md"
   if [ -f "$play_key" ]; then
     echo "release: Play release notes:"
-    cat "$out/play-notes.txt"
+    if [ -s "$out/play-notes.txt" ]; then cat "$out/play-notes.txt"; else echo "(none: no app changes)"; fi
     scripts/play-upload.py --package dev.rootiest.status --key "$play_key" --check
   fi
   echo "release: dry run, nothing published ($out)"

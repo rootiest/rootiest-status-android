@@ -682,10 +682,12 @@ and CI holds no secrets.
   be a different certificate, so a Play update could not replace an installed Obtainium build,
   or the reverse, and the App Links in `assetlinks.json` would stop verifying.
   - After the Gitea release, `release.sh` releases both bundles to internal testing with
-    `scripts/play-upload.py`, in one Play edit, with the pull requests as release notes (without
-    their type, number or the version bump, and cut to Play's 500 characters). `--dry-run` signs
-    in and lists the tracks instead (`play-upload.py --check`). If the upload fails, the Gitea
-    release is already out, and `release.sh` prints the command to retry it.
+    `scripts/play-upload.py`, in one Play edit. Its release notes list only the pull requests
+    people notice in the app: `feat`, `fix` and `perf`, but not those scoped to `build`, `ci`,
+    `deps` or `release`. They drop the type and number, spell product names such as RootiestID
+    properly (the `play_names` list in `release.sh`), and are cut to Play's 500 characters.
+    `--dry-run` signs in and lists the tracks instead (`play-upload.py --check`). If the upload
+    fails, the Gitea release is already out, and `release.sh` prints the command to retry it.
   - It signs in as the service account `rootiest-apps-publish@rootiest-apps.iam.gserviceaccount.com`
     (Google Cloud project `rootiest-apps`, Google Play Android Developer API enabled), which
     Play Console's Users and permissions lets release both Rootiest apps. Its key is a JSON
