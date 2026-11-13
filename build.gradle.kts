@@ -10,7 +10,7 @@ plugins {
 }
 
 // The version scripts/release.sh tags (v<appVersion>), for the phone app and the watch app alike.
-extra["appVersion"] = "1.21.0"
+extra["appVersion"] = "1.22.0"
 
 // Each versionCode follows from it: major, two digits of minor, two of patch, then one for the kind of device, so 1.2.3 is 102030 on
 // the phone and 102031 on the watch. Google Play needs the two to differ, and gives a device the highest code it can run, so the
