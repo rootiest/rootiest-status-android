@@ -10,6 +10,14 @@ plugins {
 }
 
 // the version and the release key, shared with the watch app (the root build.gradle.kts)
+// Settings > About > Open-source licenses also lists what is not a Gradle dependency: aboutlibraries/ holds the Tabler
+// Icons the settings rows use (res/drawable/ic_tabler_*.xml) and their license
+aboutLibraries {
+    collect {
+        configPath = file("aboutlibraries")
+    }
+}
+
 val appVersion = rootProject.extra["appVersion"] as String
 val releaseKey = rootProject.extra["releaseKey"] as java.util.Properties?
 
