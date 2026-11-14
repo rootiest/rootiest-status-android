@@ -1,5 +1,5 @@
 # GitHub-only workflow. Why Gitea could not run it: the Android build needs the Android SDK and a Gradle
-# daemon with about 2 GB of heap, and there is no heavy-build Gitea runner (rootiest-server's were removed
+# daemon with about 2 GB of heap, and there is no heavy-build Gitea runner (hestia's were removed
 # 2026-10-09); GitHub's ubuntu image already carries the SDK with its licences accepted.
 # It runs on the branches the Gitea push mirror copies to GitHub.
 name: CI
