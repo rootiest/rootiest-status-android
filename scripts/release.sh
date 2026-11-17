@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # release.sh [--dry-run]: build the signed release APKs and publish them as the Gitea release v<appVersion>, then release the app
-# bundles on Google Play's internal testing tracks (phone and Wear OS) when this machine has the Play key; without it they wait in
-# build/play/ for Play Console.
+# bundles on Google Play's internal and closed testing tracks (phone and Wear OS) when this machine has the Play key; without it
+# they wait in build/play/ for Play Console.
 # Run on the machine that holds the release key (docs/README.md, "Releases"), from a clean main that matches origin/main,
 # after bumping appVersion in build.gradle.kts through a PR. --dry-run builds and checks everything but publishes nothing.
 
@@ -104,9 +104,11 @@ gt release create "$tag" --repo "$REPO" --target "$(git rev-parse HEAD)" --title
   --notes-file "$out/notes.md" --asset "$out/rootiest-status-$ver.apk" --asset "$out/wear-rootiest-status-$ver.apk"
 echo "release: published https://git.rootiest.dev/$REPO/releases/tag/$tag"
 play_upload=(scripts/play-upload.py --package dev.rootiest.status --key "$play_key" --notes "$out/play-notes.txt"
-  "$play/rootiest-status-$ver.aab" "$play/wear-rootiest-status-$ver.aab=wear:internal")
+  "$play/rootiest-status-$ver.aab=internal,alpha"
+  "$play/wear-rootiest-status-$ver.aab=wear:internal,wear:Closed testing - Wear OS")
 if [ -f "$play_key" ]; then
-  "${play_upload[@]}" || die "the Gitea release is out, but not the Play one; retry with: ${play_upload[*]}"
+  printf -v retry '%q ' "${play_upload[@]}"
+  "${play_upload[@]}" || die "the Gitea release is out, but not the Play one; retry with: ${retry% }"
 else
   echo "release: no Play key at $play_key: upload the bundles in $play/ in Play Console"
 fi

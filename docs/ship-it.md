@@ -44,7 +44,8 @@ name; anything left out uses that step's defaults.
 - No automated commits follow a merge.
 
 ## deploy-it
-Deploying means publishing a signed release on Gitea, which phones pick up through Obtainium
+Deploying means publishing a signed release on Gitea, which phones pick up through Obtainium,
+and the same version on Google Play's internal and closed testing tracks, phone and Wear OS
 (`docs/README.md`, Releases). Always ask before releasing.
 
 **Nothing to deploy** when nothing in `app/`, `core/`, `wear/` or the Gradle build changed since
@@ -59,9 +60,13 @@ the last release tag.
    Show the version and the release notes it prints.
 3. **Release:** `scripts/release.sh`. It runs the tests, builds both APKs, refuses any not
    signed with the release key (which only this machine holds, through `rootiest.signing` in
-   `~/.gradle/gradle.properties`), and creates the Gitea release `v<version>`.
+   `~/.gradle/gradle.properties`), creates the Gitea release `v<version>`, then releases both
+   bundles on Google Play's internal and closed testing tracks. If only the Play upload fails,
+   run the retry command it prints.
 4. **Verify:** the release page it prints lists `rootiest-status-<version>.apk` and
-   `wear-rootiest-status-<version>.apk`.
+   `wear-rootiest-status-<version>.apk`, and
+   `scripts/play-upload.py --package dev.rootiest.status --check` lists the new version on
+   `internal`, `alpha`, `wear:internal` and `wear:Closed testing - Wear OS`.
 
 **Rollback:** none. A phone cannot install an older version over a newer one, so fix a bad
 release with a new patch release. Never delete a published release unless the user asks.

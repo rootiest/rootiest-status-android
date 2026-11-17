@@ -680,17 +680,21 @@ and CI holds no secrets.
 - **Google Play**: `scripts/release.sh` also leaves `rootiest-status-<version>.aab` and
   `wear-rootiest-status-<version>.aab` in `build/play/`, after the same check of the
   certificate. Both apps share one Play entry, as they share a package name: the phone's
-  bundle goes to the `internal` track and the watch's to `wear:internal`. Play signs with the
+  bundle goes to the `internal` and `alpha` tracks (internal and closed testing) and the
+  watch's to `wear:internal` and `wear:Closed testing - Wear OS`, each uploaded once. Play signs with the
   release key itself (Play App Signing set to the existing key): a key Google generates would
   be a different certificate, so a Play update could not replace an installed Obtainium build,
   or the reverse, and the App Links in `assetlinks.json` would stop verifying.
-  - After the Gitea release, `release.sh` releases both bundles to internal testing with
-    `scripts/play-upload.py`, in one Play edit. Its release notes list only the pull requests
+  - After the Gitea release, `release.sh` releases both bundles to internal and closed testing
+    with `scripts/play-upload.py`, in one Play edit. Its release notes list only the pull requests
     people notice in the app: `feat`, `fix` and `perf`, but not those scoped to `build`, `ci`,
     `deps` or `release`. They drop the type and number, spell product names such as RootiestID
     properly (the `play_names` list in `release.sh`), and are cut to Play's 500 characters.
     `--dry-run` signs in and lists the tracks instead (`play-upload.py --check`). If the upload
     fails, the Gitea release is already out, and `release.sh` prints the command to retry it.
+  - A version already on internal testing goes to closed testing on its own, with its notes,
+    with `scripts/play-upload.py --package dev.rootiest.status --promote internal=alpha
+    --promote 'wear:internal=wear:Closed testing - Wear OS'` (nothing is uploaded).
   - It signs in as the service account `rootiest-apps-publish@rootiest-apps.iam.gserviceaccount.com`
     (Google Cloud project `rootiest-apps`, Google Play Android Developer API enabled), which
     Play Console's Users and permissions lets release both Rootiest apps. Its key is a JSON

@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-"""play-upload.py: upload app bundles to Google Play and release them on a testing track.
+"""play-upload.py: upload app bundles to Google Play and release them on testing tracks.
 
-  play-upload.py --package PKG [--key FILE] [--notes FILE] BUNDLE[=TRACK] ...
+  play-upload.py --package PKG [--key FILE] [--notes FILE] BUNDLE[=TRACK[,TRACK...]] ... [--promote FROM=TO] ...
+  play-upload.py --package PKG [--key FILE] --promote FROM=TO ...
   play-upload.py --package PKG [--key FILE] --check
 
-Each BUNDLE goes to TRACK (default: internal; the watch's Wear OS track is wear:internal), as one release per track
-with every version code uploaded for it, rolled out to all of that track's testers. Everything happens in one Play
-edit, so either all of it is published or none of it. --notes is a text file of release notes (en-US, cut to Play's
-500 characters). --check signs in and lists the tracks with their latest release, changing nothing.
+Each BUNDLE is uploaded once and released on each TRACK (default: internal), as one release per track with every
+version code uploaded for it, rolled out to all of that track's testers. The tracks are internal (internal testing)
+and alpha (closed testing), and on a Wear OS bundle wear:internal and "wear:Closed testing - Wear OS". --promote
+FROM=TO releases FROM's latest release (its version codes, name and notes) on TO as well, with nothing uploaded: a
+version already on internal testing goes to closed testing with --promote internal=alpha. Everything happens in one
+Play edit, so either all of it is published or none of it. --notes is a text file of release notes (en-US, cut to
+Play's 500 characters). --check signs in and lists the tracks with their latest release, changing nothing.
 
 The key is a service account's JSON key with access to the app in Play Console (docs/README.md, "Google Play");
 --key defaults to $PLAY_KEY, then ~/.local/share/android/play-publisher.json. Needs only Python's standard library
@@ -87,6 +91,11 @@ class ApiError(Exception):
         self.message = message
 
 
+def track_path(track):
+    """A track's name as a URL path segment: a Wear OS closed-testing track's name has spaces."""
+    return urllib.parse.quote(track, safe=":")
+
+
 def play_notes(path):
     if not path:
         return None
@@ -108,10 +117,11 @@ def main():
     parser.add_argument("--key", default=os.environ.get("PLAY_KEY", DEFAULT_KEY))
     parser.add_argument("--notes")
     parser.add_argument("--check", action="store_true")
-    parser.add_argument("bundles", nargs="*", metavar="BUNDLE[=TRACK]")
+    parser.add_argument("--promote", action="append", default=[], metavar="FROM=TO")
+    parser.add_argument("bundles", nargs="*", metavar="BUNDLE[=TRACK[,TRACK...]]")
     args = parser.parse_args()
-    if not args.check and not args.bundles:
-        die("no bundles to upload (or --check)")
+    if not args.check and not args.bundles and not args.promote:
+        die("no bundles to upload or releases to promote (or --check)")
     try:
         key = json.load(open(args.key))
     except OSError as e:
@@ -119,10 +129,16 @@ def main():
 
     uploads = []
     for spec in args.bundles:
-        path, _, track = spec.partition("=")
+        path, _, tracks = spec.partition("=")
         if not os.path.isfile(path):
             die(f"{path}: no such bundle")
-        uploads.append((path, track or "internal"))
+        uploads.append((path, [t.strip() for t in (tracks or "internal").split(",") if t.strip()]))
+    promotes = []
+    for spec in args.promote:
+        source, _, target = spec.partition("=")
+        if not source or not target:
+            die(f"--promote {spec}: give it as FROM=TO, e.g. internal=alpha")
+        promotes.append((source, target))
 
     app = f"{API}/{args.package}"
     try:
@@ -142,21 +158,33 @@ def main():
             return
 
         tracks = {}
-        for path, track in uploads:
+        for path, names in uploads:
             print(f"play-upload: uploading {os.path.basename(path)} ({os.path.getsize(path) // 1024} KiB)")
             data = open(path, "rb").read()
             bundle = call("POST", f"{UPLOAD}/{args.package}/edits/{edit}/bundles?uploadType=media", data,
                           {"Content-Type": "application/octet-stream"}, token)
             if bundle.get("sha256") and bundle["sha256"] != hashlib.sha256(data).hexdigest():
                 raise ApiError(0, f"{path}: Play received different bytes than were sent")
-            tracks.setdefault(track, []).append(str(bundle["versionCode"]))
+            for track in names:
+                tracks.setdefault(track, []).append(str(bundle["versionCode"]))
 
         notes = play_notes(args.notes)
+        releases = {}
         for track, codes in tracks.items():
             release = {"versionCodes": codes, "status": "completed"}
             if notes:
                 release["releaseNotes"] = [{"language": "en-US", "text": notes}]
-            call("PUT", f"{app}/edits/{edit}/tracks/{track}", {"track": track, "releases": [release]}, token=token)
+            releases[track] = release
+        for source, target in promotes:
+            found = call("GET", f"{app}/edits/{edit}/tracks/{track_path(source)}", token=token).get("releases", [])
+            if not found:
+                raise ApiError(0, f"{source} has no release to promote")
+            latest = found[0]
+            releases[target] = {"versionCodes": latest["versionCodes"], "status": "completed",
+                                **{k: latest[k] for k in ("name", "releaseNotes") if k in latest}}
+        for track, release in releases.items():
+            call("PUT", f"{app}/edits/{edit}/tracks/{track_path(track)}", {"track": track, "releases": [release]},
+                 token=token)
 
         try:
             call("POST", f"{app}/edits/{edit}:commit", token=token)
@@ -167,8 +195,8 @@ def main():
                 raise
             call("POST", f"{app}/edits/{edit}:commit?changesNotSentForReview=true", token=token)
             print("play-upload: committed without sending for review: check Publishing overview in Play Console")
-        for track, codes in tracks.items():
-            print(f"play-upload: {args.package} {track}: released version {', '.join(codes)}")
+        for track, release in releases.items():
+            print(f"play-upload: {args.package} {track}: released version {', '.join(release['versionCodes'])}")
     except ApiError as e:
         try:
             call("DELETE", f"{app}/edits/{edit}", token=token)
