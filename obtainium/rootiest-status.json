@@ -1,0 +1,13 @@
+{
+  "apps": [
+    {
+      "id": "dev.rootiest.status",
+      "url": "https://git.rootiest.dev/rootiest/rootiest-status-android",
+      "author": "rootiest",
+      "name": "Rootiest Status",
+      "preferredApkIndex": 0,
+      "additionalSettings": "{\"includePrereleases\":false,\"includeDrafts\":false,\"fallbackToOlderReleases\":true,\"filterReleaseTitlesByRegEx\":\"\",\"invertReleaseTitlesFilter\":false,\"filterReleaseNotesByRegEx\":\"\",\"invertReleaseNotesFilter\":false,\"verifyLatestTag\":false,\"sortMethodChoice\":\"date\",\"useLatestAssetDateAsReleaseDate\":false,\"releaseTitleAsVersion\":false,\"versionExtractionRegEx\":\"\",\"matchGroupToUse\":\"\",\"versionDetection\":true,\"releaseDateAsVersion\":false,\"useVersionCodeAsOSVersion\":false,\"apkFilterRegEx\":\"^rootiest-status-[0-9]\",\"invertAPKFilter\":false,\"autoApkFilterByArch\":true,\"minimumUpdateAgeDays\":\"\",\"exemptFromBackgroundUpdates\":false,\"skipUpdateNotifications\":false,\"refreshBeforeDownload\":false,\"detectionDateAsReleaseDate\":false,\"trackOnly\":false,\"appName\":\"\",\"appAuthor\":\"\",\"installerMode\":\"\",\"shizukuPretendToBeGooglePlay\":false,\"allowInsecure\":false,\"allowedSigningCertHashes\":\"\",\"about\":\"\",\"updateHealthStaleRelease\":\"\",\"updateHealthStaleVersion\":\"\",\"updateHealthFailedChecks\":\"\",\"updateHealthArchived\":\"\",\"updateHealthFilteredReleases\":\"\"}",
+      "overrideSource": "Codeberg"
+    }
+  ]
+}
