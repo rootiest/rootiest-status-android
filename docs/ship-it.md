@@ -36,8 +36,12 @@ name; anything left out uses that step's defaults.
 
 ## merge-it
 - Merge method: merge commit.
-- Always ask before merging: the maintainer merges every PR. An approval covers the head commit
-  CI checked; a new push needs a new approval.
+- Docs and housekeeping PRs are pre-approved: merge without asking once the GitHub mirror's CI
+  run passed on the head commit (see verify-it; the Gitea status always shows the job
+  skipped), when every file the PR changes is Markdown (`*.md`), under `obtainium/`, or
+  `.gitignore`. A PR that changes this file is never pre-approved.
+- Ask before merging any other PR: the maintainer approves each one. An approval covers the
+  head commit CI checked; a new push needs a new approval.
 - After the merge, label each issue the PR closed `Reviewed/Fixed`.
 
 ## sync-it
