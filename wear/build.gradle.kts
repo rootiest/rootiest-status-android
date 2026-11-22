@@ -1,5 +1,6 @@
 // The Wear OS app: a tile with the overall status and what is wrong, and a screen with the full list. It gets each snapshot
-// from the phone app over the Wearable Data Layer, so it needs no network or sign-in of its own (docs/README.md, "Wear OS").
+// from the phone app over the Wearable Data Layer, and fetches the public status itself only while the phone's is stale
+// (docs/README.md, "Wear OS").
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -69,6 +70,7 @@ dependencies {
     implementation(libs.wear.complications.data.source.ktx)
     implementation(libs.play.services.wearable)
     implementation(libs.kotlinx.coroutines.play.services)
+    implementation(libs.work.runtime.ktx)
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
     testImplementation(platform(libs.compose.bom))

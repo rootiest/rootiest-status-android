@@ -13,6 +13,8 @@ import dev.rootiest.status.data.Event
 import dev.rootiest.status.data.GroupView
 import dev.rootiest.status.data.ServiceView
 import dev.rootiest.status.data.StatusView
+import dev.rootiest.status.data.WatchShown
+import dev.rootiest.status.data.WatchSource
 import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -49,6 +51,15 @@ class WatchScreensTest {
         compose.onNodeWithText("Failover active").assertIsDisplayed()
         compose.onNodeWithText("Updated 5 min ago").assertIsDisplayed()
         compose.onRoot().captureRoboImage("src/test/screenshots/watch-list.png")
+    }
+
+    @Test
+    fun aSnapshotTheWatchFetchedSaysItIsThePublicView() {
+        val shown = WatchShown(view.copy(Failover = false, Events = null), WatchSource.Watch)
+        compose.setContent { MaterialTheme { AppScaffold(timeText = {}) { StatusList(shown.view, now, shown.sourceNote) { _, _ -> } } } }
+        compose.onNodeWithText("Updated 5 min ago").assertIsDisplayed()
+        compose.onNodeWithText("From the watch: public view, no servers").assertIsDisplayed()
+        compose.onRoot().captureRoboImage("src/test/screenshots/watch-list-from-watch.png")
     }
 
     @Test

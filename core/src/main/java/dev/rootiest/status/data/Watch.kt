@@ -1,5 +1,6 @@
 package dev.rootiest.status.data
 
+import java.time.Duration
 import java.time.Instant
 import kotlinx.serialization.json.Json
 
@@ -75,3 +76,41 @@ fun StatusView.watchComplication(): WatchComplication {
         total = services.size,
     )
 }
+
+// How old the phone's snapshot may get before the watch fetches the public status itself (out of Bluetooth range, the phone off,
+// or no Google Play services). Twice the phone's 15-minute job, so a phone in range keeps the watch from fetching at all.
+val WATCH_STALE_AFTER: Duration = Duration.ofMinutes(30)
+
+// Whether the watch should fetch the public status itself: no snapshot from the phone, one whose time does not parse, or one
+// made more than staleAfter before now. A time ahead of now (the watch's clock was set back) counts as stale too, or the watch
+// would never fetch until the phone came back.
+fun phoneSnapshotStale(phone: StatusView?, now: Instant, staleAfter: Duration = WATCH_STALE_AFTER): Boolean {
+    val made = phone?.madeAt() ?: return true
+    val age = Duration.between(made, now)
+    return age.isNegative || age > staleAfter
+}
+
+// Where the snapshot the watch shows came from.
+enum class WatchSource { Phone, Watch }
+
+data class WatchShown(val view: StatusView, val source: WatchSource) {
+    // the list's line saying the watch fetched it itself: the public view, so no Servers section even when the phone is signed in
+    val sourceNote: String?
+        get() = when (source) {
+            WatchSource.Phone -> null
+            WatchSource.Watch -> if (view.Hosts == null) "From the watch: public view, no servers" else "From the watch"
+        }
+}
+
+// Which snapshot the watch shows: the phone's while it is fresh (it may hold the Servers section), otherwise whichever of the
+// two the hub made last. A phone snapshot newer than the watch's own fetch wins again as soon as it arrives.
+fun watchShown(phone: StatusView?, fetched: StatusView?, now: Instant, staleAfter: Duration = WATCH_STALE_AFTER): WatchShown? {
+    if (fetched == null) return phone?.let { WatchShown(it, WatchSource.Phone) }
+    if (phone == null) return WatchShown(fetched, WatchSource.Watch)
+    if (!phoneSnapshotStale(phone, now, staleAfter)) return WatchShown(phone, WatchSource.Phone)
+    val phoneAt = phone.madeAt()
+    val fetchedAt = fetched.madeAt() ?: return WatchShown(phone, WatchSource.Phone)
+    return if (phoneAt == null || fetchedAt > phoneAt) WatchShown(fetched, WatchSource.Watch) else WatchShown(phone, WatchSource.Phone)
+}
+
+private fun StatusView.madeAt(): Instant? = runCatching { Instant.parse(Now) }.getOrNull()
