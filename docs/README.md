@@ -294,8 +294,9 @@ something is down).
 ## Wear OS
 
 The watch app (module `:wear`) has a **Rootiest Status** tile, a watch-face complication, a list screen and a screen for each service. It
-shows what the phone app last fetched, so it needs the phone app, but no network or
-sign-in of its own: the Servers section appears when the phone is signed in.
+shows what the phone app last fetched, so it needs the phone app, but no sign-in of its
+own: the Servers section appears when the phone is signed in. While the phone's snapshot is
+stale it fetches the public status itself (see **When the phone is away** below).
 
 - **How the data gets there**: after each good fetch (the background job, a push, or a
   refresh in the app) the phone puts the snapshot on the Wearable Data Layer
@@ -304,6 +305,23 @@ sign-in of its own: the Servers section appears when the phone is signed in.
   watch app reads the item the phone left there. The Data Layer runs over Google Play
   services, and only connects apps with the same package name and signing key, which is
   why both apps are `dev.rootiest.status` signed with the release key.
+- **When the phone is away** (`WatchFetchWorker.kt`): out of Bluetooth range, with the
+  phone off, or without Google Play services, no snapshot arrives. A WorkManager job on the
+  watch runs every 15 minutes (the shortest period; there is no push on Wear OS) with a
+  network constraint, scheduled from each tile and complication request and when the list
+  opens. It does nothing while the phone's snapshot is fresh, so a phone in range costs no
+  request. Once the phone's snapshot was made more than 30 minutes ago (`WATCH_STALE_AFTER`
+  and `phoneSnapshotStale` in `data/Watch.kt`; no snapshot, an unreadable time, or one
+  ahead of the watch's clock count as stale too), it fetches `/api/status` with `StatusApi`,
+  signed out, saves it in `watch-fetch/last-status.json` and redraws the tile and
+  complication. A failed fetch waits for the next period. Which copy is shown is
+  `watchShown`: the phone's while it is fresh, otherwise whichever the hub made last, so the
+  phone's next snapshot wins again (and deletes the watch's copy) as soon as it arrives. The
+  watch's copy is the public view, so the list says "From the watch: public view, no
+  servers" under its age. With the phone's interval set to push only, the phone sends a
+  snapshot only on a push, so the watch fetches the public view between pushes. The
+  signed-in view without the phone is not supported: it would need a sign-in of the watch's
+  own.
 - **The tile** (`StatusTile.kt`, ProtoLayout Material 3): the headline in its level's
   colour and the first three problems, then "and N more" (`watchSummary` in
   `data/Watch.kt`, built from the Everything widget's content). The recent messages show
@@ -317,7 +335,7 @@ sign-in of its own: the Servers section appears when the phone is signed in.
   opens the list; the face's editor shows a sample until the first snapshot. The
   mapping is `watchComplication` in `data/Watch.kt`.
 - **The list** (`StatusActivity.kt`, Wear Compose): the headline, "Failover active" when
-  it is, how old the snapshot is, the latest message, then the servers and each group with
+  it is, how old the snapshot is, where it came from when the watch fetched it itself, the latest message, then the servers and each group with
   problems first, as the phone's Problems first setting arranges them, and the earlier
   messages. Times are relative, as the watch has no Settings of its own.
 - **A service** (`ServiceActivity.kt`), opened by a tap on its row: its state, uptime,
@@ -531,9 +549,9 @@ Two modules, package `dev.rootiest.status`, Kotlin with Jetpack Compose and Mate
 | `data/Changes.kt` | what changed between two fetches, less the muted names |
 | `data/Damping.kt` | `NotifyAfter` and `damp`: outages held until they have lasted the Settings delay |
 | `data/WidgetContent.kt` | `WidgetScope` and `widgetContent`: a widget's headline and rows for everything, one group or the servers |
-| `data/Watch.kt` | `WatchSnapshot` (the Data Layer path, key and JSON), `watchSummary` and `watchComplication`: what the watch tile and complication show |
+| `data/Watch.kt` | `WatchSnapshot` (the Data Layer path, key and JSON), `watchSummary` and `watchComplication`: what the watch tile and complication show; `phoneSnapshotStale` and `watchShown`: when the watch fetches the public status itself and which copy it shows |
 | `Watch.kt` | sends each new snapshot to the watch over the Wearable Data Layer |
-| `wear/.../StatusTile.kt`, `StatusComplication.kt`, `SnapshotListener.kt`, `Snapshots.kt`, `StatusActivity.kt`, `ServiceActivity.kt` | the watch app: its tile, its complication, receiving snapshots, its saved copy, its list screen, a service's screen |
+| `wear/.../StatusTile.kt`, `StatusComplication.kt`, `SnapshotListener.kt`, `Snapshots.kt`, `WatchFetchWorker.kt`, `StatusActivity.kt`, `ServiceActivity.kt` | the watch app: its tile, its complication, receiving snapshots, its saved copies, its own fetch while the phone's snapshot is stale, its list screen, a service's screen |
 | `data/TileContent.kt` | `tileContent`: the tile's subtitle and level, from the Everything widget's content |
 | `StatusTileService.kt` | the Quick Settings tile: reads the saved snapshot, opens the app or its Settings |
 | `widget/WidgetConfigActivity.kt` | the screen that chooses what one widget shows; `WidgetStore` keeps the choice per widget |
