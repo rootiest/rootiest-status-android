@@ -23,7 +23,8 @@ import dev.rootiest.status.data.WatchComplication
 import dev.rootiest.status.data.watchComplication
 
 // The watch-face complication: the level's icon with "OK" or how many are down, the services up out of all of them as a gauge,
-// or the icon alone. It never polls: Snapshots.save asks for an update when the phone sends a new snapshot. A tap opens the list.
+// or the icon alone. It never polls: Snapshots asks for an update when the phone sends a new snapshot or the watch fetched the
+// public status itself. A tap opens the list.
 class StatusComplication : SuspendingComplicationDataSourceService() {
     override suspend fun onComplicationRequest(request: ComplicationRequest): ComplicationData =
         Snapshots.latest(this)?.watchComplication()?.let { data(it, request.complicationType, open()) } ?: NoDataComplicationData()

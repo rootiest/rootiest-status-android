@@ -32,10 +32,10 @@ import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
 import dev.rootiest.status.data.Event
 import dev.rootiest.status.data.ServiceListMode
-import dev.rootiest.status.data.StatusCache
 import dev.rootiest.status.data.StatusView
 import dev.rootiest.status.data.TimeFormat
 import dev.rootiest.status.data.TimeStyle
+import dev.rootiest.status.data.WatchShown
 import dev.rootiest.status.data.arranged
 import dev.rootiest.status.data.isProblem
 import dev.rootiest.status.data.recentMessages
@@ -43,30 +43,33 @@ import dev.rootiest.status.data.updatedAgo
 import java.time.Instant
 
 // The full list on the watch: the headline and how old it is, the latest message, then the servers (when the phone is signed in)
-// and each group, problems first, and the earlier messages. It shows the watch's copy of the phone's last snapshot, read again
-// each time the screen comes back. A tap on a service opens it (ServiceActivity).
+// and each group, problems first, and the earlier messages. It shows the watch's copy of the phone's last snapshot, or the public
+// status the watch fetched itself while that was stale (Snapshots), read again each time the screen comes back. A tap on a
+// service opens it (ServiceActivity).
 class StatusActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        WatchFetchWorker.schedule(this)
         setContent {
-            var view by remember { mutableStateOf<StatusView?>(null) }
+            var shown by remember { mutableStateOf<WatchShown?>(null) }
             var now by remember { mutableStateOf(Instant.now()) }
             LifecycleResumeEffect(Unit) {
-                view = StatusCache(this@StatusActivity).load()
                 now = Instant.now()
+                shown = Snapshots.saved(this@StatusActivity, now)
                 onPauseOrDispose {}
             }
             MaterialTheme {
                 AppScaffold {
-                    StatusList(view, now) { group, name -> ServiceActivity.open(this@StatusActivity, group, name) }
+                    StatusList(shown?.view, now, shown?.sourceNote) { group, name -> ServiceActivity.open(this@StatusActivity, group, name) }
                 }
             }
         }
     }
 }
 
+// [sourceNote] says when the watch fetched the snapshot itself: the public view, without the Servers section.
 @Composable
-internal fun StatusList(view: StatusView?, now: Instant, onOpenService: (group: String, name: String) -> Unit) {
+internal fun StatusList(view: StatusView?, now: Instant, sourceNote: String? = null, onOpenService: (group: String, name: String) -> Unit) {
     val state = rememberTransformingLazyColumnState()
     ScreenScaffold(scrollState = state) { padding ->
         TransformingLazyColumn(state = state, contentPadding = padding) {
@@ -81,6 +84,7 @@ internal fun StatusList(view: StatusView?, now: Instant, onOpenService: (group: 
             }
             if (view?.Failover == true) item { Note("Failover active", Color(levelColor("warn"))) }
             view?.updatedAgo(now)?.let { updated -> item { Note(updated, Muted) } }
+            sourceNote?.let { note -> item { Note(note, Color(levelColor("standby"))) } }
 
             val messages = view?.recentMessages().orEmpty()
             messages.firstOrNull()?.let { latest ->

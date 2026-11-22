@@ -3,11 +3,14 @@
 
     <uses-feature android:name="android.hardware.type.watch" />
 
+    <!-- the public status, fetched only while the phone's snapshot is stale (WatchFetchWorker) -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
         android:theme="@android:style/Theme.DeviceDefault">
-        <!-- it shows what the phone app sends, so it needs the phone app -->
+        <!-- it shows what the phone app sends (the watch's own fetch is only the public view), so it needs the phone app -->
         <meta-data
             android:name="com.google.android.wearable.standalone"
             android:value="false" />

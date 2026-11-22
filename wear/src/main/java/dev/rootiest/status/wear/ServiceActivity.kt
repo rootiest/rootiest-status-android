@@ -28,7 +28,6 @@ import androidx.wear.compose.material3.Text
 import dev.rootiest.status.data.BackupLine
 import dev.rootiest.status.data.Event
 import dev.rootiest.status.data.ServiceView
-import dev.rootiest.status.data.StatusCache
 import dev.rootiest.status.data.StatusView
 import dev.rootiest.status.data.eventsFor
 import dev.rootiest.status.data.service
@@ -45,8 +44,8 @@ class ServiceActivity : ComponentActivity() {
             var view by remember { mutableStateOf<StatusView?>(null) }
             var now by remember { mutableStateOf(Instant.now()) }
             LifecycleResumeEffect(Unit) {
-                view = StatusCache(this@ServiceActivity).load()
                 now = Instant.now()
+                view = Snapshots.saved(this@ServiceActivity, now)?.view
                 onPauseOrDispose {}
             }
             MaterialTheme { AppScaffold { view?.let { ServiceDetail(name, it.service(group, name), it.eventsFor(name), now) } } }

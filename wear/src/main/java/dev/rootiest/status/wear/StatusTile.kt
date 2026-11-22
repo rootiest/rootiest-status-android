@@ -23,7 +23,8 @@ import dev.rootiest.status.data.WatchSummary
 import dev.rootiest.status.data.watchSummary
 
 // The watch tile: the overall headline in its level's colour and the first few problems. A tap opens the full list
-// (StatusActivity). It is redrawn when a snapshot arrives from the phone (Snapshots.save), so it never fetches anything.
+// (StatusActivity). It is redrawn when a snapshot arrives from the phone (Snapshots.save) or the watch fetched the public status
+// itself (WatchFetchWorker); it never fetches anything while it draws.
 class StatusTile : TileService() {
     override fun onTileRequest(requestParams: RequestBuilders.TileRequest) = SuspendToFutureAdapter.launchFuture {
         val summary = Snapshots.latest(this@StatusTile)?.watchSummary()
