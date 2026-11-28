@@ -14,12 +14,17 @@ import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.rootiest.status.StatusUiState
 import dev.rootiest.status.data.Appearance
+import dev.rootiest.status.data.BackupLine
+import dev.rootiest.status.data.CheckView
 import dev.rootiest.status.data.ClockHours
 import dev.rootiest.status.data.Event
+import dev.rootiest.status.data.GroupView
 import dev.rootiest.status.data.HostView
+import dev.rootiest.status.data.MailTestLine
 import dev.rootiest.status.data.NotifyAfter
 import dev.rootiest.status.data.RefreshInterval
 import dev.rootiest.status.data.ServiceListMode
+import dev.rootiest.status.data.ServiceView
 import dev.rootiest.status.data.StatusApi
 import dev.rootiest.status.data.StatusCache
 import dev.rootiest.status.data.TimeFormat
@@ -116,6 +121,34 @@ class ScreenshotTest {
                 ),
             ),
         )
+    }
+
+    // Mail and Webmail as staff see them: each sub-check's state in its colour (IMAP down, with why), and the mail test that failed in
+    // yellow under the backup line; times as dates, so the picture does not change from one day to the next
+    private val mailGroup = GroupView(
+        "Mail",
+        listOf(
+            ServiceView(
+                Name = "Mail", Host = "mail.rootiest.dev", State = "up", Health = "unhealthy", Shown = "unhealthy", Uptime = "100.00% over 60 days",
+                Bar = public.Groups[0].Services[0].Bar,
+                Backup = BackupLine("Last backup 1 h ago", "ok", "2026-11-28T12:27:20Z", "Prometheus → Backblaze, 15.3 MiB"),
+                MailTest = MailTestLine("Last mail test 4 h ago", "warn", "2026-11-28T09:06:54Z", "failed: not delivered within 3 min"),
+                Checks = listOf(CheckView("SMTP submission", "up"), CheckView("IMAP", "down", "TLS: certificate expired on 2026-11-27")),
+            ),
+            ServiceView(
+                Name = "Webmail", Host = "webmail.rootiest.dev", State = "up", Health = "healthy", Shown = "healthy", Uptime = "99.86% over 60 days",
+                Bar = public.Groups[0].Services[0].Bar,
+                Backup = BackupLine("Last backup 1 h ago", "ok", "2026-11-28T12:27:20Z", "Prometheus → Backblaze, 3.7 MiB"),
+                Checks = listOf(CheckView("Login page", "up"), CheckView("RootiestID sign-in", "up")),
+            ),
+        ),
+    )
+    private val mailView = public.copy(Level = "warn", Headline = "1 service unhealthy", Groups = listOf(mailGroup))
+
+    @Test fun listMail() = shoot("list-mail") { list(StatusUiState(view = mailView, signedInAs = "Chris", viewFor = "Chris")) }
+
+    @Test fun serviceMail() = shoot("service-mail") {
+        ServiceScreen(StatusUiState(view = mailView), "Mail", "Mail", muted = false, onMute = {}, onRefresh = {}, onBack = {})
     }
 
     @Test fun serviceDetail() = shoot("service-notes") {

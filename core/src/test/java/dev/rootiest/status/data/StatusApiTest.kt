@@ -76,4 +76,49 @@ class StatusApiTest {
         // an older hub sends the text alone
         assertEquals("Last backup 3 h ago (x)", BackupLine("Last backup 3 h ago (x)", "ok").text(utc24, now))
     }
+
+    @Test
+    fun parsesTheMailTestAndChecks() {
+        // as rootiest-hub's MailTestView and CheckView encode them since #176; staff only, so the live signed-out answer has neither
+        val view = api.parse(
+            """{"Now":"x","Level":"ok","Headline":"h","Groups":[{"Name":"G","Services":[""" +
+                """{"Name":"Mail","State":"up","Health":"unhealthy","Shown":"unhealthy",""" +
+                """"MailTest":{"Text":"Last mail test 4 h ago (failed: not delivered within 3 min)","Level":"warn","At":"2026-11-28T09:06:54Z","Detail":"failed: not delivered within 3 min"},""" +
+                """"Checks":[{"Name":"SMTP submission","State":"up"},{"Name":"IMAP","State":"down","Reason":"TLS: certificate expired"},{"Name":"Sieve","State":"","Novel":1}]},""" +
+                """{"Name":"Webmail","State":"up","MailTest":{"Text":"Mail test off (no bot accounts set)","Level":"unknown"}},""" +
+                """{"Name":"Git","State":"up"}]}]}""",
+        )
+        val (mail, webmail, git) = view.Groups[0].Services
+        assertEquals(
+            MailTestLine("Last mail test 4 h ago (failed: not delivered within 3 min)", "warn", "2026-11-28T09:06:54Z", "failed: not delivered within 3 min"),
+            mail.MailTest,
+        )
+        assertEquals(
+            listOf(CheckView("SMTP submission", "up"), CheckView("IMAP", "down", "TLS: certificate expired"), CheckView("Sieve")),
+            mail.Checks,
+        )
+        assertEquals(listOf(CheckView("IMAP", "down", "TLS: certificate expired")), mail.failingChecks)
+        assertEquals(MailTestLine("Mail test off (no bot accounts set)", "unknown"), webmail.MailTest) // At and Detail empty
+        assertNull(git.MailTest) // absent: neither field
+        assertEquals(emptyList<CheckView>(), git.Checks)
+        assertEquals(emptyList<CheckView>(), git.failingChecks)
+    }
+
+    @Test
+    fun mailTestTimeFollowsTheTimesSetting() {
+        val now = java.time.Instant.parse("2026-11-28T13:06:54Z")
+        val line = MailTestLine("Last mail test 4 h ago (delivered in 4 s)", "ok", "2026-11-28T09:06:54Z", "delivered in 4 s")
+        val utc24 = TimeFormat(utc = true, hours = ClockHours.H24, date = DateStyle.Iso)
+        assertEquals("Last mail test 2026-11-28 09:06 UTC (delivered in 4 s)", line.text(utc24, now))
+        assertEquals("Last mail test 4 h ago (delivered in 4 s)", line.text(TimeFormat(style = TimeStyle.Relative), now))
+        // off, or not run yet: no time to write, so the hub's text
+        assertEquals("Last mail test unknown", MailTestLine("Last mail test unknown").text(utc24, now))
+    }
+
+    @Test
+    fun checksReadAsThePageWritesThem() {
+        assertEquals("SMTP submission up", CheckView("SMTP submission", "up").text)
+        assertEquals("IMAP down: TLS: certificate expired", CheckView("IMAP", "down", "TLS: certificate expired").text)
+        assertEquals("Login page unknown", CheckView("Login page").text) // before its first check
+    }
 }

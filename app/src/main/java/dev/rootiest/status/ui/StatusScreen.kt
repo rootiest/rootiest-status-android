@@ -368,7 +368,9 @@ private fun ServiceRow(service: ServiceView, onClick: () -> Unit) {
             Text(service.Uptime, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (service.Detail.isNotEmpty()) Text(service.Detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (service.Checks.isNotEmpty()) ChecksText(service.Checks)
         service.Backup?.let { BackupText(it) }
+        service.MailTest?.let { MailTestText(it) }
         Spacer(Modifier.height(6.dp))
         UptimeBar(service.Bar)
     }

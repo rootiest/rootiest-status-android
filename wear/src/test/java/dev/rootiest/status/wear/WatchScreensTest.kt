@@ -9,8 +9,10 @@ import androidx.wear.compose.material3.AppScaffold
 import androidx.wear.compose.material3.MaterialTheme
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.rootiest.status.data.BackupLine
+import dev.rootiest.status.data.CheckView
 import dev.rootiest.status.data.Event
 import dev.rootiest.status.data.GroupView
+import dev.rootiest.status.data.MailTestLine
 import dev.rootiest.status.data.ServiceView
 import dev.rootiest.status.data.StatusView
 import dev.rootiest.status.data.WatchShown
@@ -93,5 +95,34 @@ class WatchScreensTest {
         compose.setContent { MaterialTheme { AppScaffold(timeText = {}) { StatusList(view.copy(Events = listOf(change, message, older)), now) { _, _ -> } } } }
         compose.onNodeWithText("Earlier messages").assertIsDisplayed()
         compose.onRoot().captureRoboImage("src/test/screenshots/watch-list-whole.png")
+    }
+
+    // Compact on the watch: only the check that is down, with why, and the mail test only while it needs a look.
+    @Test
+    @Config(qualifiers = "w227dp-h700dp-notround-watch-xhdpi")
+    fun mailShowsAFailingCheckAndAMailTestThatNeedsALook() {
+        val mail = ServiceView(
+            Name = "Mail", Host = "mail.rootiest.dev", State = "up", Health = "unhealthy", Shown = "unhealthy", Uptime = "100.00% over 60 days",
+            MailTest = MailTestLine("Last mail test 3 h ago", "warn", "2026-11-09T09:10:00Z", "failed: not delivered within 3 min"),
+            Checks = listOf(CheckView("SMTP submission", "up"), CheckView("IMAP", "down", "TLS: certificate expired")),
+        )
+        compose.setContent { MaterialTheme { AppScaffold(timeText = {}) { ServiceDetail("Mail", mail, emptyList(), now) } } }
+        compose.onNodeWithText("IMAP down: TLS: certificate expired").assertIsDisplayed()
+        compose.onNodeWithText("SMTP submission", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Last mail test 3 h ago (failed: not delivered within 3 min)").assertIsDisplayed()
+        compose.onRoot().captureRoboImage("src/test/screenshots/watch-service-mail.png")
+    }
+
+    @Test
+    fun aMailTestThatPassedAndChecksThatAreUpStayOffTheWatch() {
+        val mail = ServiceView(
+            Name = "Mail", State = "up", Shown = "healthy",
+            MailTest = MailTestLine("Last mail test 3 h ago", "ok", "2026-11-09T09:10:00Z", "delivered in 4 s"),
+            Checks = listOf(CheckView("SMTP submission", "up"), CheckView("IMAP", "up")),
+        )
+        compose.setContent { MaterialTheme { AppScaffold(timeText = {}) { ServiceDetail("Mail", mail, emptyList(), now) } } }
+        compose.onNodeWithText("healthy").assertIsDisplayed()
+        compose.onNodeWithText("Last mail test", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("IMAP", substring = true).assertDoesNotExist()
     }
 }

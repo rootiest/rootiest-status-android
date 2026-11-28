@@ -26,6 +26,17 @@ The app shows the same snapshot as [status.rootiest.dev](https://status.rootiest
   allows (`Backup`, rootiest-hub's `BackupView`; also on the detail screen). Its time
   follows Settings > Times, built from the hub's `At` and `Detail`; a hub that sends
   only `Text` is shown as it is.
+- for staff, a service's sub-checks on one line under its detail, as the page writes them
+  ("SMTP submission up · IMAP up" under Mail, "Login page up · RootiestID sign-in up" under
+  Webmail; `Checks`, rootiest-hub's `CheckView`), each state in its colour, "unknown" in grey
+  before its first check, and why one is down after its state ("IMAP down: TLS: certificate
+  expired on ..."). A down check makes the service unhealthy while its `State` stays up; also
+  on the detail screen;
+- for staff, Mail's end-to-end mail test under the backup line ("Last mail test 4 h ago
+  (failed: not delivered within 3 min)"; `MailTest`, rootiest-hub's `MailTestView`, the same
+  shape as the backup's), coloured as the backup line: yellow when the last test failed or is
+  overdue, grey while the test is off or has not run (then the hub's text, such as "Mail test
+  off (no bot accounts set)"). Its time follows Settings > Times; also on the detail screen.
 
 **Messages** are what someone posted on the status page's Recent events list: the newest five
 of the last week that this viewer may read, with their severity and time, and for staff who
@@ -339,7 +350,8 @@ stale it fetches the public status itself (see **When the phone is away** below)
   problems first, as the phone's Problems first setting arranges them, and the earlier
   messages. Times are relative, as the watch has no Settings of its own.
 - **A service** (`ServiceActivity.kt`), opened by a tap on its row: its state, uptime,
-  detail, last backup, address and recent changes. A snapshot has to fit a 100 KB Data
+  detail, each sub-check that is down with why (in red; ones that are up are left out), last
+  backup, the mail test only while it is yellow (failed or overdue), address and recent changes. A snapshot has to fit a 100 KB Data
   Layer item, so `WatchSnapshot.encode` leaves out the 90-day uptime bars, the servers'
   notes and vitals, and every event but the recent messages and the services' changes.
 - **Installing**: the watch APK is `wear-rootiest-status-<version>.apk` on each release.
@@ -609,7 +621,7 @@ and notifications do. The phone and watch share the same drawables, written from
 comparison): JVM tests, no device needed, including the screen and screenshot tests below. The watch's are `WatchScreensTest`, with goldens in `wear/src/test/screenshots`.
 The `data/` tests live in `core/src/test`, with the JSON fixtures in
 `core/src/test/resources` (the app's screen tests read the same files). `StatusApiTest` parses `status-sample.json`, a saved signed-out
-answer from the live API, and checks that unknown fields are ignored and the backup line parses and follows the time setting. `ProblemsTest`
+answer from the live API, and checks that unknown fields are ignored, the backup line parses and follows the time setting, and the mail test and sub-checks parse with or without them (and with no time) and read as the page writes them. `ProblemsTest`
 covers what the widget lists and the Service list arrangements, `ChangesTest` what counts as a change and muting, `DampingTest` the outage delay, `TimesTest` the time formats and strftime fields, `WidgetContentTest` what each widget choice shows, `SupportTest` what Report an issue fills in, `AuthTest` the challenge (the same test vector as rootiest-hub's) and reading a token, `GuestTest` the email path (which links the app takes, each request's JSON, and the desk's real answers in `support-guest-*.json`: its guest form, a refusal, a used link with its token, and a used-up link), `TicketsTest` the support desk's answers (`support-tickets.json`, `support-thread.json`, `support-form.json` and the refusal `support-422.json`, written by rootiest-hub's own API handlers), how the client sends the sign-in and each request's JSON, and how it reads refusals, `MarkdownTest` how messages are drawn and which links open. `LookupsTest` runs
 the `data/Lookups.kt` functions against the same fixture (it relies on the fixture's
 Notes outage on 2026-10-27, so keep an answer with a service event when refreshing it). Refresh the
@@ -626,7 +638,7 @@ JVM with Robolectric and check what is on screen with Compose's test rule
 (`createComposeRule()`), so they run in the same `testDebugUnitTest` with no device or
 emulator. `StatusScreenTest` covers the status list: signing in shows the Servers section at
 the top (#32), Problems only with nothing down says so, a section's title sticks while its rows
-scroll, and a failed refresh keeps the list under its error banner. `SupportScreenTest`
+scroll, Mail's sub-checks (a down one with why) and mail test show under it, and a failed refresh keeps the list under its error banner. `SupportScreenTest`
 covers Support: the sign-in prompt and its link to create a RootiestID, no tickets, the list with whose turn it is, a thread with its
 Markdown drawn and staff replies from Rootiest Support, the reply box (its text kept until the
 desk takes the reply), closing, and the new-ticket form (Report an issue's prefill, the desk's
@@ -642,7 +654,7 @@ Check that a new test fails when the behaviour it guards is broken.
 ### Screenshot tests
 
 `ScreenshotTest` draws the status list (signed out and signed in as staff with a server and a
-service in trouble, dark and light), the Notes detail screen, Settings, Support (the ticket list, a thread, the new-ticket form as Report an issue fills it, the sign-in prompt, and the email path: its form, "check your inbox", and a guest's list), and the widget (each
+service in trouble, dark and light), the Notes detail screen, Mail and Webmail with a sub-check down and a failed mail test (the list and Mail's detail screen), Settings, Support (the ticket list, a thread, the new-ticket form as Report an issue fills it, the sign-in prompt, and the email path: its form, "check your inbox", and a guest's list), and the widget (each
 choice: everything, the servers, one group, and the small layout) and compares them with the
 golden images in `app/src/test/screenshots/`, using [Roborazzi](https://github.com/takahirom/roborazzi).
 `./tests/run-tests.sh` runs `verifyRoborazziDebug`, which is `testDebugUnitTest` with the
