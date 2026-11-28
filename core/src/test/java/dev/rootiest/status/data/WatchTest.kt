@@ -79,7 +79,7 @@ class WatchTest {
         val old = message("old", "2026-10-01T00:00:00Z")
         val full = StatusView(
             Now = now, Level = "ok", Headline = "All up",
-            Groups = listOf(GroupView("Code", listOf(ServiceView(Name = "Gitea", State = "up", Uptime = "99%", Detail = "d", Backup = BackupLine("b"), Bar = listOf(BarCell("d", "ok", "t")))))),
+            Groups = listOf(GroupView("Code", listOf(ServiceView(Name = "Gitea", State = "up", Uptime = "99%", Detail = "d", Backup = BackupLine("b"), MailTest = MailTestLine("m", "warn"), Checks = listOf(CheckView("IMAP", "down", "r")), Bar = listOf(BarCell("d", "ok", "t")))))),
             Events = listOf(message("a"), change, edge, old),
         )
         val sent = WatchSnapshot.decode(WatchSnapshot.encode(full))!!
@@ -87,6 +87,8 @@ class WatchTest {
         val service = sent.Groups[0].Services[0]
         assertEquals(emptyList<BarCell>(), service.Bar)
         assertEquals(listOf("99%", "d", "b"), listOf(service.Uptime, service.Detail, service.Backup!!.Text))
+        assertEquals(MailTestLine("m", "warn"), service.MailTest)
+        assertEquals(listOf(CheckView("IMAP", "down", "r")), service.Checks)
     }
 
     @Test

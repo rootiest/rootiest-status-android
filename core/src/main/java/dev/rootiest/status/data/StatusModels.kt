@@ -49,11 +49,31 @@ data class ServiceView(
     val Detail: String = "",
     val Planned: Boolean = false,
     val Backup: BackupLine? = null, // only for services that publish a backup report
+    val MailTest: MailTestLine? = null, // only for a service with an end-to-end mail test (Mail), and only for staff
+    val Checks: List<CheckView> = emptyList(), // its sub-checks ("SMTP submission", "IMAP"); a down one makes Shown unhealthy; staff only
     val Health: String = "", // its containers' health checks: healthy, unhealthy, starting, or "" (none known)
     val Shown: String = "", // what the page's pill and dot say: State, or healthy/starting for one that answers; "" from older hubs
 ) {
     // What to show for the service: the hub's Shown, or its State from a hub too old to send one.
     val shownState: String get() = Shown.ifEmpty { State }
+
+    // The sub-checks that are down, each with why: what the watch shows of them.
+    val failingChecks: List<CheckView> get() = Checks.filter { it.State == "down" }
+}
+
+// One sub-check under a service, as rootiest-hub's CheckView encodes it. State is "" before its first check; Reason is sent only
+// while it is down ("TLS: certificate expired on ...").
+@Serializable
+data class CheckView(
+    val Name: String,
+    val State: String = "",
+    val Reason: String = "",
+) {
+    // The state as the page writes it: "unknown" before the first check.
+    val shownState: String get() = State.ifEmpty { "unknown" }
+
+    // "IMAP up", or "IMAP down: TLS: certificate expired on ..." while it is down.
+    val text: String get() = "$Name $shownState" + if (Reason.isNotEmpty()) ": $Reason" else ""
 }
 
 // The line about a service's last backup, as the page shows it under the service ("Last backup 3 h ago (...)").
@@ -68,6 +88,20 @@ data class BackupLine(
     // The line with the time written by Settings > Times; the hub's own text when it sent no parts.
     fun text(times: TimeFormat, now: Instant): String =
         if (At.isBlank() || Detail.isBlank()) Text else "Last backup ${times.format(At, now)} ($Detail)"
+}
+
+// The line about a service's last end-to-end mail test, the same shape as BackupLine (rootiest-hub's MailTestView): "Last mail test 4 h
+// ago (failed: not delivered within 3 min)". At and Detail are empty while the test is off or has not run; Text then says so.
+@Serializable
+data class MailTestLine(
+    val Text: String,
+    val Level: String = "unknown", // ok, warn (failed, or older than the hub allows), unknown (off or not run yet)
+    val At: String = "",
+    val Detail: String = "",
+) {
+    // The line with the time written by Settings > Times; the hub's own text when it sent no parts.
+    fun text(times: TimeFormat, now: Instant): String =
+        if (At.isBlank() || Detail.isBlank()) Text else "Last mail test ${times.format(At, now)} ($Detail)"
 }
 
 @Serializable

@@ -33,7 +33,7 @@ import dev.rootiest.status.data.eventsFor
 import dev.rootiest.status.data.service
 import java.time.Instant
 
-// One service on the watch: its state, uptime, detail, last backup and recent changes, from the same saved snapshot as the list.
+// One service on the watch: its state, uptime, detail, failing checks, last backup, a mail test that needs a look and recent changes, from the same saved snapshot as the list.
 // An activity of its own, so the watch's swipe and back button leave it with no navigation library.
 class ServiceActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -84,7 +84,10 @@ internal fun ServiceDetail(name: String, service: ServiceView?, events: List<Eve
             item { Note(if (service.Planned) "${service.shownState} (planned)" else service.shownState, Color(levelColor(levelOf(service.shownState)))) }
             if (service.Uptime.isNotEmpty()) item { Note(service.Uptime, Muted) }
             if (service.Detail.isNotEmpty()) item { Note(service.Detail, Color.Unspecified) }
+            // compact: only the sub-checks that are down, with why, and the mail test only when it needs a look
+            service.failingChecks.forEach { check -> item { Note(check.text, Color(levelColor("bad"))) } }
             service.Backup?.let { backup -> item { Note(backup.text(WatchTimes, now), backupColor(backup)) } }
+            service.MailTest?.takeIf { it.Level == "warn" }?.let { test -> item { Note(test.text(WatchTimes, now), Color(levelColor("warn"))) } }
             if (service.Host.isNotEmpty()) item { Note(service.Host, Muted) }
             item { Section("Recent changes") }
             if (events.isEmpty()) {

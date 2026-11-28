@@ -12,9 +12,12 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import dev.rootiest.status.StatusUiState
+import dev.rootiest.status.data.BackupLine
+import dev.rootiest.status.data.CheckView
 import dev.rootiest.status.data.Event
 import dev.rootiest.status.data.GroupView
 import dev.rootiest.status.data.HostView
+import dev.rootiest.status.data.MailTestLine
 import dev.rootiest.status.data.ServiceListMode
 import dev.rootiest.status.data.ServiceView
 import dev.rootiest.status.data.StatusApi
@@ -123,6 +126,20 @@ class StatusScreenTest {
         compose.onNode(hasScrollAction()).performScrollToNode(hasText("Service 35"))
         compose.onNodeWithText("Service 1").assertDoesNotExist() // the title's own row has long scrolled away
         compose.onNodeWithText("Long group").assertIsDisplayed()
+    }
+
+    // Staff see Mail's sub-checks and its mail test under the backup line, as on the page; a down check says why.
+    @Test
+    fun mailShowsItsChecksAndMailTest() {
+        val mail = ServiceView(
+            Name = "Mail", State = "up", Health = "unhealthy", Shown = "unhealthy",
+            Backup = BackupLine("Last backup 1 h ago (Prometheus → Backblaze, 15.3 MiB)", "ok"),
+            MailTest = MailTestLine("Last mail test 4 h ago (failed: not delivered within 3 min)", "warn"),
+            Checks = listOf(CheckView("SMTP submission", "up"), CheckView("IMAP", "down", "TLS: certificate expired")),
+        )
+        show(StatusUiState(view = StatusView(Now = public.Now, Level = "warn", Headline = "1 service unhealthy", Groups = listOf(GroupView("Mail", listOf(mail))))))
+        compose.onNodeWithText("SMTP submission up · IMAP down: TLS: certificate expired").assertIsDisplayed()
+        compose.onNodeWithText("Last mail test 4 h ago (failed: not delivered within 3 min)").assertIsDisplayed()
     }
 
     @Test

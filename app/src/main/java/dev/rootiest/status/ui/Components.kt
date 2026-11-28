@@ -18,9 +18,14 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import dev.rootiest.status.data.BackupLine
 import dev.rootiest.status.data.BarCell
+import dev.rootiest.status.data.CheckView
+import dev.rootiest.status.data.MailTestLine
 import dev.rootiest.status.data.TimeFormat
 import dev.rootiest.status.ui.theme.palette
 import dev.rootiest.status.ui.theme.toneOf
@@ -71,13 +76,39 @@ internal fun UptimeBar(cells: List<BarCell>) {
 
 // A service's last backup, as the page shows it: yellow when older than the hub allows, grey when unknown.
 @Composable
-internal fun BackupText(backup: BackupLine) {
-    val color = when (backup.Level) {
+internal fun BackupText(backup: BackupLine) = ReportText(backup.text(LocalTimeFormat.current, Instant.now()), backup.Level)
+
+// A service's last mail test, coloured as the backup line: yellow when it failed or is overdue, grey when off or not run yet.
+@Composable
+internal fun MailTestText(test: MailTestLine) = ReportText(test.text(LocalTimeFormat.current, Instant.now()), test.Level)
+
+// A report line under a service (backup, mail test) in its level's colour.
+@Composable
+private fun ReportText(text: String, level: String) {
+    val color = when (level) {
         "ok" -> MaterialTheme.colorScheme.onSurfaceVariant
         "warn" -> palette.Yellow
         else -> palette.Overlay0
     }
-    Text(backup.text(LocalTimeFormat.current, Instant.now()), style = MaterialTheme.typography.bodySmall, color = color)
+    Text(text, style = MaterialTheme.typography.bodySmall, color = color)
+}
+
+// A service's sub-checks on one line, as the page shows them: "SMTP submission up · IMAP up", each state in its colour, and why a
+// check is down after its state.
+@Composable
+internal fun ChecksText(checks: List<CheckView>) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    val unknown = palette.Overlay0
+    val tones = checks.map { if (it.State.isEmpty()) unknown else toneOf(it.State) }
+    val line = buildAnnotatedString {
+        checks.forEachIndexed { i, check ->
+            if (i > 0) append(" · ")
+            append("${check.Name} ")
+            withStyle(SpanStyle(color = tones[i])) { append(check.shownState) }
+            if (check.Reason.isNotEmpty()) append(": ${check.Reason}")
+        }
+    }
+    Text(line, style = MaterialTheme.typography.bodySmall, color = muted)
 }
 
 // The Times setting, for every screen; App provides it.
